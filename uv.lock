@@ -11,6 +11,15 @@ members = [
 ]
 
 [[package]]
+name = "carla"
+version = "0.9.15"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/86/5a/74cf6657e5bb4b8ffe790ef92a01d7f44592a992d758c7053cd6bc75bd96/carla-0.9.15-cp310-cp310-manylinux_2_27_x86_64.whl", hash = "sha256:61449e33260f6a0cfd2f88d56f2463a5797a0b51bc46618beec07365422d4ad6", size = 31895950, upload-time = "2023-11-14T22:51:08.532Z" },
+    { url = "https://files.pythonhosted.org/packages/96/2e/211ca08509e0ec264df6547d6745917d5f9a5c62abae0fe48fc4300cf2a9/carla-0.9.15-cp310-cp310-win_amd64.whl", hash = "sha256:1ec9995169175f0d5e3e84762b7376214b72352ef006f22832d05c1380e62295", size = 4862744, upload-time = "2023-11-14T22:51:12.511Z" },
+]
+
+[[package]]
 name = "client"
 version = "0.1.0"
 source = { virtual = "apps/client" }
@@ -31,11 +40,15 @@ name = "root"
 version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "carla" },
     { name = "uv-build" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "uv-build", specifier = ">=0.8.10" }]
+requires-dist = [
+    { name = "carla", specifier = ">=0.9.15" },
+    { name = "uv-build", specifier = ">=0.8.10" },
+]
 
 [[package]]
 name = "server"
