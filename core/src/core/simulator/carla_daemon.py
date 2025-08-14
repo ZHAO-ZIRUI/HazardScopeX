@@ -26,7 +26,7 @@ class CarlaDaemon(object):
             fixed_delta_seconds: int = 0.1,
     ) -> None:
         """
-        :param cmd: CARLA Server 的启动命令, None 时进入被动模式 (Passive Mode)
+        :param cmd: CARLA Server 的启动命令, ``None`` 时进入被动模式 (Passive Mode)
         :param host: CARLA Server 的 FQDN
         :param port: CARLA Server 的端口号
         :param timeout: CARLA Client 连接 Server 的超时时间, 单位: 秒
@@ -176,7 +176,7 @@ class CarlaDaemon(object):
 
     def is_connected(self, *, timeout: float | None = None) -> bool:
         """
-        :param timeout: 覆盖类设置的 timeout 值, 用于快速连接检查. 取 0 时使用 2倍的 fixed_delta_seconds
+        :param timeout: 覆盖类设置的 timeout 值, 用于快速连接检查. 取 0 时使用 2倍的 ``fixed_delta_seconds``
         :return: CARLA 客户端与服务器之间的通信是否正常
         """
         try:
