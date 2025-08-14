@@ -6,11 +6,14 @@ class UniqueTagProvider:
     """
     全局单例且线程安全的递增数标签生成器
     """
-    
+
+    DEFAULT_HEADER = ''
+    DEFAULT_LENGTH = 2
+
     _instance: Optional['UniqueTagProvider'] = None
     _lock = threading.Lock()
     
-    def __new__(cls) -> 'UniqueTagProvider':
+    def __new__(cls, *args, **kwargs) -> 'UniqueTagProvider':
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -21,7 +24,7 @@ class UniqueTagProvider:
             self,
             *,
             header: str = None,
-            length: int = 2,
+            length: int = None,
     ) -> None:
         """
         :param header: 标签前缀
@@ -33,10 +36,10 @@ class UniqueTagProvider:
             self._counter_lock = threading.Lock()
             self._initialized = True
             # header 和 length 的设置只在第一次实例化时生效
-            self._header = header
-            self._length = length
+            self._header = header if header else UniqueTagProvider.DEFAULT_HEADER
+            self._length = length if length else UniqueTagProvider.DEFAULT_LENGTH
         else:
-            if self._header is not None or self._length is not None:
+            if header is not None or length is not None:
                 raise AttributeError("Length and header can only be set on the first initialization.")
     
     def __iter__(self):
@@ -55,3 +58,8 @@ class UniqueTagProvider:
         :return: 标签字符串
         """
         return self.__next__()
+
+if __name__ == '__main__':
+    UniqueTagProvider(header='ABC', length=4)
+    print(next(UniqueTagProvider()))
+    print(UniqueTagProvider().next())
