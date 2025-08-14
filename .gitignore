@@ -1,2 +1,5 @@
 # Ignore IDE files
 .idea/
+
+# Ignore Python venv
+.venv
