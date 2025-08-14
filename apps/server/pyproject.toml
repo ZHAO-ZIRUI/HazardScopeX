@@ -1,0 +1,9 @@
+[project]
+name = "server"
+version = "0.1.0"
+dependencies = [
+    "core"
+]
+
+[tool.uv.sources]
+core = { workspace = true }  # From local workspace
