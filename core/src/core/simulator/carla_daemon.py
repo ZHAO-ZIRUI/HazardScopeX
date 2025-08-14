@@ -219,8 +219,6 @@ class CarlaDaemon(object):
                 # 执行钩子: after_server_unexpected_exit
                 for func in self._hook_after_server_unexpected_exit:
                     func()
-            else:
-                print('OK')
 
     def _kill_server(self) -> None:
         """立刻杀死所有的 CARLA Server 进程"""
