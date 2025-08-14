@@ -58,8 +58,3 @@ class UniqueTagProvider:
         :return: 标签字符串
         """
         return self.__next__()
-
-if __name__ == '__main__':
-    UniqueTagProvider(header='ABC', length=4)
-    print(next(UniqueTagProvider()))
-    print(UniqueTagProvider().next())
