@@ -211,7 +211,7 @@ class CarlaDaemon(object):
             time.sleep(0.5 * self._fixed_delta_seconds)
 
             # 当 服务端应该处于运行状态下 但 测试连接失败时, 认为发生意外退出
-            if self._server is not None and not self.is_connected(timeout=0):
+            if self._server is not None and not self.is_connected():
                 self.logger.warning("CARLA server unexpected stop.")
                 self._thread_trigger_flag = False
 
@@ -238,8 +238,9 @@ class CarlaDaemon(object):
         for child in parent.children(recursive=True):
             child.kill()
 
-        # 等待杀死完成
+        # 等待杀死完成并进行后处理
         time.sleep(1)
+        self._server = None
 
     @property
     def hook_before_server_exit(self) -> List[Callable]:
