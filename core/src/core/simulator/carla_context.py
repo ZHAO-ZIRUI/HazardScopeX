@@ -7,9 +7,9 @@ from subprocess import Popen
 from threading import Thread
 
 
-class CarlaDaemon(object):
+class CarlaContext(object):
     """
-    CARLA 仿真器的守护进程, 管理仿真的生命周期和行为
+    CARLA 仿真器的上下文, 管理仿真的生命周期和行为
 
     该类提供两种模式, 以是否向 cmd 传递具体启动命令分类:
 
