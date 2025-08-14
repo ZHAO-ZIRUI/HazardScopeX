@@ -76,9 +76,13 @@ class CarlaDaemon(object):
         :raises TimeoutError: 尝试启动服务端超时
         """
         if self._cmd is None:
-            raise AttributeError("Trying to launch CARLA in passive mode. Set cmd to enable launch mode.")
+            msg = "Trying to launch CARLA in passive mode. Set cmd to enable launch mode."
+            self.logger.warning(msg)
+            raise AttributeError(msg)
         if self._server:
-            raise RuntimeError("CARLA server already running.")
+            msg = "CARLA server already running."
+            self.logger.warning(msg)
+            raise RuntimeError(msg)
 
         self._server = Popen(self._cmd, shell=True)
         self.logger.debug("CARLA server begin to launch.")
@@ -116,7 +120,9 @@ class CarlaDaemon(object):
         :raises AttributeError: 在被动模式下尝试关闭仿真器
         """
         if self._cmd is None:
-            raise AttributeError("Trying to terminate CARLA in passive mode. Set cmd to enable launch mode.")
+            msg = "Trying to terminate CARLA in passive mode. Set cmd to enable launch mode."
+            self.logger.warning(msg)
+            raise AttributeError(msg)
         if self._server is None:
             self.logger.warning("CARLA server already stopped.")
             return
