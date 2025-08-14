@@ -59,7 +59,7 @@ class CarlaDaemon(object):
 
         # 监听线程
         self._thread_trigger_flag = True
-        self._thread_trigger = Thread(target=self._thread_trigger_func, daemon=True)
+        self._thread_trigger: Thread | None = None
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._kill_server()
@@ -106,6 +106,7 @@ class CarlaDaemon(object):
 
         # 完成启动
         self._thread_trigger_flag = True
+        self._thread_trigger = Thread(target=self._thread_trigger_func, daemon=True)
         self._thread_trigger.start()
         self.logger.debug("CARLA server launched and ready")
 
@@ -122,7 +123,8 @@ class CarlaDaemon(object):
 
         # 退出触发线程
         self._thread_trigger_flag = False
-        self._thread_trigger.join()
+        if self._thread_trigger:
+            self._thread_trigger.join()
 
         # 执行钩子: before_server_exit
         for func in self._hook_before_server_exit:
