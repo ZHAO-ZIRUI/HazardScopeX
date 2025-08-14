@@ -43,14 +43,11 @@ class CarlaDaemon(object):
         # 实参
         self._cmd = cmd
         self._server: Popen | None = None
+        self._client: carla.Client | None = None
         self._host = host
         self._port = port
         self._timeout = timeout
         self._fixed_delta_seconds = fixed_delta_seconds
-
-        # 主客户端
-        self._client = carla.Client(self._host, self._port)
-        self._client.set_timeout(self._timeout)
 
         # 钩子
         self._hook_before_server_exit: List[Callable] = list()
@@ -97,16 +94,20 @@ class CarlaDaemon(object):
                 break
             except RuntimeError:
                 timer += 1
-                self.logger.debug(f'Waiting for CARLA server ready ... ({timer}/{self._timeout:.0f})')
+                self.logger.debug(f'Waiting for CARLA server launch ... ({timer}/{self._timeout:.0f})')
         else:
             # 达到最大超时时间
             msg = f"CARLA server still not ready in {self._timeout:.0f} seconds."
             self.logger.error(msg)
             raise TimeoutError(msg)
 
-        # 多等待 2 秒确保 CARLA 服务端通信以外的功能加载
-        self.logger.debug("Waiting additional 2 seconds for CARLA server ... ")
-        time.sleep(2)
+        # 设置主客户端
+        self._client = carla.Client(self._host, self._port)
+        self._client.set_timeout(self._timeout)
+
+        # 多等待 5 秒确保 CARLA 服务端通信以外的功能加载
+        self.logger.debug("Waiting additional 5 seconds for CARLA server ready ... ")
+        time.sleep(5)
 
         # 完成启动
         self._thread_trigger_flag = True
@@ -211,16 +212,15 @@ class CarlaDaemon(object):
             time.sleep(0.5 * self._fixed_delta_seconds)
 
             # 当 服务端应该处于运行状态下 但 测试连接失败时, 认为发生意外退出
-            if self._server is not None and not self.is_connected():
+            if self._server is not None and not self.is_connected(timeout=0.5):
                 self.logger.warning("CARLA server unexpected stop.")
                 self._thread_trigger_flag = False
 
                 # 执行钩子: after_server_unexpected_exit
                 for func in self._hook_after_server_unexpected_exit:
                     func()
-
-        # 意外退出后处理残留的状态, 避免 terminate_server() 正常执行
-        self._server = None
+            else:
+                print('OK')
 
     def _kill_server(self) -> None:
         """立刻杀死所有的 CARLA Server 进程"""
