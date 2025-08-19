@@ -4,7 +4,7 @@ import carla
 class CarlaUtils(object):
 
     @staticmethod
-    def print_short_tf(tf: carla.Transform) -> str:
+    def short_tf(tf: carla.Transform) -> str:
         """
         返回一个 Transform 的短字符串, 用于输出日志
         :param tf: ``carla.Transform`` 实例
