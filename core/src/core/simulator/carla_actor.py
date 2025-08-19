@@ -43,6 +43,19 @@ class CarlaActor(object):
         if self.is_alive:
             self.destroy()
 
+    def __str__(self):
+        return f"{self.name}#{self.id}"
+
+    @property
+    def id(self) -> int:
+        """
+        :return: Actor 在 CARLA Server 中的 id, 未激活状态返回 ``0``
+        """
+        if self.is_alive:
+            return self._actor.id
+        else:
+            return 0
+
     @property
     def name(self) -> str:
         """
