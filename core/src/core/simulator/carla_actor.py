@@ -126,6 +126,7 @@ class CarlaActor(object):
         # 执行
         if self.is_alive:
             self._actor.set_transform(transform)
+            self.logger.debug(f"Set transform to {CarlaUtils.short_tf(transform)}")
 
 
     def set_attribute(self, key: str, value: str | float | int) -> Self:
