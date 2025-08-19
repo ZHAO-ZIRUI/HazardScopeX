@@ -229,6 +229,10 @@ class CarlaActor(object):
         return self
 
     def destroy(self) -> None:
+        """
+        从 CARLA Server 中销毁当前 Actor
+        :return:
+        """
         if isinstance(self._actor, carla.Actor):
             self._actor.destroy()
             self._actor = None
