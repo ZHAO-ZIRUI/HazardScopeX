@@ -38,6 +38,11 @@ class CarlaActor(object):
         self._actor: carla.Actor | None = None
         self._tf_spawn: carla.Transform | None = None
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # 确保程序退出时, Actor 被销毁
+        if self.is_alive:
+            self.destroy()
+
     @property
     def name(self) -> str:
         """
