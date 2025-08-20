@@ -4,6 +4,7 @@ version = "0.0.0"
 requires-python = "==3.10.*" # Fit CARLA 0.9.15 Python version requirements.
 dependencies = [
     "carla>=0.9.15",
+    "numpy>=2.2.6",
     "psutil>=7.0.0",
     "rich>=14.1.0",
     "uv-build>=0.8.10",
