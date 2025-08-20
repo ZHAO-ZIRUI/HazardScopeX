@@ -79,6 +79,13 @@ class CarlaActor(object):
             return self._actor.is_active
         return False
 
+    @property
+    def actor(self) -> carla.Actor:
+        """
+        :return: 当前封装类所对应的 ``carla.Actor`` 实例, Actor 未 Spawn 或者已经被销毁时返回 ``None``
+        """
+        return self._actor
+
     def get_transform(self) -> carla.Transform | None:
         """
         获取当前 Actor 的 Transform, Actor 未存活时返回 ``None``
