@@ -74,8 +74,8 @@ class Image(IncomingData):
 
         # 生成实例
         instance = cls(
-            size_width=data.size_width,
-            size_height=data.size_height,
+            size_width=data.width,
+            size_height=data.height,
             data_format=cls.Format.BGRA8,
             data=img,
             frame_id=data.frame,
