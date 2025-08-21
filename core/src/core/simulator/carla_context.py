@@ -19,7 +19,7 @@ class CarlaContext(object):
 
     def __init__(
             self,
-            cmd: List[str] = None,
+            cmd: List[str] | str = None,
             host: str = 'localhost',
             port: int = 2000,
             timeout: int = 10,
@@ -76,6 +76,8 @@ class CarlaContext(object):
             msg = "Trying to launch CARLA in passive mode. Set cmd to enable launch mode."
             self.logger.warning(msg)
             raise AttributeError(msg)
+        if isinstance(self._cmd, str):
+            self._cmd = [self._cmd]
         if self._server:
             msg = "CARLA server already running."
             self.logger.warning(msg)
