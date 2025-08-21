@@ -31,7 +31,7 @@ class CarlaSensor(CarlaActor):
         """
         :return: 当前封装类所对应的 ``carla.Sensor`` 实例, Actor 未 Spawn 或者已经被销毁时返回 ``None``
         """
-        return super()._actor
+        return self._actor
 
     def destroy(self) -> None:
         """
