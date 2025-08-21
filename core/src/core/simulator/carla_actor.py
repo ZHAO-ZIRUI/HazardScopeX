@@ -271,7 +271,7 @@ class CarlaActor(object):
         if name:
             return name
         result = self.__class__.__name__
-        result += UniqueTagProvider()
+        result += next(UniqueTagProvider())
         return result
 
     @staticmethod
