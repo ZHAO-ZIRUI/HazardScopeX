@@ -214,7 +214,8 @@ class CarlaActor(object):
             self.logger.debug(f'Transform overrides happened when spawning actor')
 
         # 处理蓝图
-        self._blueprint.set_attribute('role_name', self.name)
+        if self._blueprint.has_attribute('role_name'):
+            self._blueprint.set_attribute('role_name', self.name)
 
         # 处理 Attach To
         attach_target = None
