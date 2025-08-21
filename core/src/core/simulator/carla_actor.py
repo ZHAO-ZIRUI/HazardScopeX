@@ -229,7 +229,7 @@ class CarlaActor(object):
         if self._actor is None:
             raise RuntimeError(f'Spawn failed')
         else:
-            self.logger.debug(f'Spawn succeeded at {CarlaUtils.short_tf(self._actor.role_name)}')
+            self.logger.debug(f'Spawn succeeded at {CarlaUtils.short_tf(transform)}')
 
         # 记录 Spawn 时的 Transform
         self._tf_spawn = transform
