@@ -224,7 +224,7 @@ class CarlaActor(object):
             attach_target = attach._actor
 
         # 执行 Spawn
-        self._actor = self._world.try_spawn_actor(self._blueprint, self._tf_spawn, attach_to=attach_target)
+        self._actor = self._world.try_spawn_actor(self._blueprint, transform, attach_to=attach_target)
         if self._actor is None:
             raise RuntimeError(f'Spawn failed')
         else:
