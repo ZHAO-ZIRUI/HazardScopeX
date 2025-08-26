@@ -234,7 +234,7 @@ class CarlaContext(object):
         """
         if force and platform.system() == 'Windows':
             cmd_base = ['taskkill', '/F', '/T', '/IM']
-            cmd_kill_main = [*cmd_base, 'CarlaUE4.ex']
+            cmd_kill_main = [*cmd_base, 'CarlaUE4.exe']
             cmd_kill_shipping = [*cmd_base, 'CarlaUE4-Win64-Shipping.exe']
             Popen(cmd_kill_main, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
             Popen(cmd_kill_shipping, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
