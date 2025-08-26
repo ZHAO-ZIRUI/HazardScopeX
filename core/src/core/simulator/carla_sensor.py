@@ -1,11 +1,15 @@
 import carla
 from typing_extensions import Self
+from threading import Lock
+from abc import ABC, abstractmethod
+from typing import Callable, List
 
 from .carla_actor import CarlaActor
 from .carla_context import CarlaContext
+from ..data import IncomingData
 
 
-class CarlaSensor(CarlaActor):
+class CarlaSensor(CarlaActor, ABC):
     """
     对 ``carla.Sensor`` 的高级行为进行二次封装
     """
@@ -25,6 +29,10 @@ class CarlaSensor(CarlaActor):
         :param log_level: 日志等级, 对日志的对象级控制
         """
         super().__init__(world, blueprint, name=name, log_level=log_level)
+        self._data: IncomingData | None= None
+        self._data_lock = Lock()
+        self._hook_after_senser_data_recv: List[Callable] = list()
+        self._hook_after_senser_data_ready: List[Callable] = list()
 
     @property
     def actor(self) -> carla.Sensor:
@@ -32,6 +40,17 @@ class CarlaSensor(CarlaActor):
         :return: 当前封装类所对应的 ``carla.Sensor`` 实例, Actor 未 Spawn 或者已经被销毁时返回 ``None``
         """
         return self._actor
+
+    def get_data(self) -> IncomingData:
+        """
+        获取最新的数据, 在 Sensor 不正常工作时可能返回 ``None``
+
+        该方法加锁以避免在数据处理过程中被读取, 注意可能会发生阻塞
+
+        :return: ``IncomingData`` 的子类实例
+        """
+        with self._data_lock:
+            return self._data
 
     def destroy(self) -> None:
         """
@@ -69,5 +88,22 @@ class CarlaSensor(CarlaActor):
         """
         数据监听的回调函数
         :param data: ``carla.SensorData`` 类型
+        """
+        self._data = self._format_incoming_data(data)
+
+        # 拉起传感器后处理的钩子
+        for func in self._hook_after_senser_data_recv:
+            self._data = func(data)
+
+        # 拉起传感器数据准备好的钩子
+        for func in self._hook_after_senser_data_ready:
+            self._data = func(data)
+
+    @abstractmethod
+    def _format_incoming_data(self, data: carla.SensorData) -> IncomingData:
+        """
+        将 CARLA 传入的数据整理为项目中的统一数据类型
+        :param data: ``carla.SensorData`` 或其派生
+        :return: ``IncomingData`` 或其派生
         """
         raise NotImplementedError()
