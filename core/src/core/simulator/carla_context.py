@@ -1,9 +1,10 @@
 import carla
 import psutil
 import time
+import platform
 from logging import getLogger
 from typing import List, Callable
-from subprocess import Popen
+from subprocess import Popen, DEVNULL
 from threading import Thread
 
 
@@ -65,9 +66,10 @@ class CarlaContext(object):
     def world(self) -> carla.World:
         return self._client.get_world()
 
-    def launch_server(self) -> None:
+    def launch_server(self, force = True) -> None:
         """
         启动仿真器进程
+        :param force: 是否在启动前强制退出系统中的残留 CARLA 进程, 默认为 ``True``
         :raises AttributeError: 在被动模式下尝试启动仿真器
         :raises RuntimeError: 尝试重复启动服务端
         :raises TimeoutError: 尝试启动服务端超时
@@ -82,6 +84,10 @@ class CarlaContext(object):
             msg = "CARLA server already running."
             self.logger.warning(msg)
             raise RuntimeError(msg)
+
+        # 执行强制关闭
+        if force:
+            self._kill_server(force=True)
 
         self._server = Popen(self._cmd, shell=True)
         self.logger.debug("CARLA server begin to launch.")
@@ -222,8 +228,27 @@ class CarlaContext(object):
                 for func in self._hook_after_server_unexpected_exit:
                     func()
 
-    def _kill_server(self) -> None:
-        """立刻杀死所有的 CARLA Server 进程"""
+    def _kill_server(self, force = False) -> None:
+        """
+        立刻杀死所有的 CARLA Server 进程
+        :param force: 是否使用系统级命令强行杀死服务进程, 使用改方法时会绕过对服务状态的检查. 在 Windows 下使用 ``taskkill``,
+        在 ``Linux`` 下使用 ``pkill``
+        """
+        if force and platform.system() == 'Windows':
+            cmd_base = ['taskkill', '/F', '/T', '/IM']
+            cmd_kill_main = [*cmd_base, 'CarlaUE4.ex']
+            cmd_kill_shipping = [*cmd_base, 'CarlaUE4-Win64-Shipping.exe']
+            Popen(cmd_kill_main, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
+            Popen(cmd_kill_shipping, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
+            return
+        if force and platform.system() == 'Linux':
+            cmd_base = ['pkill', '-f']
+            cmd_kill_carla = [*cmd_base, 'CarlaUE4']
+            cmd_kill_shipping = [*cmd_base, 'CarlaUE4-Linux-Shipping']
+            Popen(cmd_kill_carla, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
+            Popen(cmd_kill_shipping, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
+            return
+
         if self._server is None:
             return
 
