@@ -2,7 +2,7 @@ import carla
 from logging import getLogger
 from typing_extensions import Self
 
-from core.simulator import CarlaContext, CarlaUtils
+from core.simulator import CarlaContext, CarlaUtils, CarlaBlueprints
 from core.utils import UniqueTagProvider
 
 
@@ -14,7 +14,7 @@ class CarlaActor(object):
     def __init__(
             self,
             world: carla.World | CarlaContext,
-            blueprint: carla.ActorBlueprint | str,
+            blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
             name: str | None = None,
             log_level: int | None = None,
@@ -247,15 +247,17 @@ class CarlaActor(object):
             self._tf_spawn = None
             self.logger.debug(f'Destroyed by user')
 
-    def _resolve_blueprint(self, bp: carla.ActorBlueprint | str) -> carla.ActorBlueprint:
+    def _resolve_blueprint(self, bp: carla.ActorBlueprint | str | CarlaBlueprints) -> carla.ActorBlueprint:
         """
         对蓝图进行解析, 得到确定的 ``carla.ActorBlueprint``
         :param bp: 可能得到 ``carla.ActorBlueprint`` 的多种输入类型
         :return: ``carla.ActorBlueprint`` 实例
         """
+        if isinstance(bp, CarlaBlueprints):
+            bp = str(bp.value)
         if isinstance(bp, carla.ActorBlueprint):
             return bp
-        elif isinstance(bp, str):
+        if isinstance(bp, str):
             result = self._world.get_blueprint_library().find(bp)
             if not result:
                 msg = f"Can not found blueprint '{bp}' in current world's blueprint library"
