@@ -1,15 +1,14 @@
 import carla
 from typing_extensions import Self
 from threading import Lock
-from abc import ABC, abstractmethod
 from typing import Callable, List
 
 from .carla_actor import CarlaActor
 from .carla_context import CarlaContext
-from ..data import IncomingData
+from ..data import IncomingData, Image
 
 
-class CarlaSensor(CarlaActor, ABC):
+class CarlaSensor(CarlaActor):
     """
     对 ``carla.Sensor`` 的高级行为进行二次封装
     """
@@ -99,14 +98,14 @@ class CarlaSensor(CarlaActor, ABC):
         for func in self._hook_after_senser_data_ready:
             self._data = func(self._data)
 
-    @abstractmethod
     def _format_incoming_data(self, data: carla.SensorData) -> IncomingData:
         """
         将 CARLA 传入的数据整理为项目中的统一数据类型
         :param data: ``carla.SensorData`` 或其派生
         :return: ``IncomingData`` 或其派生
         """
-        raise NotImplementedError()
+        if isinstance(data, carla.Image):
+            return Image.from_carla(data)
 
     @property
     def hook_after_senser_data_recv(self) -> List[Callable]:
