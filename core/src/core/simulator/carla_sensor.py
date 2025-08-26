@@ -102,8 +102,9 @@ class CarlaSensor(CarlaActor):
         :param data: ``carla.SensorData`` 或其派生
         :return: ``IncomingData`` 或其派生
         """
-        if isinstance(data, carla.Image):
+        if isinstance(data, carla.Image) and (self._blueprint.id == CarlaBlueprints.SENSOR_CAMERA_RGB.value):
             return Image.from_carla(data)
+        raise NotImplementedError("Current sensor data or type not supported yet.")
 
     @property
     def hook_after_senser_data_recv(self) -> List[Callable]:
