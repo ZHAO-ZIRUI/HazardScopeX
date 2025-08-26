@@ -34,13 +34,14 @@ class PointCloud(IncomingData):
     @classmethod
     def from_carla(cls, data: carla.LidarMeasurement) -> 'PointCloud':
         # 将 data.raw_data 转换为 Nx4 (x, y, z, intensity)
-        count_point = data.get_point_count()
+        points_per_channel = [data.get_point_count(i) for i in range(data.channels)]
+        count_point = sum(points_per_channel)
         pc = np.frombuffer(data.raw_data, dtype=np.float32)
         pc = pc.reshape(count_point, 4)
         pc = pc.copy()
 
         # 将 Channel 编码成 Nx5 (x, y, z, intensity, channel)
-        channel_col = np.repeat(np.arange(data.channels), [data.get_point_count(i) for i in range(data.channels)])
+        channel_col = np.repeat(np.arange(data.channels), points_per_channel)
         channel_col = channel_col.astype(np.float32).reshape(-1, 1)
         pc = np.hstack((pc, channel_col))
 
