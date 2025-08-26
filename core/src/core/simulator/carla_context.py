@@ -91,6 +91,8 @@ class CarlaContext(object):
 
         self._server = Popen(self._cmd, shell=True)
         self.logger.debug("CARLA server begin to launch.")
+        self.logger.debug("Waiting 10 seconds for CARLA server ready ... ")
+        time.sleep(10)
 
         # 建立一个临时 Client 等待 Server 可用
         temp_client = carla.Client(self._host, self._port)
@@ -102,7 +104,7 @@ class CarlaContext(object):
                 break
             except RuntimeError:
                 timer += 1
-                self.logger.debug(f'Waiting for CARLA server launch ... ({timer}/{self._timeout:.0f})')
+                self.logger.debug(f'Waiting for CARLA server ready ... ({timer}/{self._timeout:.0f})')
         else:
             # 达到最大超时时间
             msg = f"CARLA server still not ready in {self._timeout:.0f} seconds."
@@ -112,10 +114,6 @@ class CarlaContext(object):
         # 设置主客户端
         self._client = carla.Client(self._host, self._port)
         self._client.set_timeout(self._timeout)
-
-        # 多等待 5 秒确保 CARLA 服务端通信以外的功能加载
-        self.logger.debug("Waiting additional 5 seconds for CARLA server ready ... ")
-        time.sleep(5)
 
         # 完成启动
         self._thread_trigger_flag = True
