@@ -3,10 +3,8 @@ from typing_extensions import Self
 from threading import Lock
 from typing import Callable, List
 
-from .carla_actor import CarlaActor
-from .carla_context import CarlaContext
-from ..data import IncomingData, Image
-
+from core.simulator import CarlaActor, CarlaContext, CarlaBlueprints
+from core.data import IncomingData, Image
 
 class CarlaSensor(CarlaActor):
     """

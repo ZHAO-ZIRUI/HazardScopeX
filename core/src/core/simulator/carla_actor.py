@@ -2,8 +2,8 @@ import carla
 from logging import getLogger
 from typing_extensions import Self
 
-from core.simulator import CarlaContext, CarlaUtils, CarlaBlueprints
 from core.utils import UniqueTagProvider
+from core.simulator import  CarlaBlueprints, CarlaContext, CarlaUtils
 
 
 class CarlaActor(object):
