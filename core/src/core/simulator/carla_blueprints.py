@@ -7,3 +7,4 @@ class CarlaBlueprints(Enum):
     """
 
     SENSOR_CAMERA_RGB = "sensor.camera.rgb"
+    SENSOR_LIDAR_RAY_CAST = "sensor.lidar.ray_cast"

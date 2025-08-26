@@ -4,7 +4,7 @@ from threading import Lock
 from typing import Callable, List
 
 from core.simulator import CarlaActor, CarlaContext, CarlaBlueprints
-from core.data import IncomingData, Image
+from core.data import IncomingData, Image, PointCloud
 
 class CarlaSensor(CarlaActor):
     """
@@ -94,7 +94,7 @@ class CarlaSensor(CarlaActor):
 
         # 拉起传感器数据准备好的钩子
         for func in self._hook_after_senser_data_ready:
-            self._data = func(self._data)
+            func(self._data)
 
     def _format_incoming_data(self, data: carla.SensorData) -> IncomingData:
         """
@@ -104,6 +104,8 @@ class CarlaSensor(CarlaActor):
         """
         if isinstance(data, carla.Image) and (self._blueprint.id == CarlaBlueprints.SENSOR_CAMERA_RGB.value):
             return Image.from_carla(data)
+        if isinstance(data, carla.LidarMeasurement) and (self._blueprint.id == CarlaBlueprints.SENSOR_LIDAR_RAY_CAST.value):
+            return PointCloud.from_carla(data)
         raise NotImplementedError("Current sensor data or type not supported yet.")
 
     @property
