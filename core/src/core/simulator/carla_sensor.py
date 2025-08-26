@@ -93,11 +93,11 @@ class CarlaSensor(CarlaActor, ABC):
 
         # 拉起传感器后处理的钩子
         for func in self._hook_after_senser_data_recv:
-            self._data = func(data)
+            self._data = func(self._data)
 
         # 拉起传感器数据准备好的钩子
         for func in self._hook_after_senser_data_ready:
-            self._data = func(data)
+            self._data = func(self._data)
 
     @abstractmethod
     def _format_incoming_data(self, data: carla.SensorData) -> IncomingData:
