@@ -18,6 +18,7 @@ class IncomingData(ABC):
         self.frame_id : int = frame_id
         self.timestamp_sim : float = timestamp_sim
         self.timestamp_os : float = time.time()
+        self._data = None
 
     @classmethod
     @abstractmethod
