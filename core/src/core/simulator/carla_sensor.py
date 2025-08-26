@@ -107,3 +107,11 @@ class CarlaSensor(CarlaActor, ABC):
         :return: ``IncomingData`` 或其派生
         """
         raise NotImplementedError()
+
+    @property
+    def hook_after_senser_data_recv(self) -> List[Callable]:
+        return self._hook_after_senser_data_recv
+
+    @property
+    def hook_after_senser_data_ready(self) -> List[Callable]:
+        return self._hook_after_senser_data_ready
