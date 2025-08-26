@@ -14,7 +14,7 @@ class CarlaSensor(CarlaActor):
     def __init__(
             self,
             world: carla.World | CarlaContext,
-            blueprint: carla.ActorBlueprint | str,
+            blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
             name: str | None = None,
             log_level: int | None = None,
