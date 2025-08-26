@@ -22,7 +22,7 @@ class CarlaContext(object):
             cmd: List[str] | str = None,
             host: str = 'localhost',
             port: int = 2000,
-            timeout: int = 10,
+            timeout: int = 30,
             fixed_delta_seconds: int = 0.1,
     ) -> None:
         """
