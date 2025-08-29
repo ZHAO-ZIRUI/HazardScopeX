@@ -262,7 +262,9 @@ class CarlaVehicle(CarlaActor):
             -1.0 * self._added_force.y,
             -1.0 * self._added_force.z
         )
-        self.actor.add_force(counteract_force_vector)
+        if isinstance(self._added_force, carla.Vector3D):
+            self.actor.add_force(counteract_force_vector)
+            self._added_force = None
 
         self.logger.debug('Apply full stop')
         return self
