@@ -16,6 +16,7 @@ class CarlaActor(object):
             world: carla.World | CarlaContext,
             blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
+            tf: carla.Transform | None = None,
             name: str | None = None,
             log_level: int | None = None,
     ) -> None:
@@ -24,6 +25,7 @@ class CarlaActor(object):
         :param blueprint: 蓝图
         :param name: 名称, 为 ``None`` 时自动指定
         :param log_level: 日志等级, 对日志的对象级控制
+        :param tf: Actor 生成时的默认坐标, 为 ``None`` 时需要在 ``spawn()`` 时指定
         """
         # 名称优先于日志被确定, 防止日志初始化失败
         self._name = self._resolve_name(name)
@@ -36,7 +38,7 @@ class CarlaActor(object):
         self._world = self._resolve_world(world)
         self._blueprint = self._resolve_blueprint(blueprint)
         self._actor: carla.Actor | None = None
-        self._tf_spawn: carla.Transform | None = None
+        self._tf_spawn: carla.Transform | None = tf
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # 确保程序退出时, Actor 被销毁
@@ -206,12 +208,23 @@ class CarlaActor(object):
         :raises RuntimeError: CARLA 服务器无法正常 Spawn Actor 时引发该异常
         """
         # 解析 Transform 覆写
-        transform = self._resolve_transform_override(transform, x, y, z, yaw, pitch, roll)
+        tf = None
+        is_tf_override = False
+
+        if isinstance(self._tf_spawn, carla.Transform):
+            tf = self._tf_spawn
+        if isinstance(transform, carla.Transform):
+            if isinstance(tf, carla.Transform):
+                is_tf_override = True
+            tf = transform
+        tf = self._resolve_transform_override(tf, x, y, z, yaw, pitch, roll)
 
         # 如果发生了覆写, 打印一个日志
         overrides = (x, y, z, yaw, pitch, roll)
         if any(i is not None for i in overrides):
-            self.logger.debug(f'Transform overrides happened when spawning actor')
+            is_tf_override = True
+        if is_tf_override:
+            self.logger.debug(f'Transform direct overrides when calling spawn()')
 
         # 处理蓝图
         if self._blueprint.has_attribute('role_name'):
@@ -225,14 +238,15 @@ class CarlaActor(object):
             attach_target = attach._actor
 
         # 执行 Spawn
-        self._actor = self._world.try_spawn_actor(self._blueprint, transform, attach_to=attach_target)
+        self._actor = self._world.try_spawn_actor(self._blueprint, tf, attach_to=attach_target)
         if self._actor is None:
             raise RuntimeError(f'Spawn failed')
         else:
-            self.logger.debug(f'Spawn succeeded at {CarlaUtils.short_tf(transform)}')
+            self.logger.debug(f'Spawn succeeded at {CarlaUtils.short_tf(tf)}')
 
-        # 记录 Spawn 时的 Transform
-        self._tf_spawn = transform
+        # 更新初始化 Transform
+        if is_tf_override or self._tf_spawn is None:
+            self._tf_spawn = tf
 
         return self
 
