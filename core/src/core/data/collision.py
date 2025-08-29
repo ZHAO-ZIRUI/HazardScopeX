@@ -20,11 +20,12 @@ class Collision(IncomingData):
 
     @property
     def other_id(self) -> int:
-        """碰撞"""
+        """碰撞目标的 Actor ID"""
         return self._data[0]
 
     @property
     def other_bp_name(self) -> str:
+        """碰撞目标的蓝图 ID"""
         return self._data[1]
 
     @property
