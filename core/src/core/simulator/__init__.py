@@ -1,4 +1,5 @@
 from .carla_blueprints import CarlaBlueprints
+from .carla_vehicle_performance import CarlaVehiclePerformance
 from .carla_context import CarlaContext
 from .carla_utils import CarlaUtils
 from .carla_actor import CarlaActor
