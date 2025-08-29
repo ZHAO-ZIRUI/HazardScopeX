@@ -101,6 +101,7 @@ class CarlaActor(object):
         """
         return self._actor
 
+    @require_actor_alive
     def get_transform(self) -> carla.Transform | None:
         """
         获取当前 Actor 的 Transform, Actor 未存活时返回 ``None``
