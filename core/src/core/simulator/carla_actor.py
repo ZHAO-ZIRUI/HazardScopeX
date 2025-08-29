@@ -1,6 +1,7 @@
 import carla
 from logging import getLogger
 from typing_extensions import Self
+from functools import wraps
 
 from core.utils import UniqueTagProvider
 from core.simulator import  CarlaBlueprints, CarlaContext, CarlaUtils
@@ -10,6 +11,18 @@ class CarlaActor(object):
     """
     对 ``carla.Actor`` 的二次封装, 提供便利工具
     """
+
+    @staticmethod
+    def require_actor_alive(func):
+        """检查 Actor 是否可用的装饰器"""
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self._actor is None:
+                raise RuntimeError(f'Actor "{self.name}" not spawned yet. Call spawn() first.')
+            if not self._actor.is_alive:
+                raise RuntimeError(f'Actor "{self.name}" is not alive anymore.')
+            return func(self, *args, **kwargs)
+        return wrapper
 
     def __init__(
             self,
@@ -341,3 +354,4 @@ class CarlaActor(object):
             transform.rotation.roll = roll
 
         return transform
+
