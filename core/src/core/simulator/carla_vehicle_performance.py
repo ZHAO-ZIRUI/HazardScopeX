@@ -45,9 +45,9 @@ class CarlaVehiclePerformance:
         # 计算刹车力的单位向量, 方向与速度方向相反
         velocity_length = math.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
         unit_vector = carla.Vector3D(
-            -velocity.x / velocity_length,
-            -velocity.y / velocity_length,
-            -velocity.z / velocity_length
+            -1.0 * velocity.x / velocity_length,
+            -1.0 * velocity.y / velocity_length,
+            -1.0 * velocity.z / velocity_length
         )
 
         # 如果速度低于阈值, 直接返回一个0向量以避免车辆因为力的计算在一个 tick 中瞬间改变运动方向
