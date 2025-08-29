@@ -23,7 +23,7 @@ class IncomingData(ABC):
     @abstractmethod
     def from_carla(cls, data: carla.SensorData) -> Self:
         """
-        从 CARLA 的数据帧 ``carla.Image`` 中解析数据
+        从 CARLA 的数据帧 ``carla.SensorData`` 中解析数据
         :param data: CARLA Server 返回的数据
         :return: 对象实例
         """
