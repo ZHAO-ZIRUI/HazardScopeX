@@ -4,7 +4,8 @@ from threading import Lock
 from typing import Callable, List
 
 from core.simulator import CarlaActor, CarlaContext, CarlaBlueprints
-from core.data import IncomingData, Image, PointCloud
+from core.data import IncomingData, Image, PointCloud, Collision
+
 
 class CarlaSensor(CarlaActor):
     """
@@ -112,6 +113,8 @@ class CarlaSensor(CarlaActor):
             return Image.from_carla(data)
         if isinstance(data, carla.LidarMeasurement) and (self._blueprint.id == CarlaBlueprints.SENSOR_LIDAR_RAY_CAST.value):
             return PointCloud.from_carla(data)
+        if isinstance(data, carla.CollisionEvent) and (self._blueprint.id == CarlaBlueprints.SENSOR_OTHER_COLLISION.value):
+            return Collision.from_carla(data)
         raise NotImplementedError("Current sensor data or type not supported yet.")
 
     @property
