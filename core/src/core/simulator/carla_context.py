@@ -68,7 +68,7 @@ class CarlaContext(object):
 
     @property
     def traffic_manager(self) -> carla.TrafficManager:
-        return self._client.get_traffic_manager()
+        return self._client.get_trafficmanager()
 
     @property
     def is_sync_mode(self) -> bool:
