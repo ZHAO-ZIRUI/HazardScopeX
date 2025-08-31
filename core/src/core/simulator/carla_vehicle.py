@@ -184,6 +184,33 @@ class CarlaVehicle(CarlaActor):
             self.apply_full_stop()
 
     @CarlaActor.require_actor_alive
+    @CarlaActor.require_sync_mode
+    def wait_all_sensor_data_ready(self) -> Self:
+        """
+        阻塞等待全部的传感器处理完成, 该方法仅限在同步模式下使用
+        :return: ``self`` 以支持链式调用
+        """
+        latest_frame_id = 0
+
+        # 确定监听的传感器, 排除事件触发型的传感器
+        sensors: List[CarlaSensor] = list()
+        for sensor in self._sensors:
+            if sensor.blueprint.id in CarlaBlueprints.event_sensor_blueprints:
+                continue
+            sensors.append(sensor)
+
+        while True:
+            # 确定最新的 frame id
+            for sensor in sensors:
+                latest_frame_id = max(latest_frame_id, sensor.get_data().frame_id)
+
+            # 确保所有的数据 frame id 与最新的 frame id 一致
+            flag = all(sensor.get_data().frame_id == latest_frame_id for sensor in sensors)
+            if flag:
+                break
+        return self
+
+    @CarlaActor.require_actor_alive
     def apply_carla_direct_control(
             self,
             throttle: float = 0.0,
