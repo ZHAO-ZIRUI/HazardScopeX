@@ -275,6 +275,43 @@ class CarlaActor(object):
             self._tf_spawn = None
             self.logger.debug(f'Destroyed by user')
 
+    @require_actor_alive
+    def wait_stable(
+            self,
+            threshold = 0.0001,
+    ) -> Self:
+        """
+        等待 Actor 生成后下落到稳定状态
+        :param threshold: Actor 的坐标浮动阈值
+        :return: ``self`` 以支持链式调用
+        """
+        # 确定是否需要进行 tick
+        should_tick = True if self._world.get_settings().synchronous_mode else False
+
+        # 等待循环
+        tf_last_tick = carla.Transform()
+        while True:
+            tf_this_tick = self.actor.get_transform()
+
+            # 判断是否已经稳定
+            if (
+                    abs(tf_this_tick.location.x - tf_last_tick.location.x) < threshold and
+                    abs(tf_this_tick.location.y - tf_last_tick.location.y) < threshold and
+                    abs(tf_this_tick.location.z - tf_last_tick.location.z) < threshold
+            ):
+                break
+
+            # 更新
+            tf_last_tick = tf_this_tick
+
+            # 执行 tick 或等待 tick
+            if should_tick:
+                self._world.tick()
+            else:
+                self._world.wait_for_tick()
+
+        return Self
+
     def _resolve_blueprint(self, bp: carla.ActorBlueprint | str | CarlaBlueprints) -> carla.ActorBlueprint:
         """
         对蓝图进行解析, 得到确定的 ``carla.ActorBlueprint``
@@ -355,4 +392,3 @@ class CarlaActor(object):
             transform.rotation.roll = roll
 
         return transform
-
