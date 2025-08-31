@@ -1,4 +1,5 @@
 import carla
+import time
 from logging import getLogger
 from typing_extensions import Self
 from functools import wraps
@@ -430,3 +431,33 @@ class CarlaActor(object):
             transform.rotation.roll = roll
 
         return transform
+
+    @staticmethod
+    def wait_all_actors_stable(
+            context: CarlaContext,
+            *actors: 'CarlaActor'
+    ):
+        """
+        等待全部的 Actor 达到稳定状态
+        :param context: ``CarlaContext`` 实例, 仿真上下文
+        :param actors: 不限定长度的 ``CarlaActor`` 实例
+        :return:
+        """
+        generators = [actor.wait_stable_no_block() for actor in actors]
+
+        while True:
+            flags = [next(gen) for gen in generators]
+            if all(flags):
+                break
+
+            # 进行 tick 操作
+            if context.is_sync_mode:
+                context.world.tick()
+                time.sleep(context.sync_mode_delta_seconds)
+            else:
+                context.world.wait_for_tick()
+
+        # 清理迭代器残留
+        for gen in generators:
+            gen.close()
+        del generators
