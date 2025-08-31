@@ -66,6 +66,10 @@ class CarlaContext(object):
     def world(self) -> carla.World:
         return self._client.get_world()
 
+    @property
+    def traffic_manager(self) -> carla.TrafficManager:
+        return self._client.get_traffic_manager()
+
     def launch_server(self, force = True) -> None:
         """
         启动仿真器进程
