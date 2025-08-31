@@ -312,6 +312,34 @@ class CarlaActor(object):
 
         return Self
 
+    @require_actor_alive
+    def wait_stable_no_block(
+            self,
+            threshold = 0.0001,
+    ):
+        """
+        以非阻塞方式等待 Actor 生成后下落到稳定状态, 该方法需要外部使用迭代器, 并在外部进行 tick 管理.
+        :param threshold: Actor 的坐标浮动阈值
+        :return: 返回一个迭代器方法, 除非已经稳定, 否则返回 ``False``
+        """
+        # 等待循环
+        tf_last_tick = carla.Transform()
+        while True:
+            tf_this_tick = self.actor.get_transform()
+
+            # 判断是否已经稳定
+            if (
+                    abs(tf_this_tick.location.x - tf_last_tick.location.x) < threshold and
+                    abs(tf_this_tick.location.y - tf_last_tick.location.y) < threshold and
+                    abs(tf_this_tick.location.z - tf_last_tick.location.z) < threshold
+            ):
+                yield True
+
+            # 更新
+            tf_last_tick = tf_this_tick
+            yield False
+
+
     def _resolve_blueprint(self, bp: carla.ActorBlueprint | str | CarlaBlueprints) -> carla.ActorBlueprint:
         """
         对蓝图进行解析, 得到确定的 ``carla.ActorBlueprint``
