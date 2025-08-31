@@ -310,10 +310,11 @@ class CarlaVehicle(CarlaActor):
     @CarlaActor.require_actor_alive
     def apply_direct_control(
             self,
-            throttle: float,
-            steer: float,
-            brake: float,
-            brake_gain: float) -> Self:
+            *,
+            throttle: float = 0.0,
+            steer: float = 0.0,
+            brake: float = 0.0,
+            brake_gain: float = 0.0) -> Self:
         """
         经过 ``CarlaVehiclePerformance`` 修正的直接控制操作
         :param throttle: 加速踏板开度 ``[0,1]``
