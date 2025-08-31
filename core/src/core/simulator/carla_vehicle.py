@@ -159,6 +159,7 @@ class CarlaVehicle(CarlaActor):
             collision_sensor = CarlaSensor(
                 self._world,
                 blueprint=CarlaBlueprints.SENSOR_OTHER_COLLISION,
+                name=f"{self.name}CollisionSensor",
             )
             collision_sensor.spawn()
             self._sensors.append(collision_sensor)
