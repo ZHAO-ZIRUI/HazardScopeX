@@ -177,7 +177,7 @@ class CarlaContext(object):
         进入同步模式
         :param fixed_delta_seconds: Tick 之间的仿真时间步, 此参数覆写实例化时提供的参数
         """
-        if self.is_sync_mode():
+        if self.is_sync_mode:
             self.logger.warning("Attempted to enter sync mode but it is already active.")
             return
 
@@ -190,7 +190,7 @@ class CarlaContext(object):
 
     def exit_sync_mode(self) -> None:
         """离开同步模式"""
-        if not self.is_sync_mode():
+        if not self.is_sync_mode:
             self.logger.warning("Attempted to exit sync mode but it is already active.")
             return
         setting = self.world.get_settings()
@@ -199,6 +199,11 @@ class CarlaContext(object):
         self.world.set_snapshot(setting)
         self.world.tick()   # 执行一次 Tick 避免卡死
         self.logger.debug("Exit sync mode")
+
+    def tick(self):
+        if not self.is_sync_mode:
+            self.logger.warning("Operation tick() can only called under sync mode.")
+        self.world.tick()
 
     def is_connected(self, *, timeout: float | None = None) -> bool:
         """
