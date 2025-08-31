@@ -83,7 +83,7 @@ class CarlaContext(object):
         :return: CARLA 服务端同步模式的间隔秒, 如果不在同步模式则返回 0
         """
         if self.is_sync_mode:
-            return self.world.get_settings().synchronous_mode_delta_seconds
+            return self.world.get_settings().fixed_delta_seconds
         return 0.0
 
     def launch_server(self, force = True) -> None:
@@ -184,7 +184,7 @@ class CarlaContext(object):
         setting = self.world.get_settings()
         setting.synchronous_mode = True
         setting.fixed_delta_seconds = fixed_delta_seconds if fixed_delta_seconds else self._fixed_delta_seconds
-        self.world.set_snapshot(setting)
+        self.world.apply_settings(setting)
         self.world.tick()   # 执行一次 Tick 避免卡死
         self.logger.debug("Enter sync mode")
 
@@ -196,7 +196,7 @@ class CarlaContext(object):
         setting = self.world.get_settings()
         setting.synchronous_mode = False
         setting.fixed_delta_seconds = 0
-        self.world.set_snapshot(setting)
+        self.world.apply_settings(setting)
         self.world.tick()   # 执行一次 Tick 避免卡死
         self.logger.debug("Exit sync mode")
 
