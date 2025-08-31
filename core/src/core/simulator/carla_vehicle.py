@@ -269,6 +269,59 @@ class CarlaVehicle(CarlaActor):
         self.logger.debug('Apply full stop')
         return self
 
+    @CarlaActor.require_actor_alive
+    def apply_direct_control(
+            self,
+            throttle: float,
+            steer: float,
+            brake: float,
+            brake_gain: float) -> Self:
+        """
+        经过 ``CarlaVehiclePerformance`` 修正的直接控制操作
+        :param throttle: 加速踏板开度 ``[0,1]``
+        :param steer: 方向盘位置 ``[-1,1]``
+        :param brake: 刹车踏板开度 ``[0,1]``
+        :param brake_gain: 刹车增益系数 ``[-1,1]``
+        :return: ``self`` 以支持链式调用
+        """
+        # 清空影响控制的其他指令
+        self.actor.set_autopilot(False)
+        self.actor.disable_constant_velocity()
+        if isinstance(self._added_force, carla.Vector3D):
+            self.actor.add_force(self._added_force)
+            self._added_force = None
+
+        # 当减速时使用经过 CarlaVehiclePerformance 修正的刹车
+        if brake > 0.0:
+            self.apply_performance_calc_brake(brake, brake_gain)
+            return self
+
+        # 其他情况应用 CARLA 的原生控制
+        self.apply_carla_direct_control(throttle, steer, 0.0, silence=True)
+        return self
+
+    @CarlaActor.require_actor_alive
+    def apply_carla_autopilot(self, ref_speed:float) -> Self:
+        """
+        使用 CARLA 的 Waypoint 追踪自动驾驶
+        :param ref_speed: 参考速度, 单位 KM/H
+        :return: ``self`` 以支持链式调用
+        """
+        self.actor.set_autopilot(True)
+        velocity_ms = ref_speed / 3.6
+        self.actor.enable_constant_velocity(carla.Vector3D(x=velocity_ms, y=0.0, z=0.0))
+        return self
+
+    @CarlaActor.require_actor_alive
+    def cancel_carla_autopilot(self) -> Self:
+        """
+        取消 CARLA 的 Waypoint 追踪自动驾驶. 注意此时车辆脱控
+        :return: ``self`` 以支持链式调用
+        """
+        self.actor.set_autopilot(False)
+        self.actor.disable_constant_velocity()
+        return self
+
     @property
     def hook_after_collision(self) -> list[Callable]:
         return self._hook_after_collision
