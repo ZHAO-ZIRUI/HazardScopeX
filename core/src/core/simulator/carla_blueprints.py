@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import Set
 
 
 class CarlaBlueprints(Enum):
@@ -13,8 +13,8 @@ class CarlaBlueprints(Enum):
 
     VEHICLE_TESLA_MODEL3 = "vehicle.tesla.model3"
 
-    @property
-    def event_sensor_blueprints(self) -> List[str]:
-        return [
+    @staticmethod
+    def get_event_sensor_blueprints_set() -> Set[str]:
+        return {
             CarlaBlueprints.SENSOR_OTHER_COLLISION.value,
-        ]
+        }

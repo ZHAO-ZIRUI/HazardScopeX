@@ -196,7 +196,7 @@ class CarlaVehicle(CarlaActor):
         # 确定监听的传感器, 排除事件触发型的传感器
         sensors: List[CarlaSensor] = list()
         for sensor in self._sensors:
-            if sensor.blueprint.id in CarlaBlueprints.event_sensor_blueprints:
+            if str(sensor.blueprint.id) in CarlaBlueprints.get_event_sensor_blueprints_set():
                 continue
             sensors.append(sensor)
 
