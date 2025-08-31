@@ -17,7 +17,7 @@ class CarlaVehicle(CarlaActor):
     def __init__(
             self,
             world: CarlaContext,
-            blueprint: carla.ActorBlueprint | str,
+            blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
             tf: carla.Transform | None = None,
             name: str | None = None,
