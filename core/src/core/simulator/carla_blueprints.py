@@ -11,6 +11,8 @@ class CarlaBlueprints(Enum):
     SENSOR_LIDAR_RAY_CAST = "sensor.lidar.ray_cast"
     SENSOR_OTHER_COLLISION = "sensor.other.collision"
 
+    VEHICLE_TESLA_MODEL3 = "vehicle.tesla.model3"
+
     @property
     def event_sensor_blueprints(self) -> List[str]:
         return [
