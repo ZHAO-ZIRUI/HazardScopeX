@@ -177,6 +177,13 @@ class CarlaVehicle(CarlaActor):
         super().destroy()
 
     @CarlaActor.require_actor_alive
+    def tick(self):
+        """每次 Tick 车辆执行的操作, CARLA 处于同步模式时直接调用, 处于异步模式时使用 ``world.on_tick()`` 或者在单独线程中调用"""
+        # 处理使用外部力刹车时的静止操作
+        if isinstance(self._added_force, carla.Vector3D) and self.speed < 1:
+            self.apply_full_stop()
+
+    @CarlaActor.require_actor_alive
     def apply_carla_direct_control(
             self,
             throttle: float = 0.0,
