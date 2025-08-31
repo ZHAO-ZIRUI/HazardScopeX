@@ -24,6 +24,16 @@ class CarlaActor(object):
             return func(self, *args, **kwargs)
         return wrapper
 
+    @staticmethod
+    def require_sync_mode(func):
+        """仅允许在同步模式下使用的方法"""
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not self._world.get_settings().synchronous_mode:
+                raise RuntimeError(f'This function {func.__name__} can only run under synchronous mode.')
+            return func(self, *args, **kwargs)
+        return wrapper
+
     def __init__(
             self,
             world: carla.World | CarlaContext,
