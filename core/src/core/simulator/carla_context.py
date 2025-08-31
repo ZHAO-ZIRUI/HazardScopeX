@@ -70,6 +70,22 @@ class CarlaContext(object):
     def traffic_manager(self) -> carla.TrafficManager:
         return self._client.get_traffic_manager()
 
+    @property
+    def is_sync_mode(self) -> bool:
+        """
+        :return: CARLA 服务端是否处于同步模式(synchronous_mode)
+        """
+        return self.world.get_settings().synchronous_mode
+
+    @property
+    def sync_mode_delta_seconds(self) -> float:
+        """
+        :return: CARLA 服务端同步模式的间隔秒, 如果不在同步模式则返回 0
+        """
+        if self.is_sync_mode:
+            return self.world.get_settings().synchronous_mode_delta_seconds
+        return 0.0
+
     def launch_server(self, force = True) -> None:
         """
         启动仿真器进程
@@ -207,12 +223,6 @@ class CarlaContext(object):
             # 无法连接服务器时报 RuntimeError
             self.logger.error(e)
             return False
-
-    def is_sync_mode(self) -> bool:
-        """
-        :return: CARLA 服务端是否处于同步模式(synchronous_mode)
-        """
-        return self.world.get_settings().synchronous_mode
 
     def _thread_trigger_func(self) -> None:
         """服务端的事件触发线程"""
