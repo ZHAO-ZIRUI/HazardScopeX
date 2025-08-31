@@ -46,7 +46,7 @@ class CarlaVehicle(CarlaActor):
         """
         :return: 当前封装类所对应的 ``carla.Vehicle`` 实例, Actor 未 Spawn 或者已经被销毁时返回 ``None``
         """
-        return super()._actor
+        return self._actor
 
     @property
     @CarlaActor.require_actor_alive
