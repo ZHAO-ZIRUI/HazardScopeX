@@ -120,6 +120,23 @@ class CarlaVehicle(CarlaActor):
 
         return self
 
+    def get_sensors(self) -> list[CarlaSensor]:
+        """
+        :return: 车辆全部传感器的列表
+        """
+        return self._sensors
+
+    def get_sensor_by_name(self, name: str) -> CarlaSensor | None:
+        """
+        通过传感器的名称检索得到一个特定的传感器
+        :param name: 检索名
+        :return: ``CarlaSensor`` 实例, 找不到时返回 ``None``
+        """
+        for s in self._sensors:
+            if s.name == name:
+                return s
+        return None
+
     def spawn(
             self,
             transform: carla.Transform | None = None,
