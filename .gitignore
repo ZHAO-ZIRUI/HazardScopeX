@@ -3,3 +3,6 @@
 
 # Ignore Python venv
 .venv
+
+# Ignore user config
+config.yaml
