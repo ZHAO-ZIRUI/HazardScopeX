@@ -229,6 +229,14 @@ class CarlaContext(object):
             self.logger.error(e)
             return False
 
+    def get_spawn_point(self, id: int) -> carla.Transform:
+        """
+        获取车辆的生成点
+        :param id: 点 ID
+        :return: ``carla.Transform`` 坐标
+        """
+        return self.world.get_map().get_spawn_points[id]
+
     def _thread_trigger_func(self) -> None:
         """服务端的事件触发线程"""
         self.logger.debug("Event trigger thread started.")
