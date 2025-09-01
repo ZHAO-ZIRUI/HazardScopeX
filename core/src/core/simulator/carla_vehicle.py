@@ -113,7 +113,7 @@ class CarlaVehicle(CarlaActor):
         # 如果当前车辆已经可用, 则先对 sensor 执行 spawn 操作
         if self.is_alive:
             for s in sensor_list:
-                s.spawn()
+                s.spawn(attach=self._actor)
 
         # 加入车辆管理的传感器列表
         self._sensors.extend(sensor_list)
@@ -171,7 +171,7 @@ class CarlaVehicle(CarlaActor):
         for s in self._sensors:
             if s.blueprint.id == CarlaBlueprints.SENSOR_OTHER_COLLISION.value:
                 collision_sensor = s
-            s.spawn()
+            s.spawn(attach=self._actor)
 
         # 如果没有碰撞传感器则建立一个
         if collision_sensor is None:
