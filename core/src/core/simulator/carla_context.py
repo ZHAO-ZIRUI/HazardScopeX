@@ -24,7 +24,7 @@ class CarlaContext(object):
             host: str = 'localhost',
             port: int = 2000,
             timeout: int = 30,
-            fixed_delta_seconds: int = 0.1,
+            fixed_delta_seconds: float = 0.1,
     ) -> None:
         """
         :param cmd: CARLA Server 的启动命令, ``None`` 时进入被动模式 (Passive Mode)
