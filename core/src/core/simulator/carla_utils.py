@@ -24,5 +24,5 @@ class CarlaUtils(object):
         long = control.throttle if control.throttle > 0 else -control.throttle
         lat = control.steer
         return (f"VehicleControl("
-                f"LOG/LAT: {long:.2f}/{lat:.2f}; "
+                f"LONG/LAT: {long:.2f}/{lat:.2f}; "
                 f"REV: {control.reverse})")
