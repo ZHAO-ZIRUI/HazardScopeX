@@ -6,6 +6,7 @@ from logging import getLogger
 from typing import List, Callable
 from subprocess import Popen, DEVNULL
 from threading import Thread
+from multiprocessing.shared_memory import SharedMemory
 
 
 class CarlaContext(object):
@@ -49,6 +50,8 @@ class CarlaContext(object):
         self._port = port
         self._timeout = timeout
         self._fixed_delta_seconds = fixed_delta_seconds
+        self._list_actor = list()   # 此处不要添加类型提示, 避免发生循环引用
+        self._list_share_memory: List[SharedMemory] = list()
 
         # 钩子
         self._hook_before_server_exit: List[Callable] = list()
@@ -85,6 +88,31 @@ class CarlaContext(object):
         if self.is_sync_mode:
             return self.world.get_settings().fixed_delta_seconds
         return 0.0
+
+    def register_actor(self, actor) -> None:
+        # 此处不要添加类型提示, 避免发生循环引用
+        self._list_actor.append(actor)
+
+    def register_share_memory(self, share_memory: SharedMemory) -> None:
+        self._list_share_memory.append(share_memory)
+
+    def create_shared_memory(self, name:str ,size: int = 1) -> SharedMemory:
+        """
+        创建共享内存用于对外通信
+        :param name: 共享内存名称
+        :param size: 大小, 单位 MB
+        :return: ``SharedMemory`` 实例
+        """
+        real_size = size * 1024 ** 2
+        try:
+            shm = SharedMemory(create=True, size=real_size, name=name)
+            self.logger.debug(f"Creating shared memory '{name}' with size {size} MB")
+            self.register_actor(shm)
+            return shm
+        except FileExistsError:
+            self.logger.warning(f"Shared memory {name} already exists, just using it. "
+                                f"BUT the size is not fixed at this point, which may lead to unexpected issues")
+            return SharedMemory(name=name)
 
     def launch_server(self, force = True) -> None:
         """
@@ -162,6 +190,17 @@ class CarlaContext(object):
         # 执行钩子: before_server_exit
         for func in self._hook_before_server_exit:
             func()
+
+        # 销毁可能的 SHM
+        for shm in self._list_share_memory:
+            if isinstance(shm, SharedMemory):
+                shm.close()
+                shm.unlink()
+
+        # 销毁可能的 Actor
+        for actor in self._list_actor:
+            if hasattr(actor, 'destroy') and callable(actor.destroy):
+                actor.destroy()
 
         # 退出
         self._kill_server()

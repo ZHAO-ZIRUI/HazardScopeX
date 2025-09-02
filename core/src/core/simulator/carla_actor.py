@@ -273,6 +273,7 @@ class CarlaActor(object):
             raise RuntimeError(f'Spawn failed')
         else:
             self.logger.debug(f'Spawn succeeded at {CarlaUtils.short_tf(tf)}')
+            self._context.register_actor(self)
 
         # 更新初始化 Transform
         if is_tf_override or self._tf_spawn is None:
