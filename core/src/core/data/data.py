@@ -52,27 +52,36 @@ class Data(ABC):
     @classmethod
     def deserialize_from_shm(cls, shm: SharedMemory) -> Self:
         """
-        反序列化数据, 用于进程间通信
-        :param shm: 原始数据帧
+        反序列化数据, 用于进程间通信. 该方法会阻塞进程, 可以使用 ``try_deserialize_from_shm``
+        :param shm: 共享内存实例
         :return: 对象实例
         """
         while True:
             try:
-                shm_data = bytes(shm.buf[:shm.size])
-
-                # 检查数据是否为空
-                if not shm_data or len(shm_data) < 4:
+                result = cls.try_deserialize_from_shm(shm, default=None)
+                if result is None:
                     time.sleep(0.001)
                     continue
-
-                # 剪裁出合适的数据大小
-                total_size = struct.unpack('I', shm_data[:4])[0]
-                data = shm_data[: total_size]
-
-                # 反序列化
-                return cls.deserialize(shm_data)
+                return result
 
             except (pickle.UnpicklingError, struct.error, ValueError) as e:
                 # 数据可能还在写入中或格式错误，继续等待
                 time.sleep(0.001)
                 continue
+
+    @classmethod
+    def try_deserialize_from_shm(cls, shm: SharedMemory, default: Self | None = None) -> Self:
+        """
+        以非阻塞方式从 SharedMemory 中反序列化数据
+        :param shm: 共享内存实例
+        :param default: 解析失败时的返回值, 默认为 ``None``
+        :return:
+        """
+        try:
+            shm_data = bytes(shm.buf[:shm.size])
+            total_size = struct.unpack('I', shm_data[:4])[0]
+            data = shm_data[: total_size]
+            return cls.deserialize(data)
+
+        except (pickle.UnpicklingError, EOFError, struct.error, ValueError) as e:
+            return default
