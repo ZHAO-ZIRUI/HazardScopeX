@@ -232,7 +232,7 @@ class CarlaContext(object):
     def get_spawn_point(self, point: int) -> carla.Transform:
         """
         获取车辆的生成点
-        :param id: 点 ID
+        :param point: 点 ID
         :return: ``carla.Transform`` 坐标
         """
         return self.world.get_map().get_spawn_points()[point]
