@@ -288,7 +288,6 @@ class CarlaActor(object):
         if isinstance(self._actor, carla.Actor):
             self._actor.destroy()
             self._actor = None
-            self._tf_spawn = None
             self.logger.debug(f'Destroyed by user')
 
     @require_actor_alive
