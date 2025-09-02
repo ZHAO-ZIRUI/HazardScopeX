@@ -1,6 +1,4 @@
-import random
 import time
-
 import carla
 import math
 from typing import List, Callable
