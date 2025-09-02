@@ -2,7 +2,11 @@
 name = "demo_external_keyboard_control"
 version = "0.1.0"
 dependencies = [
-    "core"
+    "core",
+    "opencv-python",
+    "open3d",
+    "rich",
+    "keyboard"
 ]
 
 [tool.uv.sources]
