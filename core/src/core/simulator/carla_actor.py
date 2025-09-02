@@ -368,6 +368,7 @@ class CarlaActor(object):
                 self.logger.warning(msg)
                 raise ValueError(msg)
             return result
+        raise TypeError("Given blueprint type is not supported")
 
     def _resolve_name(self, name: str | None) -> str:
         """
