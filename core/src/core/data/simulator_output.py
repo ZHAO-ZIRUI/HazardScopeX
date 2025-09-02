@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing_extensions import Self
 
 
-class IncomingData(ABC):
+class SimulatorOutput(ABC):
     """
     来自仿真器的数据
     """

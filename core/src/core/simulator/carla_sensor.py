@@ -4,7 +4,7 @@ from threading import Lock
 from typing import Callable, List
 
 from core.simulator import CarlaActor, CarlaContext, CarlaBlueprints
-from core.data import IncomingData, Image, PointCloud, Collision
+from core.data import SimulatorOutput, Image, PointCloud, Collision
 
 
 class CarlaSensor(CarlaActor):
@@ -29,7 +29,7 @@ class CarlaSensor(CarlaActor):
         :param tf: Actor 生成时的默认坐标, 为 ``None`` 时需要在 ``spawn()`` 时指定
         """
         super().__init__(world, blueprint, name=name, log_level=log_level, tf=tf)
-        self._data: IncomingData | None= None
+        self._data: SimulatorOutput | None= None
         self._data_lock = Lock()
         self._hook_after_senser_data_recv: List[Callable] = list()
         self._hook_after_senser_data_ready: List[Callable] = list()
@@ -41,7 +41,7 @@ class CarlaSensor(CarlaActor):
         """
         return self._actor
 
-    def get_data(self) -> IncomingData:
+    def get_data(self) -> SimulatorOutput:
         """
         获取最新的数据, 在 Sensor 不正常工作时可能返回 ``None``
 
@@ -103,7 +103,7 @@ class CarlaSensor(CarlaActor):
             if func_return is not None:
                 self._data = func_return
 
-    def _format_incoming_data(self, data: carla.SensorData) -> IncomingData:
+    def _format_incoming_data(self, data: carla.SensorData) -> SimulatorOutput:
         """
         将 CARLA 传入的数据整理为项目中的统一数据类型
         :param data: ``carla.SensorData`` 或其派生

@@ -2,10 +2,10 @@ import carla
 import numpy as np
 from enum import Enum
 
-from .incoming_data import IncomingData
+from .simulator_output import SimulatorOutput
 
 
-class PointCloud(IncomingData):
+class PointCloud(SimulatorOutput):
 
     class Format(Enum):
         XYZ_Intensity_Channel  = 'XYZ_Intensity_Channel'

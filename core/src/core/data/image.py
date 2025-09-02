@@ -2,10 +2,10 @@ import carla
 import numpy as np
 from enum import Enum
 
-from .incoming_data import IncomingData
+from .simulator_output import SimulatorOutput
 
 
-class Image(IncomingData):
+class Image(SimulatorOutput):
     """
     图像数据
     """

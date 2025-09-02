@@ -1,10 +1,10 @@
 import carla
 from typing_extensions import Self
 
-from core.data import IncomingData
+from core.data import SimulatorOutput
 
 
-class Collision(IncomingData):
+class Collision(SimulatorOutput):
     """
     碰撞传感器的数据
     """
