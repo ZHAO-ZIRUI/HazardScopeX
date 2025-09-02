@@ -3,7 +3,6 @@ import logging
 import yaml
 import time
 from rich.logging import RichHandler
-from multiprocessing.shared_memory import SharedMemory
 
 from core.simulator import *
 from core.utils import RouteConfig
@@ -52,9 +51,9 @@ def main():
     logger.info("Simulation scenario ready")
 
     # 外部通信
-    shm_camera_game = SharedMemory(create=True, size=10*1024**2, name="CAM_GAME")
-    shm_lidar = SharedMemory(create=True, size=50*1024**2, name="LIDAR")
-    shm_direct_control = SharedMemory(create=True, size=1024, name=f"{vehicle.name}_DIRECT_CONTROL")
+    shm_camera_game = context.create_shared_memory("CAM_GAME", 10)
+    shm_lidar = context.create_shared_memory("LIDAR", 10)
+    shm_direct_control = context.create_shared_memory(f"{vehicle.name}_DIRECT_CONTROL")
 
     # 注册传感器事件
     def send_image_data(image: Image):
@@ -81,12 +80,6 @@ def main():
     except KeyboardInterrupt:
         logger.info("Program interrupted")
     finally:
-        shm_camera_game.close()
-        shm_camera_game.unlink()
-        shm_lidar.close()
-        shm_lidar.unlink()
-        shm_direct_control.close()
-        shm_direct_control.unlink()
         context.terminate_server()
 
 
