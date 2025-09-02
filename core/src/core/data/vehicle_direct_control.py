@@ -63,7 +63,7 @@ class VehicleDirectControl(SimulatorInput):
         """
         # 对输入值进行小范围随机扰动, 避免 RPC 调用不生效
         r_throttle = random.uniform(self.throttle - 0.001, self.throttle + 0.001)
-        r_steer = random.uniform(self.steer - 0.001, self.steer + 0.001)
+        r_steer = random.uniform(self.steering - 0.001, self.steering + 0.001)
         r_brake = random.uniform(self.brake - 0.001, self.brake + 0.001)
 
         # 防止随机扰动后越界
@@ -74,7 +74,7 @@ class VehicleDirectControl(SimulatorInput):
         # 处理置 0 的特殊情况
         if self.throttle == 0.0:
             r_throttle = 0
-        if self.steer == 0.0:
+        if self.steering == 0.0:
             r_steer = 0
         if self.brake == 0.0:
             r_brake = 0
@@ -82,18 +82,18 @@ class VehicleDirectControl(SimulatorInput):
         if disturbance:
             instance = carla.VehicleControl(
                 throttle=r_throttle,
-                steering=r_steer,
+                steer=r_steer,
                 brake=r_brake,
                 hand_brake=False,
-                reversed=self.reverse
+                reverse=self.reverse
             )
         else:
             instance = carla.VehicleControl(
                 throttle=self.throttle,
-                steering=self.steering,
+                steer=self.steering,
                 brake=self.brake,
                 hand_brake=False,
-                reversed=self.reverse
+                reverse=self.reverse
             )
         return instance
 
