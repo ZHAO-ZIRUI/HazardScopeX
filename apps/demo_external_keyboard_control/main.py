@@ -85,6 +85,8 @@ def main():
         shm_camera_game.unlink()
         shm_lidar.close()
         shm_lidar.unlink()
+        shm_direct_control.close()
+        shm_direct_control.unlink()
         context.terminate_server()
 
 
