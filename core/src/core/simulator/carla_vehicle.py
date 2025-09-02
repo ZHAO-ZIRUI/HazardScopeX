@@ -6,7 +6,8 @@ import math
 from typing import List, Callable
 from typing_extensions import Self
 
-from core.simulator import CarlaContext, CarlaActor, CarlaSensor, CarlaBlueprints, CarlaUtils, CarlaVehiclePerformance
+from core.simulator import *
+from core.data import VehicleDirectControl
 
 
 class CarlaVehicle(CarlaActor):
@@ -230,47 +231,48 @@ class CarlaVehicle(CarlaActor):
     @CarlaActor.require_actor_alive
     def apply_carla_direct_control(
             self,
-            throttle: float = 0.0,
-            steer: float = 0.0,
-            brake: float = 0.0,
+            control: VehicleDirectControl | carla.VehicleControl = None,
+            *,
+            throttle: float | None = None,
+            steering: float | None = None,
+            brake: float | None = None,
             silence: bool = False
     ) -> Self:
         """
         对车辆应用最基础的控制
-        :param throttle: 加速踏板开度, 范围 ``[0,1]``
-        :param steer: 转向角, 范围 ``[-1,1]``, 正向向右
-        :param brake: 刹车踏板开度, 范围 ``[0,1]``
+        :param control: ``VehicleDirectControl`` 实例, 默认为 ``None``, 该实例可能被具名传参覆写
+        :param throttle: 覆写 ``control`` 的加速踏板开度, 范围 ``[0,1]``, 默认 ``None`` 为不进行覆写
+        :param steering: 覆写 ``control`` 的转向角, 范围 ``[-1,1]``, 正向向右, 默认 ``None`` 为不进行覆写
+        :param brake: 覆写 ``control`` 的刹车踏板开度, 范围 ``[0,1]``, 默认 ``None`` 为不进行覆写
         :param silence: 静默模式, 为 ``True`` 时不再打印日志
         :return: ``self`` 以支持链式调用
         """
-        # 对输入值进行小范围随机扰动, 避免 RPC 调用不生效
-        r_throttle = random.uniform(throttle - 0.001, throttle + 0.001)
-        r_steer = random.uniform(steer - 0.001, steer + 0.001)
-        r_brake = random.uniform(brake - 0.001, brake + 0.001)
+        # 整流输入
+        if control is None:
+            control = VehicleDirectControl()
+        if isinstance(control, VehicleDirectControl):
+            pass
+        if isinstance(control, carla.VehicleControl):
+            control = VehicleDirectControl.from_carla(control)
 
-        # 防止随机扰动后越界
-        r_throttle = max(-1.0, min(1.0, r_throttle))
-        r_steer = max(-1.0, min(1.0, r_steer))
-        r_brake = max(-1.0, min(1.0, r_brake))
+        # 处理覆写
+        override_control = VehicleDirectControl(
+            throttle=throttle if throttle else control.throttle,
+            steering=steering if steering else control.steering,
+            brake=brake if brake else control.brake,
+        )
 
-        # 处理置 0 的特殊情况
-        if throttle == 0.0:
-            r_throttle = 0
-        if steer == 0.0:
-            r_steer = 0
-        if brake == 0.0:
-            r_brake = 0
-
-        carla_control = carla.VehicleControl(throttle=r_throttle, steer=r_steer, brake=r_brake)
+        carla_control = override_control.to_carla(disturbance=True)
         if not silence:
             self.logger.debug(f'Apply CARLA direct control: {CarlaUtils.short_direct_control(carla_control)}')
         self._actor.apply_control(carla_control)
 
     @CarlaActor.require_actor_alive
-    def apply_performance_calc_brake(
+    def _apply_performance_calc_brake(
             self,
             brake: float,
             gain: float,
+            steering: float = 0.0,
     ) -> Self:
         """
         对车辆应用经过外部性能计算的刹车
@@ -292,6 +294,14 @@ class CarlaVehicle(CarlaActor):
         # 执行刹车
         self.actor.add_force(vector)
         self.logger.debug(f"Apply CARLA performance calculated brake, brake={brake}, gain={gain}")
+
+        # CARLA 仍然响应转向
+        self.apply_carla_direct_control(
+            throttle=0,
+            steering=steering,
+            brake=brake,
+            silence=True
+        )
 
         # 记录施加的力用于后续抵消解除
         self._added_force = vector
@@ -327,16 +337,18 @@ class CarlaVehicle(CarlaActor):
     @CarlaActor.require_actor_alive
     def apply_direct_control(
             self,
+            control: VehicleDirectControl | carla.VehicleControl = None,
             *,
             throttle: float = 0.0,
-            steer: float = 0.0,
+            steering: float = 0.0,
             brake: float = 0.0,
             brake_gain: float = 0.0) -> Self:
         """
         经过 ``CarlaVehiclePerformance`` 修正的直接控制操作
-        :param throttle: 加速踏板开度 ``[0,1]``
-        :param steer: 方向盘位置 ``[-1,1]``
-        :param brake: 刹车踏板开度 ``[0,1]``
+        :param control: ``VehicleDirectControl`` 实例, 默认为 ``None``, 该实例可能被具名传参覆写
+        :param throttle: 覆写 ``control`` 的加速踏板开度, 范围 ``[0,1]``, 默认 ``None`` 为不进行覆写
+        :param steering: 覆写 ``control`` 的转向角, 范围 ``[-1,1]``, 正向向右, 默认 ``None`` 为不进行覆写
+        :param brake: 覆写 ``control`` 的刹车踏板开度, 范围 ``[0,1]``, 默认 ``None`` 为不进行覆写
         :param brake_gain: 刹车增益系数 ``[-1,1]``
         :return: ``self`` 以支持链式调用
         """
@@ -349,11 +361,17 @@ class CarlaVehicle(CarlaActor):
 
         # 当减速时使用经过 CarlaVehiclePerformance 修正的刹车
         if brake > 0.0:
-            self.apply_performance_calc_brake(brake, brake_gain)
+            self._apply_performance_calc_brake(brake, brake_gain)
             return self
 
         # 其他情况应用 CARLA 的原生控制
-        self.apply_carla_direct_control(throttle, steer, 0.0, silence=True)
+        self.apply_carla_direct_control(
+            control,
+            throttle=throttle,
+            steering=steering,
+            brake=0.0,
+            silence=True
+        )
         return self
 
     @CarlaActor.require_actor_alive
