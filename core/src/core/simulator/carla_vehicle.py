@@ -175,7 +175,7 @@ class CarlaVehicle(CarlaActor):
         # 如果没有碰撞传感器则建立一个
         if collision_sensor is None:
             collision_sensor = CarlaSensor(
-                self._world,
+                self._context,
                 blueprint=CarlaBlueprints.SENSOR_OTHER_COLLISION,
                 name=f"{self.name}CollisionSensor",
             )
