@@ -19,7 +19,7 @@ class CarlaVehicle(CarlaActor):
 
     def __init__(
             self,
-            world: CarlaContext,
+            context: CarlaContext,
             blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
             tf: carla.Transform | None = None,
@@ -27,17 +27,17 @@ class CarlaVehicle(CarlaActor):
             log_level: int | None = None,
     ) -> None:
         """
-        :param world: Actor 所在的仿真世界或上下文
+        :param context: Actor 所在的仿真上下文
         :param blueprint: 蓝图
         :param name: 名称, 为 ``None`` 时自动指定
         :param log_level: 日志等级, 对日志的对象级控制
         :param tf: Actor 生成时的默认坐标, 为 ``None`` 时需要在 ``spawn()`` 时指定
         """
-        if not isinstance(world, CarlaContext):
+        if not isinstance(context, CarlaContext):
             raise TypeError('world attribute must be an CarlaContext for using TrafficManager')
 
-        super().__init__(world, blueprint, name=name, log_level=log_level, tf=tf)
-        self._traffic_manager = world.traffic_manager
+        super().__init__(context, blueprint, name=name, log_level=log_level, tf=tf)
+        self._traffic_manager = context.traffic_manager
         self._sensors: list[CarlaSensor] = list()
         self._hook_after_collision: list[Callable] = list()
         self._lazy_mass_kg: float | None = None

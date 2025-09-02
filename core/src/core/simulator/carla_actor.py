@@ -37,7 +37,7 @@ class CarlaActor(object):
 
     def __init__(
             self,
-            world: carla.World | CarlaContext,
+            context: CarlaContext,
             blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
             tf: carla.Transform | None = None,
@@ -45,7 +45,7 @@ class CarlaActor(object):
             log_level: int | None = None,
     ) -> None:
         """
-        :param world: Actor 所在的仿真世界或上下文
+        :param context: Actor 所在的仿真上下文
         :param blueprint: 蓝图
         :param name: 名称, 为 ``None`` 时自动指定
         :param log_level: 日志等级, 对日志的对象级控制
@@ -59,7 +59,8 @@ class CarlaActor(object):
         if log_level is not None:
             self.logger.setLevel(log_level)
 
-        self._world = self._resolve_world(world)
+        self._world = self._resolve_world(context)
+        self._context = context
         self._blueprint = self._resolve_blueprint(blueprint)
         self._actor: carla.Actor | None = None
         self._tf_spawn: carla.Transform | None = tf
@@ -111,6 +112,10 @@ class CarlaActor(object):
         :return: 当前封装类所对应的 ``carla.Actor`` 实例, Actor 未 Spawn 或者已经被销毁时返回 ``None``
         """
         return self._actor
+
+    @property
+    def context(self) -> CarlaContext:
+        return self._context
 
     @require_actor_alive
     def get_transform(self) -> carla.Transform | None:
@@ -383,16 +388,15 @@ class CarlaActor(object):
         return result
 
     @staticmethod
-    def _resolve_world(opt: carla.World | CarlaContext) -> carla.World:
+    def _resolve_world(opt: CarlaContext) -> carla.World:
         """
         对 World 进行解析, 得到 ``carla.World``
         :param opt: 可能得到 ``carla.World`` 的多种输入
         :return: ``carla.World`` 实例
         """
-        if isinstance(opt, carla.World):
-            return opt
-        elif isinstance(opt, CarlaContext):
+        if isinstance(opt, CarlaContext):
             return opt.world
+        raise TypeError(f"Given context type is not supported, required CarlaContext, given {type(opt)}")
 
     @staticmethod
     def _resolve_transform_override(

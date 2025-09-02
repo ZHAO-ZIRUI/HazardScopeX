@@ -14,7 +14,7 @@ class CarlaSensor(CarlaActor):
 
     def __init__(
             self,
-            world: carla.World | CarlaContext,
+            context: CarlaContext,
             blueprint: carla.ActorBlueprint | str | CarlaBlueprints,
             *,
             tf: carla.Transform | None = None,
@@ -22,13 +22,13 @@ class CarlaSensor(CarlaActor):
             log_level: int | None = None,
     ) -> None:
         """
-        :param world: Actor 所在的仿真世界或上下文
+        :param context: Actor 所在的仿真上下文
         :param blueprint: 蓝图
         :param name: 名称, 为 ``None`` 时自动指定
         :param log_level: 日志等级, 对日志的对象级控制
         :param tf: Actor 生成时的默认坐标, 为 ``None`` 时需要在 ``spawn()`` 时指定
         """
-        super().__init__(world, blueprint, name=name, log_level=log_level, tf=tf)
+        super().__init__(context, blueprint, name=name, log_level=log_level, tf=tf)
         self._data: SimulatorOutput | None= None
         self._data_lock = Lock()
         self._hook_after_senser_data_recv: List[Callable] = list()
