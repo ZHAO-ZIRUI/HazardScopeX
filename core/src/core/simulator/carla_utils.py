@@ -21,7 +21,8 @@ class CarlaUtils(object):
         :param control: ``carla.VehicleControl`` 对象
         :return: 返回一个 ``carla.VehicleControl`` 的短字符串, 用于输出日志
         """
+        long = control.throttle if control.throttle > 0 else -control.throttle
+        lat = control.steer
         return (f"VehicleControl("
-                f"throttle:{control.throttle:.2f}; "
-                f"steer:{control.steer:.2f}; "
-                f"brake:{control.brake:.2f}; ")
+                f"LOG/LAT: {long:.2f}/{lat:.2f}; "
+                f"REV: {control.reverse})")
