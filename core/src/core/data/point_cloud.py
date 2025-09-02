@@ -29,7 +29,11 @@ class PointCloud(SimulatorOutput):
         super().__init__(frame_id, timestamp_sim)
         self.data_channels = data_channels
         self.data_format: PointCloud.Format = data_format
-        self.data: np.ndarray = data
+        self._data: np.ndarray = data
+
+    @property
+    def data(self) -> np.ndarray:
+        return self._data
 
     @classmethod
     def from_carla(cls, data: carla.LidarMeasurement) -> 'PointCloud':
