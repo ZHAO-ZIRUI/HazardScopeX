@@ -341,7 +341,9 @@ class CarlaVehicle(CarlaActor):
             throttle: float = 0.0,
             steering: float = 0.0,
             brake: float = 0.0,
-            brake_gain: float = 0.0) -> Self:
+            brake_gain: float = 0.0,
+            silence: bool = True,
+    ) -> Self:
         """
         经过 ``CarlaVehiclePerformance`` 修正的直接控制操作
         :param control: ``VehicleDirectControl`` 实例, 默认为 ``None``, 该实例可能被具名传参覆写
@@ -349,6 +351,7 @@ class CarlaVehicle(CarlaActor):
         :param steering: 覆写 ``control`` 的转向角, 范围 ``[-1,1]``, 正向向右, 默认 ``None`` 为不进行覆写
         :param brake: 覆写 ``control`` 的刹车踏板开度, 范围 ``[0,1]``, 默认 ``None`` 为不进行覆写
         :param brake_gain: 刹车增益系数 ``[-1,1]``
+        :param silence: 静默模式, 为 ``True`` 时不再打印日志
         :return: ``self`` 以支持链式调用
         """
         # 清空影响控制的其他指令
@@ -369,7 +372,7 @@ class CarlaVehicle(CarlaActor):
             throttle=throttle,
             steering=steering,
             brake=0.0,
-            silence=True
+            silence=silence
         )
         return self
 
