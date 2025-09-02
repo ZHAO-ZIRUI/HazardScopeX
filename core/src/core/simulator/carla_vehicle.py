@@ -258,6 +258,7 @@ class CarlaVehicle(CarlaActor):
             throttle=throttle if throttle else control.throttle,
             steering=steering if steering else control.steering,
             brake=brake if brake else control.brake,
+            reverse=control.reverse,
         )
 
         carla_control = override_control.to_carla(disturbance=True)
