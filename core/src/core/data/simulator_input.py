@@ -4,7 +4,7 @@ from typing import Any
 from core.data import Data
 
 
-class SimulatorInput(ABC, Data):
+class SimulatorInput(Data, ABC):
 
     def __init__(self):
         super().__init__()

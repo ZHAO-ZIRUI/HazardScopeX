@@ -8,7 +8,7 @@ from typing_extensions import Self
 from core.data import Data
 
 
-class SimulatorOutput(ABC, Data):
+class SimulatorOutput(Data, ABC):
     """
     来自仿真器的数据
     """
