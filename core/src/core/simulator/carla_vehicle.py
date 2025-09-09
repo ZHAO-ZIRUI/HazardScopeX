@@ -298,8 +298,8 @@ class CarlaVehicle(CarlaActor):
         self.apply_carla_direct_control(
             throttle=0,
             steering=steering,
-            brake=brake,
-            silence=True
+            brake=0,
+            silence=False
         )
 
         # 记录施加的力用于后续抵消解除
@@ -361,9 +361,25 @@ class CarlaVehicle(CarlaActor):
             self.actor.add_force(self._added_force)
             self._added_force = None
 
+        # 整流输入
+        if control is None:
+            control = VehicleDirectControl()
+        if isinstance(control, VehicleDirectControl):
+            pass
+        if isinstance(control, carla.VehicleControl):
+            control = VehicleDirectControl.from_carla(control)
+
+        # 处理覆写
+        override_control = VehicleDirectControl(
+            throttle=throttle if throttle else control.throttle,
+            steering=steering if steering else control.steering,
+            brake=brake if brake else control.brake,
+            reverse=control.reverse,
+        )
+
         # 当减速时使用经过 CarlaVehiclePerformance 修正的刹车
-        if brake > 0.0:
-            self._apply_performance_calc_brake(brake, brake_gain)
+        if override_control.brake > 0.0:
+            self._apply_performance_calc_brake(brake, brake_gain, steering=steering)
             return self
 
         # 其他情况应用 CARLA 的原生控制
