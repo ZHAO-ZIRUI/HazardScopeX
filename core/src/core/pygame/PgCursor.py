@@ -37,6 +37,9 @@ class PgCursor(PgWidget):
             raise IndexError("Cursor positions not initialized")
         return self._cache_poses[index]
 
+    def __len__(self):
+        return len(self._cache_poses)
+
     def _draw_content(self):
         if self.debug:
             for pos in self._cache_poses:
