@@ -36,6 +36,7 @@ class PgText(PgWidget):
 
     text: str
     text_color: Tuple[int, int, int, int] = None
+    background_color: Tuple[int, int, int, int] | None = None
 
     bold: bool = False
     italic: bool = False
@@ -173,6 +174,11 @@ class PgText(PgWidget):
             self._update_width_height()
 
         x, y, w, h = self.content_rect()
+
+        # 背景色填充
+        if self.background_color is not None:
+            pygame.draw.rect(self.surface, self.background_color, pygame.Rect(x, y, w, h))
+
         text_w, text_h = self.text_size
         
         if not self._lines or not self._cache_text_surfaces:
