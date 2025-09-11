@@ -1,6 +1,6 @@
 import logging
 import pygame
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, Tuple
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from rich.logging import RichHandler
 
@@ -32,6 +32,18 @@ class PgApp(BaseModel):
     @property
     def frame(self) -> int:
         return self._frame
+
+    @property
+    def width(self) -> int:
+        return self.window_width
+
+    @property
+    def height(self) -> int:
+        return self.window_height
+
+    @property
+    def center(self) -> Tuple[int, int]:
+        return self.window_width // 2, self.window_height // 2
 
     def model_post_init(self, context: Any, /) -> None:
         # 默认值处理
