@@ -49,7 +49,7 @@ class PgWidget(BaseModel, ABC):
     palette: PgColor = Field(default_factory=PgColor)
     margin_bg_color: None | Tuple[int, int, int, int] = None
     padding_bg_color: None | Tuple[int, int, int, int] = None
-    border_bg_color: None | Tuple[int, int, int, int] = None
+    border_color: None | Tuple[int, int, int, int] = None
 
     @property
     def x(self) -> int:
@@ -136,7 +136,7 @@ class PgWidget(BaseModel, ABC):
         if self.border == 0:
             return
             
-        color = self.border_bg_color or self.palette.PRIMARY
+        color = self.border_color or self.palette.PRIMARY
         x, y, w, h = self.border_rect
         
         # 计算边框宽度
