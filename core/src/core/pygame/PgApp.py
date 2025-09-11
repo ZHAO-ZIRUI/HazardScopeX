@@ -45,6 +45,14 @@ class PgApp(BaseModel):
     def center(self) -> Tuple[int, int]:
         return self.window_width // 2, self.window_height // 2
 
+    @property
+    def center_x(self) -> int:
+        return self.window_width // 2
+
+    @property
+    def center_y(self) -> int:
+        return self.window_height // 2
+
     def model_post_init(self, context: Any, /) -> None:
         # 默认值处理
         if not self.window_title:

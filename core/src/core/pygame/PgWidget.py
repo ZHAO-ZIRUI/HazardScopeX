@@ -60,6 +60,18 @@ class PgWidget(BaseModel, ABC):
         return self.position[1]
 
     @property
+    def center(self) -> Tuple[int, int]:
+        return self.center_x, self.center_y
+
+    @property
+    def center_x(self) -> int:
+        return self.x + self.width // 2
+
+    @property
+    def center_y(self) -> int:
+        return self.y + self.height // 2
+
+    @property
     def margin_rect(self) -> Tuple[int, int, int, int]:
         """
         Margin 所处占位的矩形
