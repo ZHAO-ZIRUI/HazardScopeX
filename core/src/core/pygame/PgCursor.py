@@ -9,13 +9,12 @@ class PgCursor(PgWidget):
     interval: int = Field(ge=1)
     vertical: bool = Field(default=False, frozen=True)
 
-    debug: bool = Field(default=False)
-    debug_color: None | Tuple[int, int, int, int] = None
+    color: None | Tuple[int, int, int, int] = None
 
     _cache_poses: List[Tuple[int, int]] = PrivateAttr(default_factory=list)
 
     def model_post_init(self, context: Any, /) -> None:
-        self.debug_color = self.debug_color or self.palette.WARNING
+        self.color = self.color or self.palette.WARNING
         self._cache_poses = []
         if self.vertical:
             # 垂直方向
@@ -41,7 +40,7 @@ class PgCursor(PgWidget):
         return len(self._cache_poses)
 
     def _draw_content(self):
-        if self.debug:
+        if self.show:
             for pos in self._cache_poses:
-                self.surface.set_at(pos, self.debug_color)  # 白色点
+                self.surface.set_at(pos, self.color)  # 白色点
             
