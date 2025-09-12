@@ -27,7 +27,8 @@ class PgApp(BaseModel):
     _clock: pygame.time.Clock = PrivateAttr(default_factory=pygame.time.Clock)
     _screen: pygame.Surface = PrivateAttr()
     _logger: logging.Logger = PrivateAttr()
-    _pressed_keys: Set[str] = PrivateAttr(default_factory=set)
+    _keys_pressed: Set[str] = PrivateAttr(default_factory=set)
+    _keys_released: Set[str] = PrivateAttr(default_factory=set)
 
     @property
     def frame(self) -> int:
@@ -87,7 +88,7 @@ class PgApp(BaseModel):
                 self._clock.tick(self.window_fps)
 
                 # 按键退出
-                if pygame.K_ESCAPE in self._pressed_keys:
+                if pygame.K_ESCAPE in self._keys_pressed:
                     self._logger.debug("User exit ESC")
                     break
 
@@ -99,13 +100,15 @@ class PgApp(BaseModel):
 
     def _event_handler(self):
         """Pygame 事件处理程序"""
+        self._keys_released.clear()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 break
             elif event.type == pygame.KEYDOWN:
-                self._pressed_keys.add(event.key)
+                self._keys_pressed.add(event.key)
             elif event.type == pygame.KEYUP:
-                self._pressed_keys.discard(event.key)
+                self._keys_pressed.discard(event.key)
+                self._keys_released.add(event.key)
 
     def _draw(self):
         """每个 Tick 执行一次绘制的内容, 用于展示动态对象"""
