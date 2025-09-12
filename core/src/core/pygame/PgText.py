@@ -53,6 +53,7 @@ class PgText(PgWidget):
     _cache_text_surfaces: list[pygame.Surface] = PrivateAttr(default_factory=list)
     _cache_text_size: Tuple[int, int] = PrivateAttr((0, 0))
     _cache_font_key: str = PrivateAttr("")
+    _cache_text_color: Tuple[int, int, int, int] | None = PrivateAttr(None)
 
     @property
     def text_size(self) -> Tuple[int, int]:
@@ -94,6 +95,13 @@ class PgText(PgWidget):
             self._cache_text_surfaces.clear()
             self._cache_text_size = (0, 0)
         
+        # 检查文本颜色是否需要更新
+        current_text_color = self.text_color or self.palette.TEXT_PRIMARY
+        if self._cache_text_color != current_text_color:
+            self._cache_text_color = current_text_color
+            self._cache_text_surfaces.clear()
+            self._cache_text_size = (0, 0)
+        
         # 如果缓存为空，重新渲染
         if not self._cache_text_surfaces and self._lines:
             self._pre_render_text()
@@ -126,6 +134,7 @@ class PgText(PgWidget):
         self._cache_text_surfaces.clear()
         self._cache_text_size = (0, 0)
         self._cache_font_key = ""
+        self._cache_text_color = None
 
     def _update_width_height(self):
         """根据自适应设置更新组件尺寸"""
