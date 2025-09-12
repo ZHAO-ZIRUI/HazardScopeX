@@ -19,6 +19,7 @@ class PgWidget(BaseModel, ABC):
     position: Tuple[int, int]
     width: int = Field(ge=0)
     height: int = Field(ge=0)
+    show: bool = Field(default=True)
     z_index: int = Field(ge=0, le=999, default=0)
 
     # 边框与布局
@@ -189,6 +190,9 @@ class PgWidget(BaseModel, ABC):
 
     def draw(self):
         """绘制控件"""
+        if not self.show:
+            return
+
         self._draw_margin_rect()
         self._draw_border_rect()
         self._draw_padding_rect()
