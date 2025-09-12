@@ -12,3 +12,4 @@ from .PgProgressBarBipolar import PgProgressBarBipolar
 from .PgText import PgText
 from .PgCursor import PgCursor
 from .PgApp import PgApp
+from .PgGrid import PgGrid
