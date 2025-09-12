@@ -97,8 +97,6 @@ class PgText(PgWidget):
             self._font = self._get_font()
             self._cache_font_key = font_key
 
-
-
     def _update_width_height(self):
         """根据自适应设置更新组件尺寸"""
         if not self.text:
