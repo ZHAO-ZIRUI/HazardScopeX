@@ -27,7 +27,6 @@ class PgContainer(PgWidget):
         return self.sub_widgets.get(name)
 
     def _draw_content(self):
-        widgets = sorted(self.widgets.values(), key=lambda x: x.z_index)
-
+        widgets = sorted(self.sub_widgets.values(), key=lambda x: x.z_index)
         for widget in widgets:
             widget.draw()
