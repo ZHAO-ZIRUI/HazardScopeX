@@ -10,6 +10,8 @@ from .PgProgressBar import PgProgressBar
 from .PgProgressBarLinear import PgProgressBarLinear
 from .PgProgressBarBipolar import PgProgressBarBipolar
 from .PgText import PgText
+from .PgTextStatic import PgTextStatic
+from .PgTextValue import PgTextValue
 from .PgCursor import PgCursor
 from .PgApp import PgApp
 from .PgGrid import PgGrid
