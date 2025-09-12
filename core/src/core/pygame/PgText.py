@@ -49,18 +49,31 @@ class PgText(PgWidget):
     overflow_y: Overflow = Field(default=Overflow.HIDE)
 
     _font: pygame.font.Font = PrivateAttr(None)
-    _lines: list[str] = PrivateAttr(default_factory=list)
-    _cache_text_surfaces: list[pygame.Surface] = PrivateAttr(default_factory=list)
-    _cache_text_size: Tuple[int, int] = PrivateAttr((0, 0))
     _cache_font_key: str = PrivateAttr("")
-    _cache_text_color: Tuple[int, int, int, int] | None = PrivateAttr(None)
 
     @property
     def text_size(self) -> Tuple[int, int]:
-        return self._cache_text_size
+        """实时计算文本尺寸"""
+        if not self.text or not self._font:
+            return (0, 0)
+        
+        lines = self.text.split('\n')
+        max_width = 0
+        total_height = 0
+        
+        for line in lines:
+            if line:
+                line_width, line_height = self._font.size(line)
+                max_width = max(max_width, line_width)
+                total_height += line_height
+            else:
+                _, line_height = self._font.size(' ')
+                total_height += line_height
+                
+        return (max_width, total_height)
 
     def model_post_init(self, context: Any, /) -> None:
-        self._update_font_and_text()
+        self._update_font()
 
     def content_rect(self) -> Tuple[int, int, int, int]:
         x, y, w, h = super().content_rect
@@ -77,64 +90,14 @@ class PgText(PgWidget):
 
         return x, y, w, h
 
-    def _update_font_and_text(self):
-        """更新字体和文本缓存"""
-        # 检查字体是否需要更新
+    def _update_font(self):
+        """更新字体"""
         font_key = f"{self.font_name}_{self.font_size}_{self.bold}_{self.italic}"
         if self._cache_font_key != font_key:
             self._font = self._get_font()
             self._cache_font_key = font_key
-            # 字体变化时重新渲染文本
-            self._cache_text_surfaces.clear()
-            self._cache_text_size = (0, 0)
-        
-        # 检查文本是否需要更新
-        new_lines = self.text.split('\n')
-        if self._lines != new_lines:
-            self._lines = new_lines
-            self._cache_text_surfaces.clear()
-            self._cache_text_size = (0, 0)
-        
-        # 检查文本颜色是否需要更新
-        current_text_color = self.text_color or self.palette.TEXT_PRIMARY
-        if self._cache_text_color != current_text_color:
-            self._cache_text_color = current_text_color
-            self._cache_text_surfaces.clear()
-            self._cache_text_size = (0, 0)
-        
-        # 如果缓存为空，重新渲染
-        if not self._cache_text_surfaces and self._lines:
-            self._pre_render_text()
 
-    def _pre_render_text(self):
-        """预渲染文本表面，避免重复渲染"""
-        if not self._lines or not self._font:
-            return
-            
-        color = self.text_color or self.palette.TEXT_PRIMARY
-        max_width = 0
-        total_height = 0
-        
-        for line in self._lines:
-            if line:
-                line_surface = self._font.render(line, True, color)
-                self._cache_text_surfaces.append(line_surface)
-                line_width, line_height = line_surface.get_size()
-                max_width = max(max_width, line_width)
-                total_height += line_height
-            else:
-                # self._cache_text_surfaces.append(None)
-                _, line_height = self._font.size(' ')
-                total_height += line_height
-                
-        self._cache_text_size = (max_width, total_height)
 
-    def _clean_cache(self):
-        """使缓存失效，强制重新计算"""
-        self._cache_text_surfaces.clear()
-        self._cache_text_size = (0, 0)
-        self._cache_font_key = ""
-        self._cache_text_color = None
 
     def _update_width_height(self):
         """根据自适应设置更新组件尺寸"""
@@ -175,8 +138,8 @@ class PgText(PgWidget):
 
         original_clip = None
 
-        # 更新字体和文本缓存
-        self._update_font_and_text()
+        # 更新字体
+        self._update_font()
 
         if (self.overflow_x == self.Overflow.AUTO or
             self.overflow_y == self.Overflow.AUTO):
@@ -190,7 +153,7 @@ class PgText(PgWidget):
 
         text_w, text_h = self.text_size
         
-        if not self._lines or not self._cache_text_surfaces:
+        if not self.text or not self._font:
             return
         
         need_clip = ((self.overflow_x == self.Overflow.HIDE and text_w > w) or
@@ -201,6 +164,10 @@ class PgText(PgWidget):
             clip_rect = pygame.Rect(x, y, w, h)
             self.surface.set_clip(clip_rect)
         
+        # 获取文本颜色
+        color = self.text_color or self.palette.TEXT_PRIMARY
+        
+        lines = self.text.split('\n')
         _, line_height = self._font.size(' ')
         
         # 计算垂直对齐起始位置
@@ -212,8 +179,10 @@ class PgText(PgWidget):
             start_y = y + h - text_h
         
         current_y = start_y
-        for i, line_surface in enumerate(self._cache_text_surfaces):
-            if line_surface is not None:
+        for line in lines:
+            if line:
+                # 每帧直接渲染文本
+                line_surface = self._font.render(line, True, color)
                 line_width, line_height = line_surface.get_size()
                 
                 # 计算水平对齐位置
