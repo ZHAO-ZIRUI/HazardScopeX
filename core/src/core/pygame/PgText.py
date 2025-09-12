@@ -34,13 +34,13 @@ class PgText(PgWidget):
         HIDE = "HIDE"
         AUTO = "AUTO"
 
-    text: str
-    text_color: Tuple[int, int, int, int] = None
-    background_color: Tuple[int, int, int, int] | None = None
+    text: str = Field(default="")
+    text_color: Tuple[int, int, int, int] | None = Field(default=None)
+    background_color: Tuple[int, int, int, int] | None = Field(default=None)
 
-    bold: bool = False
-    italic: bool = False
-    font_name: str | None = None
+    bold: bool = Field(default=False)
+    italic: bool = Field(default=False)
+    font_name: str | None = Field(default=None)
     font_size: int = Field(default=16, ge=1)
     
     align_x: Align = Field(default=Align.BEGIN)
