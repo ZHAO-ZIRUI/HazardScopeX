@@ -187,6 +187,7 @@ class PgWidget(BaseModel, ABC):
         raise NotImplementedError()
 
     def draw(self):
+        """绘制控件"""
         self._draw_margin_rect()
         self._draw_border_rect()
         self._draw_padding_rect()
