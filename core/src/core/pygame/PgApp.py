@@ -109,8 +109,11 @@ class PgApp(BaseModel):
 
     def _draw(self):
         """每个 Tick 执行一次绘制的内容, 用于展示动态对象"""
-        for widget in self.widgets.values():
-                widget.draw()
+        # 按照控件的 z-index 进行升序排序
+        widgets = sorted(self.widgets.values(), key=lambda x: x.z_index)
+
+        for widget in widgets:
+            widget.draw()
 
     def _setup_widgets(self):
         """程序开始时调用一次, 用于初始化控件"""

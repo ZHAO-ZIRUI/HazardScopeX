@@ -19,6 +19,7 @@ class PgWidget(BaseModel, ABC):
     position: Tuple[int, int]
     width: int = Field(ge=0)
     height: int = Field(ge=0)
+    z_index: int = Field(ge=0, le=999, default=0)
 
     # 边框与布局
     margin: int = Field(default=0, ge=0)

@@ -64,6 +64,7 @@ class PgGrid(PgWidget):
             self._cols.append(col)
 
         if self.debug:
+            self.z_index = 999
             self._debug_text = PgText(
                 surface=self.surface,
                 position=(0, 0),
