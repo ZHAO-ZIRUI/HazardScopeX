@@ -3,32 +3,20 @@ import uuid
 from typing import Any, List, Tuple, Dict
 from pydantic import Field, PrivateAttr
 
-from core.pygame import PgWidget, PgCursor, PgText
+from core.pygame import PgWidget, PgCursor, PgText, PgContainer
 
 
-class PgGrid(PgWidget):
+class PgGrid(PgContainer):
     """使用 PgCursor 控件构造的网格布局"""
 
     col_interval: int = Field(default=24)
     row_interval: int = Field(default=24)
 
-    debug: bool = Field(default=True)
-    debug_color: None | Tuple[int, int, int, int] = None
+    color: None | Tuple[int, int, int, int] = None
 
     _row: PgCursor = PrivateAttr()
     _cols: List[PgCursor] = PrivateAttr(default_factory=list)
     _debug_text: PgText = PrivateAttr()
-
-    @property
-    def sub_widgets(self) -> Dict[str, PgWidget]:
-        widgets = [self._row, *self._cols]
-        if self.debug:
-            widgets.append(self._debug_text)
-
-        result = {}
-        for w in widgets:
-            result[uuid.uuid4().hex] = w
-        return result
 
     def get_position(self, row: int, col: int) -> Tuple[int, int]:
         """根据 Grid 中的行列定义取得坐标"""
@@ -36,7 +24,7 @@ class PgGrid(PgWidget):
 
     def model_post_init(self, context: Any, /) -> None:
         # 提供默认值
-        self.debug_color = self.debug_color or self.palette.WARNING
+        self.color = self.color or self.palette.WARNING
 
         # 构建 ROW
         self._row = PgCursor(
@@ -46,9 +34,11 @@ class PgGrid(PgWidget):
             height=self.height,
             interval=self.col_interval,
             vertical=False,
-            debug=self.debug,
-            debug_color=self.debug_color,
+            show=self.show,
+            color=self.color,
         )
+        self.add_widget(self._row)
+
 
         for i in range(len(self._row)):
             col = PgCursor(
@@ -58,12 +48,13 @@ class PgGrid(PgWidget):
                 height=self.height,
                 interval=self.row_interval,
                 vertical=True,
-                debug=self.debug,
-                debug_color=self.debug_color,
+                show=self.show,
+                color=self.color,
             )
             self._cols.append(col)
+            self.add_widget(col)
 
-        if self.debug:
+        if self.show:
             self.z_index = 999
             self._debug_text = PgText(
                 surface=self.surface,
@@ -78,9 +69,10 @@ class PgGrid(PgWidget):
                 border_color=self.palette.WARNING,
                 text=""
             )
+            self.add_widget(self._debug_text)
 
     def _draw_content(self):
-        if not self.debug:
+        if not self.show:
             return
 
         # 获取鼠标位置
