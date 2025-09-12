@@ -192,6 +192,10 @@ class PgWidget(BaseModel, ABC):
         self._draw_padding_rect()
         self._draw_content()
 
+    def update(self, *args, **kwargs):
+        """更新控件状态, 在 ``draw()`` 之前调用"""
+        pass
+
     @staticmethod
     def _calc_inset_rect(
             rect: Tuple[int, int, int, int],
