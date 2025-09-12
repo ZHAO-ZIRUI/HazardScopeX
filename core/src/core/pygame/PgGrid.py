@@ -97,6 +97,8 @@ class PgGrid(PgContainer):
             row_index = 0
 
         self._debug_text.text = f"GRID R/C: {row_index}/{col_index}"
+        
+        super()._draw_content()
 
 
 
