@@ -6,6 +6,7 @@ core.pygame 包
 
 from .PgColor import PgColor
 from .PgWidget import PgWidget
+from .PgContainer import PgContainer
 from .PgProgressBar import PgProgressBar
 from .PgProgressBarLinear import PgProgressBarLinear
 from .PgProgressBarBipolar import PgProgressBarBipolar
