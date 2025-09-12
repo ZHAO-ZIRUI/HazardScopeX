@@ -55,7 +55,7 @@ class PgText(PgWidget):
     def text_size(self) -> Tuple[int, int]:
         """实时计算文本尺寸"""
         if not self.text or not self._font:
-            return (0, 0)
+            return 0, 0
         
         lines = self.text.split('\n')
         max_width = 0
@@ -83,10 +83,12 @@ class PgText(PgWidget):
             text_w, text_h = self.text_size
 
             if self.overflow_x == self.Overflow.AUTO:
-                w = text_w
+                if text_w > w:
+                    w = text_w
 
             if self.overflow_y == self.Overflow.AUTO:
-                h = text_h
+                if text_h > h:
+                    h = text_h
 
         return x, y, w, h
 
@@ -108,24 +110,30 @@ class PgText(PgWidget):
         new_height = self.height
         
         if self.overflow_x == self.Overflow.AUTO:
-            content_w = text_w
+            current_content_w = self.width
             padding_w = (self.padding_left or self.padding_x or self.padding) + \
                        (self.padding_right or self.padding_x or self.padding)
             border_w = (self.border_left or self.border_x or self.border) + \
                       (self.border_right or self.border_x or self.border)
             margin_w = (self.margin_left or self.margin_x or self.margin) + \
                       (self.margin_right or self.margin_x or self.margin)
-            new_width = content_w + padding_w + border_w + margin_w
+            current_content_w = current_content_w - padding_w - border_w - margin_w
+
+            if text_w > current_content_w:
+                new_width = text_w + padding_w + border_w + margin_w
             
         if self.overflow_y == self.Overflow.AUTO:
-            content_h = text_h
+            current_content_h = self.height
             padding_h = (self.padding_top or self.padding_y or self.padding) + \
                        (self.padding_bottom or self.padding_y or self.padding)
             border_h = (self.border_top or self.border_y or self.border) + \
                       (self.border_bottom or self.border_y or self.border)
             margin_h = (self.margin_top or self.margin_y or self.margin) + \
                       (self.margin_bottom or self.margin_y or self.margin)
-            new_height = content_h + padding_h + border_h + margin_h
+            current_content_h = current_content_h - padding_h - border_h - margin_h
+
+            if text_h > current_content_h:
+                new_height = text_h + padding_h + border_h + margin_h
         
         self.width = new_width
         self.height = new_height
