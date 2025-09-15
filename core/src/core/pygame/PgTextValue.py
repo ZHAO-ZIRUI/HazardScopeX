@@ -2,7 +2,7 @@ from typing import Any, Dict
 from pydantic import Field, PrivateAttr
 from enum import Enum
 
-from core.pygame import PgText
+from core.pygame import PgText, PgColor
 
 
 class PgTextValue(PgText):
@@ -55,10 +55,10 @@ class PgTextValue(PgText):
         }
 
         self.MAPPING_STATUS_TO_COLOR_DIM = {
-            self.Status.NORMAL: self._calc_dim_color(self.MAPPING_STATUS_TO_COLOR[self.Status.NORMAL]),
-            self.Status.INFO: self._calc_dim_color(self.MAPPING_STATUS_TO_COLOR[self.Status.INFO]),
-            self.Status.WARNING: self._calc_dim_color(self.MAPPING_STATUS_TO_COLOR[self.Status.WARNING]),
-            self.Status.DANGER: self._calc_dim_color(self.MAPPING_STATUS_TO_COLOR[self.Status.DANGER]),
+            self.Status.NORMAL: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.NORMAL], self.blink_dim_ratio),
+            self.Status.INFO: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.INFO], self.blink_dim_ratio),
+            self.Status.WARNING: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.WARNING], self.blink_dim_ratio),
+            self.Status.DANGER: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.DANGER], self.blink_dim_ratio),
         }
 
     def draw(self):
@@ -144,17 +144,6 @@ class PgTextValue(PgText):
         else:
             return self.MAPPING_STATUS_TO_COLOR_DIM[self.status]
 
-    def _calc_dim_color(self, color: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
-        """
-        计算变暗颜色
-        :param color: 原始颜色
-        :return: 变暗后的颜色
-        """
-        r = int(color[0] * (1- self.blink_dim_ratio))
-        g = int(color[1] * (1- self.blink_dim_ratio))
-        b = int(color[2] * (1- self.blink_dim_ratio))
-        a = color[3]
-        return r, g, b, a
 
     @staticmethod
     def _try_convert_to_number(value: Any) -> float | None:

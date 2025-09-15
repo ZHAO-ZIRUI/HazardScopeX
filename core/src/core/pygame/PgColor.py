@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Tuple
 
 
 @dataclass
@@ -56,3 +57,29 @@ class PgColor:
     TEXT_PRIMARY = WHITE
     TEXT_SECONDARY = LIGHT_GRAY
     TEXT_MUTED = GRAY
+
+    @staticmethod
+    def dim(
+            color: Tuple[int, int, int, int],
+            factor: float,
+            alpha: bool = False
+    ) -> Tuple[int, int, int, int]:
+        """
+        将颜色变暗
+        :param color: 颜色, (r, g, b, a)
+        :param factor: 变暗因子, 0.0 ~ 1.0, 0.0 表示不变, 1.0 表示完全变黑
+        :param alpha: 是否对透明度进行变暗
+        """
+        if not (0.0 <= factor <= 1.0):
+            raise ValueError("Factor must be between 0.0 and 1.0")
+
+        factor = 1.0 - factor
+
+        r = int(color[0] * factor)
+        g = int(color[1] * factor)
+        b = int(color[2] * factor)
+        if alpha:
+            a = int(color[3] * factor)
+        else:
+            a = color[3]
+        return r, g, b, a
