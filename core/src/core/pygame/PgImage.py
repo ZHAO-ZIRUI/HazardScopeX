@@ -64,11 +64,9 @@ class PgImage(PgWidget):
         new_w = int(img_w * scale)
         new_h = int(img_h * scale)
         
-        # 计算居中位置
-        center_x = x + w // 2
-        center_y = y + h // 2
-        draw_x = center_x - new_w // 2
-        draw_y = center_y - new_h // 2
+        # 基于对齐方式计算绘制位置
+        draw_x = self._calc_aligned_position(x, w, new_w, self.align_x)
+        draw_y = self._calc_aligned_position(y, h, new_h, self.align_y)
         
         # 缩放并绘制
         scaled_surface = pygame.transform.scale(image_surface, (new_w, new_h))
