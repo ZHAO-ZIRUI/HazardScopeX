@@ -1,5 +1,6 @@
 import logging
 import pygame
+import inspect
 from typing import Any, Dict, Set, Tuple
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from rich.logging import RichHandler
@@ -78,7 +79,9 @@ class PgApp(BaseModel):
 
         self._logger.info("Program started")
         try:
-            self._setup_widgets()
+            self._init_widgets()
+            self._init_widgets_register()
+            self._logger.debug(f"Widgets initialized, count: {len(self.widgets.keys())}")
             while True:
                 self._screen.fill(self.palette.BACKGROUND)
                 self._event_handler()
@@ -118,9 +121,20 @@ class PgApp(BaseModel):
         for widget in widgets:
             widget.draw()
 
-    def _setup_widgets(self):
+    def _init_widgets(self):
         """程序开始时调用一次, 用于初始化控件"""
         pass
+
+    def _init_widgets_register(self):
+        """在所有控件初始化完成后调用一次, 用于自动注册以 "W_" 开头的对象为控件"""
+        for name, value in self.__dict__.items():
+            if name.startswith("W_"):
+                if isinstance(value, PgWidget):
+                    self.widgets[name] = value
+                else:
+                    self._logger.warning(
+                        f"Attribute '{name}' is not an instance of PgWidget and will be ignored"
+                    )
 
     def _update(self):
         """更新, 在 ``draw_tick()`` 前被调用, 用于更新状态机"""
