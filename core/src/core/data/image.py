@@ -12,6 +12,8 @@ class Image(SimulatorOutput):
 
     class Format(Enum):
         BGRA8 = "BGRA8"
+        RGBA8 = "RGBA8"
+        ARGB32 = "ARGB32"
 
     def __init__(
             self,
@@ -64,6 +66,85 @@ class Image(SimulatorOutput):
         :return: 以 ``np.ndarray`` 形式存储的数据
         """
         return self._data
+
+    def reformat(self, new_format: Format) -> 'Image':
+        """
+        将图像转换为新的编码格式
+
+        :param new_format: 目标编码格式
+        :return: 转换后的图像
+        """
+        if self._data_format == new_format:
+            return self
+
+        # 如果格式为 8 位 int, 则统一转换为 BGRA8
+        if self._data_format.value.endswith('8'):
+            img = self._reformat_uint8_to_bgra8()
+        else:
+            raise NotImplementedError(f"Unsupported format conversion from {self._data_format}")
+
+        # 向目标格式转换
+        if new_format == Image.Format.BGRA8:
+            return img
+        elif new_format == Image.Format.RGBA8:
+            new_data = img._data[:, :, [2, 1, 0, 3]]
+            return Image(
+                size_width=img._size_width,
+                size_height=img._size_height,
+                data_format=Image.Format.RGBA8,
+                data=new_data,
+                frame_id=img.frame_id,
+                timestamp_sim=img.timestamp_sim,
+            )
+        elif new_format == Image.Format.ARGB32:
+            a = img._data[:, :, 3].astype(np.uint32)
+            r = img._data[:, :, 2].astype(np.uint32)
+            g = img._data[:, :, 1].astype(np.uint32)
+            b = img._data[:, :, 0].astype(np.uint32)
+            new_data = (a << 24) | (r << 16) | (g << 8) | b
+            return Image(
+                size_width=img._size_width,
+                size_height=img._size_height,
+                data_format=Image.Format.ARGB32,
+                data=new_data,
+                frame_id=img.frame_id,
+                timestamp_sim=img.timestamp_sim,
+            )
+        else:
+            raise NotImplementedError(f"Unsupported format conversion to {new_format}")
+
+    def _reformat_uint8_to_bgra8(self) -> 'Image':
+        if self._data_format == Image.Format.BGRA8:
+            return self
+        elif self._data_format == Image.Format.RGBA8:
+            new_data = self._data[:, :, [2, 1, 0, 3]]
+            return Image(
+                size_width=self._size_width,
+                size_height=self._size_height,
+                data_format=Image.Format.BGRA8,
+                data=new_data,
+                frame_id=self.frame_id,
+                timestamp_sim=self.timestamp_sim,
+            )
+        else:
+            raise NotImplementedError(f"Unsupported format conversion from {self._data_format} to BGRA8")
+
+    def to_pygame_surface(self):
+        """
+        将图像转换为 Pygame 的 Surface 对象
+
+        :return: ``pygame.Surface`` 对象
+        """
+        import pygame
+
+        img = self if self._data_format == Image.Format.ARGB32 else self.reformat(Image.Format.ARGB32)
+
+        # 构建 Surface
+        data = np.ascontiguousarray(img._data.swapaxes(0, 1))
+        surface = pygame.Surface((img.size_width, img.size_height), pygame.SRCALPHA)
+        pygame.surfarray.blit_array(surface, data)
+        
+        return surface
 
     @classmethod
     def from_carla(cls, data: carla.Image) -> 'Image':

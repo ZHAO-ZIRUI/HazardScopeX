@@ -16,3 +16,4 @@ from .PgTextValue import PgTextValue
 from .PgCursor import PgCursor
 from .PgApp import PgApp
 from .PgGrid import PgGrid
+from .PgImage import PgImage
