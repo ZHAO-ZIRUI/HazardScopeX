@@ -137,13 +137,13 @@ class Image(SimulatorOutput):
         """
         import pygame
 
-        img = self if self._data_format == Image.Format.ARGB32 else self.reformat(Image.Format.ARGB32)
+        # 统一转为 RGBA8 三维数组
+        img = self if self._data_format == Image.Format.RGBA8 else self.reformat(Image.Format.RGBA8)
 
-        # 构建 Surface
-        data = np.ascontiguousarray(img._data.swapaxes(0, 1))
-        surface = pygame.Surface((img.size_width, img.size_height), pygame.SRCALPHA)
-        pygame.surfarray.blit_array(surface, data)
-        
+        # 使用 frombuffer + convert_alpha，确保 Surface 拥有正确的像素格式与 alpha
+        width, height = img.size_width, img.size_height
+        buf = img._data.tobytes(order='C')
+        surface = pygame.image.frombuffer(buf, (width, height), 'RGBA').convert_alpha()
         return surface
 
     @classmethod
