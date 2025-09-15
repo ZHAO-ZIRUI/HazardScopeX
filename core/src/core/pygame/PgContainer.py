@@ -20,7 +20,7 @@ class PgContainer(PgWidget):
 
     def add_widget(self, widget: PgWidget, name: str = None):
         if name is None:
-            name = f"{self.__class__.__name__}-{id(self)-uuid.uuid4().hex}"
+            name = f"{self.__class__.__name__}-{id(self)}-{uuid.uuid4().hex}"
         self.widgets[name] = widget
 
     def get_widget(self, name: str) -> PgWidget:
