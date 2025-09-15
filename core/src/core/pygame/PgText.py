@@ -1,7 +1,6 @@
+import pygame
 from typing import Tuple, Any
 from enum import Enum
-
-import pygame
 from pydantic import Field, PrivateAttr
 
 from core.pygame import PgWidget
