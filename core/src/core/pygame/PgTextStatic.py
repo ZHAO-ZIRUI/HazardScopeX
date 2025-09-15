@@ -1,3 +1,5 @@
+import textwrap
+from typing import Any
 from pydantic import Field
 
 from core.pygame import PgText
@@ -11,3 +13,6 @@ class PgTextStatic(PgText):
     overflow_x: PgText.Overflow = Field(default=PgText.Overflow.AUTO)
     padding_x: int = Field(default=2, ge=0)
     margin_y: int = Field(default=2, ge=0)
+
+    def model_post_init(self, context: Any, /) -> None:
+        self.text = textwrap.dedent(self.text).strip('\n')
