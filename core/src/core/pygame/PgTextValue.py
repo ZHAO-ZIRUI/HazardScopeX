@@ -25,6 +25,7 @@ class PgTextValue(PgText):
     MAPPING_STATUS_TO_COLOR: Dict[Status, tuple[int, int, int, int]] = Field(default_factory=dict)
     MAPPING_STATUS_TO_COLOR_DIM: Dict[Status, tuple[int, int, int, int]] = Field(default_factory=dict)
 
+    text: str | float | int = Field(default="0")
     width: int = Field(default=1, ge=0)
     padding_x: int = Field(default=2, ge=0)
     margin_y: int = Field(default=2, ge=0)
