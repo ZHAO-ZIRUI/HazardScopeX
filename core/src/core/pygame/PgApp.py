@@ -1,6 +1,5 @@
 import logging
 import pygame
-import inspect
 from typing import Any, Dict, Set, Tuple
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from rich.logging import RichHandler
