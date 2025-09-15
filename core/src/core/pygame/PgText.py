@@ -24,7 +24,7 @@ class PgText(PgWidget):
     ])
 
     class Align(Enum):
-        """横向对齐方式"""
+        """对齐方式"""
         BEGIN = "BEGIN"
         CENTER = "CENTER"
         END = "END"
