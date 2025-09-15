@@ -54,22 +54,21 @@ class PgGrid(PgContainer):
             self._cols.append(col)
             self.add_widget(col)
 
-        if self.show:
-            self.z_index = 999
-            self._debug_text = PgText(
-                surface=self.surface,
-                position=(0, 0),
-                width=1,
-                height=self.col_interval,
-                bold=True,
-                text_color=self.palette.WARNING,
-                background_color=self.palette.BLACK,
-                overflow_x=PgText.Overflow.AUTO,
-                border=2,
-                border_color=self.palette.WARNING,
-                text=""
-            )
-            self.add_widget(self._debug_text)
+        self.z_index = 999
+        self._debug_text = PgText(
+            surface=self.surface,
+            position=(0, 0),
+            width=1,
+            height=self.col_interval,
+            bold=True,
+            text_color=self.palette.WARNING,
+            background_color=self.palette.BLACK,
+            overflow_x=PgText.Overflow.AUTO,
+            border=2,
+            border_color=self.palette.WARNING,
+            text=""
+        )
+        self.add_widget(self._debug_text)
 
     def _draw_content(self):
         if not self.show:
