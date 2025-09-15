@@ -74,6 +74,22 @@ class PgWidget(BaseModel, ABC):
         return self.y + self.height // 2
 
     @property
+    def content_x(self) -> int:
+        return self.content_rect[0]
+
+    @property
+    def content_y(self) -> int:
+        return self.content_rect[1]
+
+    @property
+    def content_width(self) -> int:
+        return self.content_rect[2]
+
+    @property
+    def content_height(self) -> int:
+        return self.content_rect[3]
+
+    @property
     def margin_rect(self) -> Tuple[int, int, int, int]:
         """
         Margin 所处占位的矩形
