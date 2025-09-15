@@ -83,3 +83,19 @@ class PgColor:
         else:
             a = color[3]
         return r, g, b, a
+
+    @staticmethod
+    def alpha(
+            color: Tuple[int, int, int, int],
+            factor: float
+    ) -> Tuple[int, int, int, int]:
+        """
+        调整颜色透明度
+        :param color: 颜色, (r, g, b, a)
+        :param factor: 透明度因子, 0.0 ~ 1.0, 0.0 表示完全透明, 1.0 表示不变
+        """
+        if not (0.0 <= factor <= 1.0):
+            raise ValueError("Factor must be between 0.0 and 1.0")
+
+        a = int(color[3] * factor)
+        return color[0], color[1], color[2], a
