@@ -143,11 +143,11 @@ class PgWidget(BaseModel, ABC):
         """绘制 margin 矩形, 仅在 ``margin_bg_color`` 被赋值时生效"""
         if self.margin_bg_color is None:
             return
-        pygame.draw.rect(
-            self.surface,
-            self.margin_bg_color,
-            self.margin_rect,
-        )
+        x, y, w, h = self.margin_rect
+        # 使用中间 SRCALPHA Surface 以正确应用 RGBA 的 alpha
+        temp_surface = pygame.Surface((w, h), pygame.SRCALPHA)
+        temp_surface.fill(self.margin_bg_color)
+        self.surface.blit(temp_surface, (x, y))
 
     def _draw_border_rect(self) -> None:
         """绘制边框"""
@@ -193,11 +193,11 @@ class PgWidget(BaseModel, ABC):
         """绘制 padding 矩形, 仅在 ``padding_bg_color`` 被赋值时生效"""
         if self.padding_bg_color is None:
             return
-        pygame.draw.rect(
-            self.surface,
-            self.padding_bg_color,
-            self.padding_rect,
-        )
+        x, y, w, h = self.padding_rect
+        # 使用中间 SRCALPHA Surface 以正确应用 RGBA 的 alpha
+        temp_surface = pygame.Surface((w, h), pygame.SRCALPHA)
+        temp_surface.fill(self.padding_bg_color)
+        self.surface.blit(temp_surface, (x, y))
 
     @abstractmethod
     def _draw_content(self):
