@@ -3,6 +3,7 @@ import pygame
 from typing import Any, Dict, Set, Tuple
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from rich.logging import RichHandler
+from threading import Thread
 
 from core.pygame import PgColor, PgWidget
 
@@ -29,6 +30,19 @@ class PgApp(BaseModel):
     _logger: logging.Logger = PrivateAttr()
     _keys_pressed: Set[str] = PrivateAttr(default_factory=set)
     _keys_released: Set[str] = PrivateAttr(default_factory=set)
+
+    # 界面 ROS2 播送
+    ros2_export: bool = Field(default=False)
+    ros2_export_topic: str | None = Field(default=None)
+    ros2_export_qos: int = Field(default=10)
+    ros2_export_node_name: str | None = Field(default=None)
+    ros2_export_fps: int = Field(default=10, ge=1)
+    _ros2_export_node: Any = PrivateAttr(default=None)
+    _ros2_export_publisher: Any = PrivateAttr(default=None)
+    _ros2_export_spin_thread: Thread = PrivateAttr(default=None)
+    _ros2_export_publisher_timer: Any = PrivateAttr(default=None)
+    _ros2_export_cache_msg: Any = PrivateAttr(default=None)
+    
 
     @property
     def frame(self) -> int:
@@ -60,6 +74,10 @@ class PgApp(BaseModel):
             self.window_title = self.__class__.__name__
         if not self.logger_name:
             self.logger_name = self.__class__.__name__
+        if not self.ros2_export_node_name:
+            self.ros2_export_node_name = self.__class__.__name__
+        if not self.ros2_export_topic:
+            self.ros2_export_topic = f"/{self.__class__.__name__}/export"
 
         # 日志系统
         self._logger = self._create_logger()
@@ -81,13 +99,28 @@ class PgApp(BaseModel):
             self._init_widgets()
             self._init_widgets_register()
             self._logger.debug(f"Widgets initialized, count: {len(self.widgets.keys())}")
+
+            # ROS2 播送初始化
+            if self.ros2_export:
+                self._init_ros2_export()
+
             while True:
+                self._clock.tick(self.window_fps)
                 self._screen.fill(self.palette.BACKGROUND)
                 self._event_handler()
                 self._update()
                 self._draw()
                 pygame.display.update()
-                self._clock.tick(self.window_fps)
+
+                # ROS2 播送缓存
+                if self.ros2_export:
+                    view = self._screen.get_view('1')
+                    mv_src = memoryview(view).cast('B')
+                    mv_dst = memoryview(self._ros2_export_cache_msg.data)
+                    mv_dst[:len(mv_src)] = mv_src
+                    del mv_dst
+                    del mv_src
+                    del view
 
                 # 按键退出
                 if pygame.K_ESCAPE in self._keys_pressed:
@@ -134,6 +167,60 @@ class PgApp(BaseModel):
                     self._logger.warning(
                         f"Attribute '{name}' is not an instance of PgWidget and will be ignored"
                     )
+
+    def _init_ros2_export(self):
+        """初始化 ROS2 播送节点"""
+        import rclpy
+        from rclpy.node import Node
+        from sensor_msgs.msg import Image
+
+        rclpy.init()
+        self._ros2_export_node = Node(self.ros2_export_node_name)
+        self._ros2_export_publisher = self._ros2_export_node.create_publisher(
+            Image,
+            self.ros2_export_topic,
+            self.ros2_export_qos
+        )
+        self._ros2_export_publisher_timer = self._ros2_export_node.create_timer(
+            1.0 / self.ros2_export_fps,
+            self._ros2_export_timer_callback
+        )
+
+        width, height = self._screen.get_size()
+
+        # 构建图片缓存
+        self._ros2_export_cache_msg = Image()
+        self._ros2_export_cache_msg.height = height
+        self._ros2_export_cache_msg.width = width
+        self._ros2_export_cache_msg.encoding = "bgra8" if self._screen.get_bytesize() == 4 else "bgr8"
+        self._ros2_export_cache_msg.step = self._screen.get_pitch()
+        self._ros2_export_cache_msg.data = bytearray(height * self._screen.get_pitch())
+
+        self._logger.debug(f"ROS2 export on topic '{self.ros2_export_topic}' from '{self.ros2_export_node_name}'")
+        self._ros2_export_spin_thread = Thread(
+            target=self._ros2_export_node_spin,
+            daemon=True
+        )
+        self._ros2_export_spin_thread.start()
+
+    def _ros2_export_node_spin(self):
+        """ROS2 节点循环"""
+        import rclpy
+        self._logger.info("ROS2 Image export begin")
+        try:
+            rclpy.spin(self._ros2_export_node)
+        except rclpy.executors.ExternalShutdownException:
+            pass
+        finally:
+            rclpy.shutdown()
+            self._logger.info("ROS2 Image export stopped")
+
+    def _ros2_export_timer_callback(self):
+        """ROS2 播送定时器回调, 用于定时发布图像消息"""
+        from sensor_msgs.msg import Image
+
+        self._ros2_export_cache_msg.header.stamp = self._ros2_export_node.get_clock().now().to_msg()
+        self._ros2_export_publisher.publish(self._ros2_export_cache_msg)
 
     def _update(self):
         """更新, 在 ``draw_tick()`` 前被调用, 用于更新状态机"""
