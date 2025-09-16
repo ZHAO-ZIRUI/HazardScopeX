@@ -130,6 +130,8 @@ class PgApp(BaseModel):
         except KeyboardInterrupt:
             self._logger.debug("User exit Ctrl-C")
         finally:
+            if self.ros2_export:
+                self._ros2_export_shutdown()
             pygame.quit()
         self._logger.info("Goodbye")
 
@@ -174,7 +176,8 @@ class PgApp(BaseModel):
         from rclpy.node import Node
         from sensor_msgs.msg import Image
 
-        rclpy.init()
+        if not rclpy.ok():
+            rclpy.init()
         self._ros2_export_node = Node(self.ros2_export_node_name)
         self._ros2_export_publisher = self._ros2_export_node.create_publisher(
             Image,
@@ -212,7 +215,6 @@ class PgApp(BaseModel):
         except rclpy.executors.ExternalShutdownException:
             pass
         finally:
-            rclpy.shutdown()
             self._logger.info("ROS2 Image export stopped")
 
     def _ros2_export_timer_callback(self):
@@ -221,6 +223,18 @@ class PgApp(BaseModel):
 
         self._ros2_export_cache_msg.header.stamp = self._ros2_export_node.get_clock().now().to_msg()
         self._ros2_export_publisher.publish(self._ros2_export_cache_msg)
+
+    def _ros2_export_shutdown(self):
+        import rclpy
+        try:
+            if self._ros2_export_node:
+                self._ros2_export_node.destroy_timer(self._ros2_export_publisher_timer)
+                self._ros2_export_node.destroy_node()
+                self._ros2_export_node = None
+            if rclpy.ok():
+                rclpy.shutdown()
+        except Exception as e:
+            self._logger.error(f"Error during ROS2 shutdown: {e}")
 
     def _update(self):
         """更新, 在 ``draw_tick()`` 前被调用, 用于更新状态机"""
