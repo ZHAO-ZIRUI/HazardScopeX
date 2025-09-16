@@ -8,13 +8,13 @@ class SharedMemoryUtils:
     """
     
     @staticmethod
-    def producer_close(*shms: SharedMemory):
+    def consumer_close(*shms: SharedMemory):
         for shm in shms:
-            resource_tracker.unregister(shm.name, 'shared_memory')  # ONLY for Linux
+            resource_tracker.unregister(shm._name, 'shared_memory')  # ONLY for Linux
             shm.close()
 
     @staticmethod
-    def consumer_close(*shms: SharedMemory):
+    def producer_close(*shms: SharedMemory):
         for shm in shms:
             shm.close()
             shm.unlink()
