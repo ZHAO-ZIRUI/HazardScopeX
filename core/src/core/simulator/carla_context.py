@@ -107,7 +107,7 @@ class CarlaContext(object):
         try:
             shm = SharedMemory(create=True, size=real_size, name=name)
             self.logger.debug(f"Creating shared memory '{name}' with size {size} MB")
-            self.register_actor(shm)
+            self.register_share_memory(shm)
             return shm
         except FileExistsError:
             self.logger.warning(f"Shared memory {name} already exists, just using it. "
