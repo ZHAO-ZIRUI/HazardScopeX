@@ -177,6 +177,8 @@ class ImageViewer(PgApp):
     W_TS_DELTA_AVG_VAL: PgTextValue = None
     W_TS_THIS_OS_TEXT: PgTextStatic = None
     W_TS_THIS_OS_VAL: PgTextValue = None
+    W_TS_COMM_DELAY_TEXT: PgTextStatic = None
+    W_TS_COMM_DELAY_VAL: PgTextValue = None
     W_HELP_TEXT: PgTextStatic = None
 
     _debug_image_gen: DebugImageGenerator = PrivateAttr()
@@ -220,7 +222,7 @@ class ImageViewer(PgApp):
             surface=self._screen,
             position=self.W_GRID.get_position(0, 0),
             width=100,
-            height= self.W_GRID.row_interval * 14,
+            height= self.W_GRID.row_interval * 15,
             margin_bg_color=PgColor.alpha(self.palette.BLACK, 0.4),
             z_index=1
         )
@@ -439,10 +441,29 @@ class ImageViewer(PgApp):
             z_index=2,
         )
 
+        self.W_TS_COMM_DELAY_TEXT = PgTextStatic(
+            surface=self._screen,
+            position=self.W_GRID.get_position(12, 0),
+            text="COMM_DELAY:",
+            height=self.W_GRID.row_interval,
+            bold=True,
+            z_index=2,
+        )
+        self.W_TS_COMM_DELAY_VAL = PgTextValue(
+            surface=self._screen,
+            position=self.W_GRID.get_position(12, 5),
+            height=self.W_GRID.row_interval,
+            text="-",
+            status=PgTextValue.Status.DANGER,
+            decimal_places=4,
+            bold=True,
+            z_index=2,
+        )
+
         # 调试信息帮助
         self.W_HELP_TEXT = PgTextStatic(
             surface=self._screen,
-            position=self.W_GRID.get_position(12, 0),
+            position=self.W_GRID.get_position(13, 0),
             text="""
             Press <H> to toggle info.
             Press <ECS> to quit.
@@ -499,7 +520,8 @@ class ImageViewer(PgApp):
         self._update_image_statistics(self._image_display)
 
         # 基础 UI 更新
-        self.W_TS_THIS_OS_VAL.text = time.time()
+        os_time_now = time.time()
+        self.W_TS_THIS_OS_VAL.text = os_time_now
         self.W_FPS_WINDOWS_VAL.text = self.window_fps
 
         # 与 img 有关的 UI 更新
@@ -515,6 +537,7 @@ class ImageViewer(PgApp):
             (self.W_FPS_IMG_VAL, self._img_fps if img else "-"),
             (self.W_TS_DELTA_MAX_VAL, self._img_dt_max if img else "-"),
             (self.W_TS_DELTA_AVG_VAL, self._img_dt_avg if img else "-"),
+            (self.W_TS_COMM_DELAY_VAL, (os_time_now - img.timestamp_os) if img else "-"),
         ]
         for widget, text in items:
             widget.text = text
