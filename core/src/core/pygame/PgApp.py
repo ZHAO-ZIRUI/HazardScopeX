@@ -132,6 +132,7 @@ class PgApp(BaseModel):
         finally:
             if self.ros2_export:
                 self._ros2_export_shutdown()
+            self._shutdown()
             pygame.quit()
         self._logger.info("Goodbye")
 
@@ -238,6 +239,11 @@ class PgApp(BaseModel):
 
     def _update(self):
         """更新, 在 ``draw_tick()`` 前被调用, 用于更新状态机"""
+        pass
+
+    def _shutdown(self):
+        """关闭程序, 进行资源清理"""
+        self._logger.info("Program shutting down ...")
         pass
 
     def _create_logger(self) -> logging.Logger:
