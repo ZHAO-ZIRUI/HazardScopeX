@@ -144,7 +144,7 @@ class CarlaContext(object):
         if force:
             self._kill_server(force=True)
 
-        self._server = Popen(' '.join(self._cmd), shell=True)
+        self._server = Popen(' '.join(self._cmd), shell=True, stdout=DEVNULL, stderr=DEVNULL)
         self.logger.debug("CARLA server begin to launch.")
         self.logger.debug("Waiting 10 seconds for CARLA server ready ... ")
         time.sleep(10)
