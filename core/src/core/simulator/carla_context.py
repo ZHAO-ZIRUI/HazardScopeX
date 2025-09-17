@@ -210,7 +210,7 @@ class CarlaContext(object):
                 actor.destroy()
 
         # 退出
-        self._kill_server()
+        self._kill_server(force=True)
 
         # 执行钩子: after_server_exit
         for func in self._hook_after_server_exit:
@@ -313,11 +313,11 @@ class CarlaContext(object):
             Popen(cmd_kill_shipping, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
             return
         if force and platform.system() == 'Linux':
-            cmd_base = ['pkill', '-f']
+            cmd_base = ['pkill', '-9', '-f']
             cmd_kill_carla = [*cmd_base, 'CarlaUE4']
             cmd_kill_shipping = [*cmd_base, 'CarlaUE4-Linux-Shipping']
-            Popen(cmd_kill_carla, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
-            Popen(cmd_kill_shipping, shell=True, stdout=DEVNULL, stderr=DEVNULL).wait()
+            Popen(cmd_kill_carla, shell=False, stdout=DEVNULL, stderr=DEVNULL).wait()
+            Popen(cmd_kill_shipping, shell=False, stdout=DEVNULL, stderr=DEVNULL).wait()
             return
 
         if self._server is None:
