@@ -78,10 +78,11 @@ class Data(ABC):
         :return:
         """
         try:
-            shm_data = bytes(shm.buf[:shm.size])
-            total_size = struct.unpack('I', shm_data[:4])[0]
-            data = shm_data[: total_size]
-            return cls.deserialize(data)
+            view = shm.buf
+            header = bytes(view[:4])
+            total_size = struct.unpack('I', header)[0]
+            payload = bytes(view[: total_size])
+            return cls.deserialize(payload)
 
         except (pickle.UnpicklingError, EOFError, struct.error, ValueError) as e:
             return default
