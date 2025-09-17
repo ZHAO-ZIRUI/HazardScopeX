@@ -26,6 +26,8 @@ class CarlaContext(object):
             port: int = 2000,
             timeout: int = 30,
             fixed_delta_seconds: float = 0.1,
+            *,
+            render_offscreen: bool = False,
     ) -> None:
         """
         :param cmd: CARLA Server 的启动命令, ``None`` 时进入被动模式 (Passive Mode)
@@ -50,6 +52,7 @@ class CarlaContext(object):
         self._port = port
         self._timeout = timeout
         self._fixed_delta_seconds = fixed_delta_seconds
+        self._render_offscreen = render_offscreen
         self._list_actor = list()   # 此处不要添加类型提示, 避免发生循环引用
         self._list_share_memory: List[SharedMemory] = list()
 
@@ -128,6 +131,10 @@ class CarlaContext(object):
             raise AttributeError(msg)
         if isinstance(self._cmd, str):
             self._cmd = [self._cmd]
+        # 设置渲染模式
+        if self._render_offscreen:
+            self._cmd.append('-RenderOffscreen')
+
         if self._server:
             msg = "CARLA server already running."
             self.logger.warning(msg)
@@ -137,7 +144,7 @@ class CarlaContext(object):
         if force:
             self._kill_server(force=True)
 
-        self._server = Popen(self._cmd, shell=True)
+        self._server = Popen(' '.join(self._cmd), shell=True)
         self.logger.debug("CARLA server begin to launch.")
         self.logger.debug("Waiting 10 seconds for CARLA server ready ... ")
         time.sleep(10)

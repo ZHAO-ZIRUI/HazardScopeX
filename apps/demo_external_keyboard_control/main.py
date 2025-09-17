@@ -26,7 +26,8 @@ def main():
     # CARLA 服务端初始化
     context = CarlaContext(
         config.get("context/carla_exe_dir"),
-        fixed_delta_seconds=config.get("context/fixed_delta_seconds", 0.05)
+        fixed_delta_seconds=config.get("context/fixed_delta_seconds", 0.05),
+        render_offscreen=config.get("context/carla_render_offscreen", False)
     )
     context.launch_server()
 
