@@ -137,14 +137,15 @@ class Image(SimulatorOutput):
         """
         import pygame
 
-        # 统一转为 RGBA8 三维数组
-        img = self if self._data_format == Image.Format.RGBA8 else self.reformat(Image.Format.RGBA8)
-
-        # 使用 frombuffer + convert_alpha，确保 Surface 拥有正确的像素格式与 alpha
-        width, height = img.size_width, img.size_height
-        buf = img._data.tobytes(order='C')
-        surface = pygame.image.frombuffer(buf, (width, height), 'RGBA').convert_alpha()
-        return surface
+        width, height = self.size_width, self.size_height
+        if self._data_format == Image.Format.BGRA8 or self._data_format == Image.Format.RGBA8:
+            flag = 'BGRA' if self._data_format == Image.Format.BGRA8 else 'RGBA'
+            assert self._data.flags['C_CONTIGUOUS']
+            return pygame.image.frombuffer(self._data, (width, height), flag)
+        else:
+            img = self.reformat(Image.Format.BGRA8)
+            assert img._data.flags['C_CONTIGUOUS']
+            return pygame.image.frombuffer(img._data, (width, height), 'BGRA')
 
     @classmethod
     def from_carla(cls, data: carla.Image) -> 'Image':
