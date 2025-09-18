@@ -30,6 +30,7 @@ class PgTextValue(PgText):
     padding_x: int = Field(default=2, ge=0)
     margin_y: int = Field(default=2, ge=0)
     overflow_x: PgText.Overflow = Field(default=PgText.Overflow.AUTO)
+    bold: bool = Field(default=True)
 
     decimal_places: int = Field(default=2, ge=0)
     show_sign: bool = Field(default=False)

@@ -233,7 +233,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(0, 0),
             text="SHM TOPIC:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_SHM_VAL = PgTextValue(
@@ -251,7 +250,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(1, 0),
             text="CONNECTION:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_CONNECTION_VAL = PgTextValue(
@@ -260,7 +258,6 @@ class ImageViewer(PgApp):
             text="-",
             status=PgTextValue.Status.DANGER,
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
 
@@ -269,14 +266,12 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(2, 0),
             text="FORMAT:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TYPE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(2, 5),
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
 
@@ -285,7 +280,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(3, 0),
             text="SIZE:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_SIZE_VAL = PgTextValue(
@@ -294,7 +288,6 @@ class ImageViewer(PgApp):
             text="-",
             status=PgTextValue.Status.DANGER,
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
 
@@ -303,7 +296,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(4, 0),
             text="FRAME:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_FRAME_VAL = PgTextValue(
@@ -312,7 +304,6 @@ class ImageViewer(PgApp):
             text="-",
             status=PgTextValue.Status.DANGER,
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
 
@@ -321,7 +312,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(5, 0),
             text="FPS_IMG:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_FPS_IMG_VAL = PgTextValue(
@@ -330,7 +320,6 @@ class ImageViewer(PgApp):
             height=self.W_GRID.row_interval,
             text="-",
             status=PgTextValue.Status.DANGER,
-            bold=True,
             z_index=2,
         )
 
@@ -339,14 +328,12 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(6, 0),
             text="FPS_WINDOW:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_FPS_WINDOWS_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(6, 5),
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
 
@@ -355,7 +342,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(7, 0),
             text="TS_IMG_SIM:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TS_IMG_SIM_VAL = PgTextValue(
@@ -364,7 +350,6 @@ class ImageViewer(PgApp):
             height=self.W_GRID.row_interval,
             text="-",
             status=PgTextValue.Status.DANGER,
-            bold=True,
             z_index=2,
         )
 
@@ -373,7 +358,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(8, 0),
             text="TS_IMG_OS:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TS_IMG_OS_VAL = PgTextValue(
@@ -382,7 +366,6 @@ class ImageViewer(PgApp):
             height=self.W_GRID.row_interval,
             text="-",
             status=PgTextValue.Status.DANGER,
-            bold=True,
             z_index=2,
         )
 
@@ -391,7 +374,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(9, 0),
             text="TS_THIS_OS:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TS_THIS_OS_VAL = PgTextValue(
@@ -399,7 +381,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(9, 5),
             height=self.W_GRID.row_interval,
             decimal_places=2,
-            bold=True,
             z_index=2,
         )
 
@@ -408,7 +389,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(10, 0),
             text="TS_DT_MAX:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TS_DELTA_MAX_VAL = PgTextValue(
@@ -418,7 +398,6 @@ class ImageViewer(PgApp):
             text="-",
             status=PgTextValue.Status.DANGER,
             decimal_places=2,
-            bold=True,
             z_index=2,
         )
 
@@ -427,7 +406,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(11, 0),
             text="TS_DT_AVG:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TS_DELTA_AVG_VAL = PgTextValue(
@@ -437,7 +415,6 @@ class ImageViewer(PgApp):
             text="-",
             status=PgTextValue.Status.DANGER,
             decimal_places=2,
-            bold=True,
             z_index=2,
         )
 
@@ -446,7 +423,6 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(12, 0),
             text="COMM_DELAY:",
             height=self.W_GRID.row_interval,
-            bold=True,
             z_index=2,
         )
         self.W_TS_COMM_DELAY_VAL = PgTextValue(
@@ -456,7 +432,6 @@ class ImageViewer(PgApp):
             text="-",
             status=PgTextValue.Status.DANGER,
             decimal_places=4,
-            bold=True,
             z_index=2,
         )
 
@@ -469,7 +444,6 @@ class ImageViewer(PgApp):
             Press <ECS> to quit.
             """,
             height=self.W_GRID.row_interval * 2,
-            bold=True,
             z_index=2,
         )
 
