@@ -201,8 +201,13 @@ class CarlaContext(object):
         # 销毁可能的 SHM
         for shm in self._list_share_memory:
             if isinstance(shm, SharedMemory):
-                shm.close()
-                shm.unlink()
+                try:
+                    shm.close()
+                    shm.unlink()
+                except FileNotFoundError:
+                    self.logger.error(f"Shared memory {shm.name} already unlinked. Maybe consumer unlinked it unexpectedly.")
+                except Exception as e:
+                    self.logger.error(f"Error closing shared memory {shm.name}: {e}")
 
         # 销毁可能的 Actor
         for actor in self._list_actor:
