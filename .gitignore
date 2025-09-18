@@ -6,3 +6,6 @@
 
 # Ignore user config
 config.yaml
+
+# Ignore python cache
+__pycache__/
