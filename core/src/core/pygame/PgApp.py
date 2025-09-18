@@ -11,6 +11,7 @@ from core.pygame import PgPalette, PgWidget
 class PgApp(BaseModel):
     model_config = ConfigDict(
         validate_assignment=True,   # 增加赋值时的检查, 务必保持开启
+        arbitrary_types_allowed=True,
     )
 
     logger_name: str = Field(default=None)
