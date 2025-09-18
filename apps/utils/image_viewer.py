@@ -223,7 +223,7 @@ class ImageViewer(PgApp):
             position=self.W_GRID.get_position(0, 0),
             width=100,
             height= self.W_GRID.row_interval * 15,
-            margin_bg_color=PgColor.alpha(self.palette.BLACK, 0.4),
+            margin_bg_color=PgPalette.alpha(self.palette.BLACK, 0.4).RGBA,
             z_index=1
         )
 
