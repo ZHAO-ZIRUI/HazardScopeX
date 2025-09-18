@@ -5,6 +5,7 @@ core.pygame 包
 """
 
 from .PgColor import PgColor
+from .PgPalette import PgPalette
 from .PgWidget import PgWidget
 from .PgContainer import PgContainer
 from .PgProgressBar import PgProgressBar

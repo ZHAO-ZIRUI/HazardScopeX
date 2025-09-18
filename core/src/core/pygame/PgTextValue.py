@@ -2,7 +2,7 @@ from typing import Any, Dict
 from pydantic import Field, PrivateAttr
 from enum import Enum
 
-from core.pygame import PgText, PgColor
+from core.pygame import PgText, PgPalette
 
 
 class PgTextValue(PgText):
@@ -49,17 +49,17 @@ class PgTextValue(PgText):
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
         self.MAPPING_STATUS_TO_COLOR = {
-            self.Status.NORMAL: self.palette.SUCCESS,
-            self.Status.INFO: self.palette.INFO,
-            self.Status.WARNING: self.palette.WARNING,
-            self.Status.DANGER: self.palette.DANGER,
+            self.Status.NORMAL: self.palette.SUCCESS.RGBA,
+            self.Status.INFO: self.palette.INFO.RGBA,
+            self.Status.WARNING: self.palette.WARNING.RGBA,
+            self.Status.DANGER: self.palette.DANGER.RGBA,
         }
 
         self.MAPPING_STATUS_TO_COLOR_DIM = {
-            self.Status.NORMAL: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.NORMAL], self.blink_dim_ratio),
-            self.Status.INFO: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.INFO], self.blink_dim_ratio),
-            self.Status.WARNING: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.WARNING], self.blink_dim_ratio),
-            self.Status.DANGER: PgColor.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.DANGER], self.blink_dim_ratio),
+            self.Status.NORMAL: PgPalette.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.NORMAL], self.blink_dim_ratio).RGBA,
+            self.Status.INFO: PgPalette.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.INFO], self.blink_dim_ratio).RGBA,
+            self.Status.WARNING: PgPalette.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.WARNING], self.blink_dim_ratio).RGBA,
+            self.Status.DANGER: PgPalette.dim(self.MAPPING_STATUS_TO_COLOR[self.Status.DANGER], self.blink_dim_ratio).RGBA,
         }
 
     def draw(self):

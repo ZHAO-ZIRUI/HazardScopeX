@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator
 from rich.logging import RichHandler
 from threading import Thread
 
-from core.pygame import PgColor, PgWidget
+from core.pygame import PgPalette, PgWidget
 
 
 class PgApp(BaseModel):
@@ -21,7 +21,7 @@ class PgApp(BaseModel):
     window_title: str = Field(default=None)
     window_fps: int = Field(default=30, ge=0, frozen=True)
 
-    palette: PgColor = Field(default_factory=PgColor)
+    palette: PgPalette = Field(default_factory=PgPalette)
     widgets: Dict[str, PgWidget] = Field(default_factory=dict, frozen=True)
 
     _frame: int = PrivateAttr(default=0)
@@ -106,7 +106,7 @@ class PgApp(BaseModel):
 
             while True:
                 self._clock.tick(self.window_fps)
-                self._screen.fill(self.palette.BACKGROUND)
+                self._screen.fill(self.palette.BACKGROUND.RGBA)
                 self._event_handler()
                 self._update()
                 self._draw()

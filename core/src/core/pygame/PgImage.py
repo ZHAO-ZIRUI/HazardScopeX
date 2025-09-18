@@ -2,7 +2,7 @@ import pygame
 from enum import Enum
 from pydantic import Field
 
-from core.pygame import PgWidget, PgColor
+from core.pygame import PgWidget, PgPalette
 from core.data import Image
 
 
@@ -122,9 +122,9 @@ class PgImage(PgWidget):
         x, y, w, h = self.content_rect
         
         # 绘制红色背景与边框
-        pygame.draw.rect(self.surface, self.palette.DANGER, (x, y, w, h))
-        pygame.draw.rect(self.surface, PgColor.dim(self.palette.DANGER, 0.2), (x, y, w, h), 2)
+        pygame.draw.rect(self.surface, self.palette.DANGER.RGBA, (x, y, w, h))
+        pygame.draw.rect(self.surface, PgPalette.dim(self.palette.DANGER, 0.2).RGBA, (x, y, w, h), 2)
         
         # 绘制对角线
-        pygame.draw.line(self.surface, self.palette.WHITE, (x, y), (x + w, y + h), 3)
-        pygame.draw.line(self.surface, self.palette.WHITE, (x + w, y), (x, y + h), 3)
+        pygame.draw.line(self.surface, self.palette.WHITE.RGBA, (x, y), (x + w, y + h), 3)
+        pygame.draw.line(self.surface, self.palette.WHITE.RGBA, (x + w, y), (x, y + h), 3)

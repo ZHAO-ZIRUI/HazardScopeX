@@ -170,7 +170,7 @@ class PgText(PgWidget):
             self.surface.set_clip(clip_rect)
         
         # 获取文本颜色
-        color = self.text_color or self.palette.TEXT_PRIMARY
+        color = self.text_color or self.palette.TEXT_PRIMARY.RGBA
         
         lines = self.text.split('\n')
         _, line_height = self._font.size(' ')

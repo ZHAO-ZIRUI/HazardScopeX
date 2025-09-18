@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Tuple
 from abc import ABC, abstractmethod
 
-from core.pygame import PgColor
+from core.pygame import PgPalette, PgColor
 
 
 class PgWidget(BaseModel, ABC):
@@ -48,7 +48,7 @@ class PgWidget(BaseModel, ABC):
     border_right: int = Field(default=0, ge=0)
 
     # 颜色
-    palette: PgColor = Field(default_factory=PgColor)
+    palette: PgPalette = Field(default_factory=PgPalette)
     margin_bg_color: None | Tuple[int, int, int, int] = None
     padding_bg_color: None | Tuple[int, int, int, int] = None
     border_color: None | Tuple[int, int, int, int] = None
@@ -155,6 +155,9 @@ class PgWidget(BaseModel, ABC):
             return
             
         color = self.border_color or self.palette.PRIMARY
+        # 归一化颜色到 RGBA
+        if isinstance(color, PgColor):
+            color = color.RGBA
         x, y, w, h = self.border_rect
         
         # 计算边框宽度

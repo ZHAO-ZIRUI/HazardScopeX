@@ -67,7 +67,7 @@ class PgProgressBarBipolar(PgProgressBar):
         # 进度条
         pygame.draw.rect(
             self.surface,
-            self.palette.PRIMARY,
+            self.palette.PRIMARY.RGBA,
             self.content_rect,
         )
 
@@ -76,7 +76,7 @@ class PgProgressBarBipolar(PgProgressBar):
             return
         pygame.draw.line(
             self.surface,
-            self.center_color or self.palette.BRIGHT_RED,
+            (self.center_color or self.palette.BRIGHT_RED.RGBA),
             self.center_pose[0],
             self.center_pose[1],
             self.center_width,

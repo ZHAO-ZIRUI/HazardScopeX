@@ -1,101 +1,73 @@
-from dataclasses import dataclass
-from typing import Tuple
+import colorsys
+from pydantic import BaseModel, Field, ConfigDict
+from typing import Literal, Tuple, Iterator
 
 
-@dataclass
-class PgColor:
+class PgColor(BaseModel):
     """
-    基于 W3C 定义的颜色, 编码为 RGBA
+    PgApp 的颜色定义类
     """
-    # W3C
-    BLACK = (0, 0, 0, 255)
-    WHITE = (255, 255, 255, 255)
-    BRIGHT_RED = (255, 0, 0, 255)
-    BRIGHT_GREEN = (0, 255, 0, 255)
-    BRIGHT_BLUE = (0, 0, 255, 255)
-    BRIGHT_YELLOW = (255, 255, 0, 255)
-    BRIGHT_CYAN = (0, 255, 255, 255)
-    BRIGHT_MAGENTA = (255, 0, 255, 255)
-    ORANGE = (255, 165, 0, 255)
-    LIME = (0, 255, 0, 255)
-    AQUA = (0, 255, 255, 255)
-    VIOLET = (238, 130, 238, 255)
-    GOLD = (255, 215, 0, 255)
-    LIGHT_BLUE = (135, 206, 250, 255)
-    LIGHT_GRAY = (192, 192, 192, 255)
-    GRAY = (128, 128, 128, 255)
-    DARK_GRAY = (64, 64, 64, 255)
-    SILVER = (192, 192, 192, 255)
-    DARK_RED = (139, 0, 0, 255)
-    DARK_GREEN = (0, 100, 0, 255)
-    DARK_BLUE = (0, 0, 139, 255)
-    NAVY = (0, 0, 128, 255)
-    PURPLE = (128, 0, 128, 255)
-    MAROON = (128, 0, 0, 255)
-    OLIVE = (128, 128, 0, 255)
-    TEAL = (0, 128, 128, 255)
-    PINK = (255, 192, 203, 255)
-    BROWN = (165, 42, 42, 255)
-    INDIGO = (75, 0, 130, 255)
+    model_config = ConfigDict(
+        validate_assignment=True,
+    )
 
-    # CUSTOM
-    GREEN = (0, 200, 0, 255)
+    mode: Literal["RGBA", "HSVA"] = Field(default="RGBA", description="Color mode")
 
+    channel_1: int = Field(ge=0, le=255, description="Red or Hue channel")
+    channel_2: int = Field(ge=0, le=255, description="Green or Saturation channel")
+    channel_3: int = Field(ge=0, le=255, description="Blue or Value channel")
+    channel_a: int = Field(ge=0, le=255, default=255, description="Alpha channel")
 
-    # 以下内容为应用侧颜色定义, 如需自定义颜色可在继承该类后覆写以下内容
+    def __init__(self, r: int, g: int, b:int, a:int = 255) -> None:
+        super().__init__(
+            mode="RGBA",
+            channel_1=r,
+            channel_2=g,
+            channel_3=b,
+            channel_a=a,
+        )
 
-    PRIMARY = GREEN
-    SECONDARY = LIGHT_GRAY
-    SUCCESS = BRIGHT_GREEN
-    DANGER = BRIGHT_RED
-    WARNING = BRIGHT_YELLOW
-    INFO = BRIGHT_CYAN
-    LIGHT = WHITE
-    DARK = BLACK
-    
-    BACKGROUND = BLACK
-    TEXT_PRIMARY = WHITE
-    TEXT_SECONDARY = LIGHT_GRAY
-    TEXT_MUTED = GRAY
+    def __call__(self, *args, **kwargs) -> Tuple[int, int, int, int]:
+        return self.RGBA
 
-    @staticmethod
-    def dim(
-            color: Tuple[int, int, int, int],
-            factor: float,
-            alpha: bool = False
-    ) -> Tuple[int, int, int, int]:
+    def __iter__(self) -> Iterator[int]:
         """
-        将颜色变暗
-        :param color: 颜色, (r, g, b, a)
-        :param factor: 变暗因子, 0.0 ~ 1.0, 0.0 表示不变, 1.0 表示完全变黑
-        :param alpha: 是否对透明度进行变暗
+        使用序列协议提供直接访问
         """
-        if not (0.0 <= factor <= 1.0):
-            raise ValueError("Factor must be between 0.0 and 1.0")
+        r, g, b, a = self.RGBA
+        yield r
+        yield g
+        yield b
+        yield a
 
-        factor = 1.0 - factor
+    def __len__(self) -> int:
+        return 4
 
-        r = int(color[0] * factor)
-        g = int(color[1] * factor)
-        b = int(color[2] * factor)
-        if alpha:
-            a = int(color[3] * factor)
-        else:
-            a = color[3]
-        return r, g, b, a
+    def __getitem__(self, index: int) -> int:
+        return self.RGBA[index]
 
-    @staticmethod
-    def alpha(
-            color: Tuple[int, int, int, int],
-            factor: float
-    ) -> Tuple[int, int, int, int]:
-        """
-        调整颜色透明度
-        :param color: 颜色, (r, g, b, a)
-        :param factor: 透明度因子, 0.0 ~ 1.0, 0.0 表示完全透明, 1.0 表示不变
-        """
-        if not (0.0 <= factor <= 1.0):
-            raise ValueError("Factor must be between 0.0 and 1.0")
+    @property
+    def RGBA(self) -> Tuple[int, int, int, int]:
+        if self.mode == "RGBA":
+            return self.channel_1, self.channel_2, self.channel_3, self.channel_a
+        elif self.mode == "HSVA":
+            r, g, b = colorsys.hsv_to_rgb(self.channel_1 / 255.0, self.channel_2 / 255.0, self.channel_3 / 255.0)
+            return int(r * 255), int(g * 255), int(b * 255), self.channel_a
 
-        a = int(color[3] * factor)
-        return color[0], color[1], color[2], a
+    @property
+    def RGB(self) -> Tuple[int, int, int]:
+        r, g, b, _ = self.RGBA
+        return r, g, b
+
+    @property
+    def HSVA(self) -> Tuple[int, int, int, int]:
+        if self.mode == "HSVA":
+            return self.channel_1, self.channel_2, self.channel_3, self.channel_a
+        elif self.mode == "RGBA":
+            h, s, v = colorsys.rgb_to_hsv(self.channel_1 / 255.0, self.channel_2 / 255.0, self.channel_3 / 255.0)
+            return int(h * 255), int(s * 255), int(v * 255), self.channel_a
+
+    @property
+    def HSV(self) -> Tuple[int, int, int]:
+        h, s, v, _ = self.HSVA
+        return h, s, v
