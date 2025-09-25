@@ -365,7 +365,6 @@ class KeyboardControl(PgApp):
             width=self.W_GRID.col_interval * 3,
             height=self.W_GRID.row_interval,
             text="FWD",
-            text_color=self.palette.SUCCESS.RGBA,
             align_x=PgTextValue.Align.END,
         )
 
@@ -435,13 +434,15 @@ class KeyboardControl(PgApp):
         # 更新控制指令
         self._update_control_cmd()
 
-        # 更新 UI
+        # 更新车辆控制指令UI
         self.W_THROTTLE_BAR.value = self._control_cmd.throttle
         self.W_STEERING_BAR.value = self._control_cmd.steering
         self.W_BRAKE_BAR.value = self._control_cmd.brake
         self.W_THROTTLE_VAL.value = self._control_cmd.throttle
         self.W_BRAKE_VAL.value = self._control_cmd.brake
         self.W_STEERING_VAL.value = self._control_cmd.steering
+        self.W_GARE_VAL.value = "REV" if self._control_cmd.reverse else "FWD"
+        self.W_GARE_VAL.status = PgTextValue.Status.WARNING if self._control_cmd.reverse else PgTextValue.Status.NORMAL
 
         # 按键状态
         if len(self._keys_pressed) > 0:
@@ -507,7 +508,7 @@ class KeyboardControl(PgApp):
                 steering = min(0.0, steering + self.CTRL_STEERING_RETURN_RATE)
 
         # 倒挡控制
-        if pygame.K_PLUS in self._keys_released:
+        if pygame.K_EQUALS in self._keys_released:
             reverse = False
         elif pygame.K_MINUS in self._keys_released:
             reverse = True
