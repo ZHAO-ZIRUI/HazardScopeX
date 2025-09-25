@@ -92,6 +92,55 @@ class DebugPointCloudGenerator:
         return np.ascontiguousarray(pcd)
 
 
+class HelpModelBox(PgContainer):
+
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
+        self.border = 2
+        self.margin = 8
+        self.margin_bg_color = self.palette.LIGHT_GRAY.RGBA
+        self.border_color = self.palette.BLACK.RGBA
+
+        header = PgTextStatic(
+            surface=self.surface,
+            position=(self.content_rect[0], self.content_rect[1]),
+            bold=True,
+            width=self.content_rect[2],
+            height=24,
+            text='[ HELPS ]',
+            text_color=self.palette.BLACK.RGBA,
+            align_x=PgText.Align.CENTER,
+        )
+        content_text = """
+        CONTROLS:
+         - Mouse Drag: Orbit camera
+         - W/S/A/D: Camera position
+         - Arrow Keys: Camera rotate
+         - Q/E: Camera height up/down
+         - R/F: Zoom in/out
+         - +/-: Point size
+         - C: Cycle color mode
+         - SPACE: Reset camera
+         - I: Toggle info display
+         - H: Show/Hide this help
+         - ESC: Exit
+        """
+        content = PgTextStatic(
+            surface=self.surface,
+            position=(self.content_rect[0], self.content_rect[1] + 24),
+            bold=True,
+            width=self.content_rect[2],
+            height=self.content_rect[3] - 24,
+            text=content_text.strip('\n'),
+            text_color=self.palette.BLACK.RGBA,
+            align_y=PgText.Align.BEGIN,
+        )
+
+        self.add_widget(header)
+        self.add_widget(content)
+
+
 class CloudViewer(PgApp):
     
     class ColorMode(Enum):
@@ -516,8 +565,8 @@ class CloudViewer(PgApp):
             z_index=2,
         )
 
-        # 帮助模态框（参考 keyboard_control）
-        self.W_HELP_MODAL = PgContainer(
+        # 帮助模态框
+        self.W_HELP_MODAL = HelpModelBox(
             surface=self._screen,
             position=self.W_GRID.get_position(6, 8),
             width=self.W_GRID.col_interval * 17,
@@ -525,46 +574,6 @@ class CloudViewer(PgApp):
             show=False,
             z_index=100,
         )
-        self.W_HELP_MODAL.border = 2
-        self.W_HELP_MODAL.margin = 8
-        self.W_HELP_MODAL.margin_bg_color = self.palette.LIGHT_GRAY.RGBA
-        self.W_HELP_MODAL.border_color = self.palette.BLACK.RGBA
-        header = PgTextStatic(
-            surface=self._screen,
-            position=(self.W_HELP_MODAL.content_rect[0], self.W_HELP_MODAL.content_rect[1]),
-            bold=True,
-            width=self.W_HELP_MODAL.content_rect[2],
-            height=24,
-            text='[ HELPS ]',
-            text_color=self.palette.BLACK.RGBA,
-            align_x=PgText.Align.CENTER,
-        )
-        help_text = """
-        CONTROLS:
-         - Mouse Drag: Orbit camera
-         - W/S/A/D: Camera position
-         - Arrow Keys: Camera rotate
-         - Q/E: Camera height up/down
-         - R/F: Zoom in/out
-         - +/-: Point size
-         - C: Cycle color mode
-         - SPACE: Reset camera
-         - I: Toggle info display
-         - H: Show/Hide this help
-         - ESC: Exit
-        """
-        content = PgTextStatic(
-            surface=self._screen,
-            position=(self.W_HELP_MODAL.content_rect[0], self.W_HELP_MODAL.content_rect[1] + 24),
-            bold=True,
-            width=self.W_HELP_MODAL.content_rect[2],
-            height=self.W_HELP_MODAL.content_rect[3] - 24,
-            text=help_text.strip('\n'),
-            text_color=self.palette.BLACK.RGBA,
-            align_y=PgText.Align.BEGIN,
-        )
-        self.W_HELP_MODAL.add_widget(header)
-        self.W_HELP_MODAL.add_widget(content)
         self.widgets["HELP_MODAL"] = self.W_HELP_MODAL
 
     def _update(self):
