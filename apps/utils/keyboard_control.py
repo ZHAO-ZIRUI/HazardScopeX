@@ -1,6 +1,5 @@
 import textwrap
 import pygame
-import uuid
 from pydantic import PrivateAttr, Field
 from typing import Any, Tuple
 
@@ -165,57 +164,61 @@ class KeyboardControl(PgApp):
 
     show_grid_debug: bool = Field(default=False)
 
-    W_GRID: str = uuid.uuid4().hex
-    W_VEHICLE_BACKGROUND:str = uuid.uuid4().hex
-    W_HEADER_TEXT: str = uuid.uuid4().hex
-    W_FOOTER_TEXT: str = uuid.uuid4().hex
-    W_THROTTLE_TEXT: str = uuid.uuid4().hex
-    W_THROTTLE_BAR: str = uuid.uuid4().hex
-    W_THROTTLE_VAL: str = uuid.uuid4().hex
-    W_BRAKE_TEXT: str = uuid.uuid4().hex
-    W_BRAKE_BAR: str = uuid.uuid4().hex
-    W_BRAKE_VAL: str = uuid.uuid4().hex
-    W_STEERING_TEXT: str = uuid.uuid4().hex
-    W_STEERING_BAR: str = uuid.uuid4().hex
-    W_STEERING_VAL: str = uuid.uuid4().hex
-    W_CONNECTION_TEXT: str = uuid.uuid4().hex
-    W_CONNECTION_VAL: str = uuid.uuid4().hex
-    W_GARE_TEXT: str = uuid.uuid4().hex
-    W_GARE_VAL: str = uuid.uuid4().hex
-    W_MODE_TEXT: str = uuid.uuid4().hex
-    W_MODE_VAL: str = uuid.uuid4().hex
-    W_KEY_PRESSED_TEXT: str = uuid.uuid4().hex
-    W_KEY_PRESSED_VAL: str = uuid.uuid4().hex
-    W_HELP_MODEL: str = uuid.uuid4().hex
+    # 统一为与 image_viewer/cloud_viewer 一致的部件属性风格
+    W_GRID: PgGrid = None
+    W_VEHICLE_BACKGROUND: PgWidget = None
+    W_HEADER_TEXT: PgText | PgTextStatic = None
+    W_FOOTER_TEXT: PgTextStatic = None
+    W_THROTTLE_TEXT: PgText | PgTextStatic = None
+    W_THROTTLE_BAR: PgProgressBarLinear = None
+    W_THROTTLE_VAL: PgText = None
+    W_BRAKE_TEXT: PgText | PgTextStatic = None
+    W_BRAKE_BAR: PgProgressBarLinear = None
+    W_BRAKE_VAL: PgText = None
+    W_STEERING_TEXT: PgText | PgTextStatic = None
+    W_STEERING_BAR: PgProgressBarBipolar = None
+    W_STEERING_VAL: PgText = None
+    W_CONNECTION_TEXT: PgTextStatic = None
+    W_CONNECTION_VAL: PgTextValue = None
+    W_GARE_TEXT: PgTextStatic = None
+    W_GARE_VAL: PgTextValue = None
+    W_MODE_TEXT: PgText = None
+    W_MODE_VAL: PgText = None
+    W_KEY_PRESSED_TEXT: PgText = None
+    W_KEY_PRESSED_VAL: PgText = None
+    W_HELP_MODEL: HelpModelBox = None
+
+    # 与其它 Viewer 对齐，补齐 _shm 以便统一关闭
+    _shm: Any | None = PrivateAttr(default=None)
 
     def _init_widgets(self):
-        grid = PgGrid(
+        self.W_GRID = PgGrid(
             surface=self._screen,
             position=(0, 0),
             width=self.width,
             height=self.height,
+            show=self.show_grid_debug,
         )
-        self.widgets[self.W_GRID] = grid
 
-        # 背景车辆
+        # 背景车辆（保持原有布局参数）
         w_vehicle_background_width = 100
         w_vehicle_background_height = 200
-        self.widgets[self.W_VEHICLE_BACKGROUND] = VehicleBackgroundWidget(
+        self.W_VEHICLE_BACKGROUND = VehicleBackgroundWidget(
             surface=self._screen,
             position=(
                 self.center_x - w_vehicle_background_width // 2,
-                self.center_y - w_vehicle_background_height // 2 - grid.row_interval * 2
+                self.center_y - w_vehicle_background_height // 2 - self.W_GRID.row_interval * 2
             ),
             width=w_vehicle_background_width,
             height=w_vehicle_background_height,
         )
 
         # 顶部文本
-        self.widgets[self.W_HEADER_TEXT] = PgText(
+        self.W_HEADER_TEXT = PgText(
             surface=self._screen,
             position=(0, 0),
             width=self.width,
-            height=grid.row_interval,
+            height=self.W_GRID.row_interval,
             text="[ KEYBOARD CONTROL ]",
             text_color=self.palette.INFO.RGBA,
             bold=True,
@@ -223,11 +226,11 @@ class KeyboardControl(PgApp):
         )
 
         # 底部文本
-        self.widgets[self.W_FOOTER_TEXT] = PgTextStatic(
+        self.W_FOOTER_TEXT = PgTextStatic(
             surface=self._screen,
-            position=(0, self.height - grid.row_interval),
+            position=(0, self.height - self.W_GRID.row_interval),
             width=self.width,
-            height=grid.row_interval,
+            height=self.W_GRID.row_interval,
             text="Press <H> to show/hide helps.",
             text_color=self.palette.BLACK.RGBA,
             margin_bg_color=self.palette.LIGHT_GRAY.RGBA,
@@ -236,118 +239,120 @@ class KeyboardControl(PgApp):
         )
 
         # 帮助信息
-        self.widgets[self.W_HELP_MODEL] = HelpModelBox(
+        self.W_HELP_MODEL = HelpModelBox(
             surface=self._screen,
-            position=grid.get_position(4, 8),
-            width=grid.col_interval * 17,
-            height=grid.row_interval * 16,
+            position=self.W_GRID.get_position(4, 8),
+            width=self.W_GRID.col_interval * 17,
+            height=self.W_GRID.row_interval * 16,
             show=False,
             z_index=100,
         )
+        # 与其它文件保持一致：帮助组件也登记在 widgets 中，便于统一切换
+        self.widgets["HELP_MODEL"] = self.W_HELP_MODEL
 
         # 油门刹车转向
-        self.widgets[self.W_THROTTLE_TEXT] = PgText(
+        self.W_THROTTLE_TEXT = PgText(
             surface=self._screen,
-            position=grid.get_position(19, 12),
-            width=grid.col_interval * 4,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(19, 12),
+            width=self.W_GRID.col_interval * 4,
+            height=self.W_GRID.row_interval,
             text="THROTTLE:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
-        self.widgets[self.W_BRAKE_TEXT] = PgText(
+        self.W_BRAKE_TEXT = PgText(
             surface=self._screen,
-            position=grid.get_position(20, 12),
-            width=grid.col_interval * 4,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(20, 12),
+            width=self.W_GRID.col_interval * 4,
+            height=self.W_GRID.row_interval,
             text="BRAKE:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
-        self.widgets[self.W_STEERING_TEXT] = PgText(
+        self.W_STEERING_TEXT = PgText(
             surface=self._screen,
-            position=grid.get_position(21, 12),
-            width=grid.col_interval * 4,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(21, 12),
+            width=self.W_GRID.col_interval * 4,
+            height=self.W_GRID.row_interval,
             text="STEERING:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
 
-        self.widgets[self.W_THROTTLE_VAL] = PgText(
+        self.W_THROTTLE_VAL = PgText(
             surface=self._screen,
-            position=grid.get_position(19, 16),
-            width=grid.col_interval * 2,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(19, 16),
+            width=self.W_GRID.col_interval * 2,
+            height=self.W_GRID.row_interval,
             text="0.00",
             text_color=self.palette.SUCCESS.RGBA,
             bold=True,
             align_x=PgText.Align.END,
         )
-        self.widgets[self.W_BRAKE_VAL] = PgText(
+        self.W_BRAKE_VAL = PgText(
             surface=self._screen,
-            position=grid.get_position(20, 16),
-            width=grid.col_interval * 2,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(20, 16),
+            width=self.W_GRID.col_interval * 2,
+            height=self.W_GRID.row_interval,
             text="0.00",
             text_color=self.palette.SUCCESS.RGBA,
             bold=True,
             align_x=PgText.Align.END,
         )
-        self.widgets[self.W_STEERING_VAL] = PgText(
+        self.W_STEERING_VAL = PgText(
             surface=self._screen,
-            position=grid.get_position(21, 16),
-            width=grid.col_interval * 2,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(21, 16),
+            width=self.W_GRID.col_interval * 2,
+            height=self.W_GRID.row_interval,
             text="0.00",
             text_color=self.palette.SUCCESS.RGBA,
             bold=True,
             align_x=PgText.Align.END,
         )
 
-        self.widgets[self.W_THROTTLE_BAR] = PgProgressBarLinear(
+        self.W_THROTTLE_BAR = PgProgressBarLinear(
             surface=self._screen,
-            position=grid.get_position(19, 19),
-            width=grid.col_interval * 13,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(19, 19),
+            width=self.W_GRID.col_interval * 13,
+            height=self.W_GRID.row_interval,
             border=2,
             margin_y=2,
             border_color=self.palette.TEXT_PRIMARY.RGBA,
         )
-        self.widgets[self.W_BRAKE_BAR] = PgProgressBarLinear(
+        self.W_BRAKE_BAR = PgProgressBarLinear(
             surface=self._screen,
-            position=grid.get_position(20, 19),
-            width=grid.col_interval * 13,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(20, 19),
+            width=self.W_GRID.col_interval * 13,
+            height=self.W_GRID.row_interval,
             border=2,
             margin_y=2,
             border_color=self.palette.TEXT_PRIMARY.RGBA,
         )
-        self.widgets[self.W_STEERING_BAR] = PgProgressBarBipolar(
+        self.W_STEERING_BAR = PgProgressBarBipolar(
             surface=self._screen,
-            position=grid.get_position(21, 19),
-            width=grid.col_interval * 13,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(21, 19),
+            width=self.W_GRID.col_interval * 13,
+            height=self.W_GRID.row_interval,
             border=2,
             margin_y=2,
             border_color=self.palette.TEXT_PRIMARY.RGBA,
         )
 
         # 档位
-        self.widgets[self.W_GARE_TEXT] = PgTextStatic(
+        self.W_GARE_TEXT = PgTextStatic(
             surface=self._screen,
-            position=grid.get_position(22, 12),
-            width=grid.col_interval * 5,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(22, 12),
+            width=self.W_GRID.col_interval * 5,
+            height=self.W_GRID.row_interval,
             text="GEAR:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
-        self.widgets[self.W_GARE_VAL] = PgTextValue(
+        self.W_GARE_VAL = PgTextValue(
             surface=self._screen,
-            position=grid.get_position(22, 16),
-            width=grid.col_interval * 2,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(22, 16),
+            width=self.W_GRID.col_interval * 2,
+            height=self.W_GRID.row_interval,
             text="FWD",
             text_color=self.palette.SUCCESS.RGBA,
             align_x=PgTextValue.Align.END,
@@ -355,17 +360,17 @@ class KeyboardControl(PgApp):
         )
 
         # 连接状态
-        self.widgets[self.W_CONNECTION_TEXT] = PgTextStatic(
+        self.W_CONNECTION_TEXT = PgTextStatic(
             surface=self._screen,
-            position=grid.get_position(19, 1),
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(19, 1),
+            height=self.W_GRID.row_interval,
             text="CONNECTION:",
             bold=True,
         )
-        self.widgets[self.W_CONNECTION_VAL] = PgTextValue(
+        self.W_CONNECTION_VAL = PgTextValue(
             surface=self._screen,
-            position=grid.get_position(19, 6),
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(19, 6),
+            height=self.W_GRID.row_interval,
             text="1",
             bold=True,
             status=PgTextValue.Status.NORMAL,
@@ -376,40 +381,40 @@ class KeyboardControl(PgApp):
         )
 
         # 控制模式
-        self.widgets[self.W_MODE_TEXT] = PgText(
+        self.W_MODE_TEXT = PgText(
             surface=self._screen,
-            position=grid.get_position(20, 1),
-            width=grid.col_interval * 5,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(20, 1),
+            width=self.W_GRID.col_interval * 5,
+            height=self.W_GRID.row_interval,
             text="CTRL MODE:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
-        self.widgets[self.W_MODE_VAL] = PgText(
+        self.W_MODE_VAL = PgText(
             surface=self._screen,
-            position=grid.get_position(20, 6),
-            width=grid.col_interval * 8,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(20, 6),
+            width=self.W_GRID.col_interval * 8,
+            height=self.W_GRID.row_interval,
             text="DIRECT",
             text_color=self.palette.SUCCESS.RGBA,
             bold=True,
         )
 
         # 按键显示
-        self.widgets[self.W_KEY_PRESSED_TEXT] = PgText(
+        self.W_KEY_PRESSED_TEXT = PgText(
             surface=self._screen,
-            position=grid.get_position(21, 1),
-            width=grid.col_interval * 5,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(21, 1),
+            width=self.W_GRID.col_interval * 5,
+            height=self.W_GRID.row_interval,
             text="KEY PRESS:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
-        self.widgets[self.W_KEY_PRESSED_VAL] = PgText(
+        self.W_KEY_PRESSED_VAL = PgText(
             surface=self._screen,
-            position=grid.get_position(21, 6),
-            width=grid.col_interval * 8,
-            height=grid.row_interval,
+            position=self.W_GRID.get_position(21, 6),
+            width=self.W_GRID.col_interval * 8,
+            height=self.W_GRID.row_interval,
             text="NONE",
             text_color=self.palette.WARNING.RGBA,
             bold=True,
@@ -422,11 +427,11 @@ class KeyboardControl(PgApp):
 
     def _update(self):
         if pygame.K_h in self._keys_released:
-            self.widgets[self.W_HELP_MODEL].show = not self.widgets[self.W_HELP_MODEL].show
+            self.W_HELP_MODEL.show = not self.W_HELP_MODEL.show
 
-        self.widgets[self.W_THROTTLE_BAR].update(0.3)
-        self.widgets[self.W_BRAKE_BAR].update(0.9)
-        self.widgets[self.W_STEERING_BAR].update(-0.6)
+        self.W_THROTTLE_BAR.update(0.3)
+        self.W_BRAKE_BAR.update(0.9)
+        self.W_STEERING_BAR.update(-0.6)
 
 if __name__ == "__main__":
     app = KeyboardControl(
