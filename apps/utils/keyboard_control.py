@@ -165,7 +165,6 @@ class KeyboardControl(PgApp):
 
     show_grid_debug: bool = Field(default=False)
 
-    # 统一为与 image_viewer/cloud_viewer 一致的部件属性风格
     W_GRID: PgGrid = None
     W_VEHICLE_BACKGROUND: PgWidget = None
     W_HEADER_TEXT: PgText | PgTextStatic = None
