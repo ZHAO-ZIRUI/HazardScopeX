@@ -547,71 +547,17 @@ class ImageViewer(PgApp):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Image Viewer Application")
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug grid display.'
-    )
-    parser.add_argument(
-        '--debug-grid',
-        action='store_true',
-        help='Enable debug grid display for UI development.'
-    )
-    parser.add_argument(
-        '--width',
-        type=int,
-        default=800,
-        help='Window width.'
-    )
-    parser.add_argument(
-        '--height',
-        type=int,
-        default=600,
-        help='Window height.'
-    )
-    parser.add_argument(
-        '--fps',
-        type=int,
-        default=30,
-        help='Window FPS.'
-    )
-    parser.add_argument(
-        '--name',
-        type=str,
-        default="Image Viewer",
-        help='Window title.'
-    )
-    parser.add_argument(
-        '--ros2-export-topic',
-        type=str,
-        default=None,
-        help='ROS2 UI export topic name to export UI.'
-    )
-    parser.add_argument(
-        '--ros2-export-node',
-        type=str,
-        default=None,
-        help='ROS2 UI export node name to export UI.'
-    )
-    parser.add_argument(
-        '--ros2-export-qos',
-        type=int,
-        default=10,
-        help='ROS2 UI export QoS depth for topic export.'
-    )
-    parser.add_argument(
-        '--ros2-export-fps',
-        type=int,
-        default=10,
-        help='ROS2 UI export FPS.'
-    )
-    parser.add_argument(
-        'SHM_TOPIC',
-        type=str,
-        nargs='?',
-        default=None,
-        help='Shared Memory topic name to receive image from.'
-    )
+    parser.add_argument('--debug', action='store_true', help='Enable debug grid display.')
+    parser.add_argument('--debug-grid', action='store_true', help='Enable debug grid display for UI development.')
+    parser.add_argument('--width', type=int, default=800, help='Window width.')
+    parser.add_argument('--height', type=int, default=600, help='Window height.')
+    parser.add_argument('--fps', type=int, default=30, help='Window FPS.')
+    parser.add_argument('--name', type=str, default="Image Viewer", help='Window title.')
+    parser.add_argument('--ros2-export-topic', type=str, default=None, help='ROS2 UI export topic name to export UI.')
+    parser.add_argument('--ros2-export-node', type=str, default=None, help='ROS2 UI export node name to export UI.')
+    parser.add_argument('--ros2-export-qos', type=int, default=10, help='ROS2 UI export QoS depth for topic export.')
+    parser.add_argument('--ros2-export-fps', type=int, default=10, help='ROS2 UI export FPS.')
+    parser.add_argument('SHM_TOPIC', type=str, nargs='?', default=None, help='Shared Memory topic name to receive image from.')
     args = parser.parse_args()
 
     app = ImageViewer(
