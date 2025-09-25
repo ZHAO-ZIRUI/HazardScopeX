@@ -5,6 +5,7 @@ from pydantic import PrivateAttr, Field
 from typing import Any, Tuple
 
 from core.pygame import *
+from core.utils import SharedMemoryUtils
 
 
 class VehicleBackgroundWidget(PgWidget):
@@ -413,6 +414,11 @@ class KeyboardControl(PgApp):
             text_color=self.palette.WARNING.RGBA,
             bold=True,
         )
+
+    def _shutdown(self):
+        if self._shm:
+            SharedMemoryUtils.consumer_close(self._shm)
+        super()._shutdown()
 
     def _update(self):
         if pygame.K_h in self._keys_released:
