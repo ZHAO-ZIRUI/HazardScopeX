@@ -2,6 +2,7 @@ import textwrap
 import pygame
 from pydantic import PrivateAttr, Field
 from typing import Any, Tuple
+from enum import Enum
 
 from core.pygame import *
 from core.utils import SharedMemoryUtils
@@ -163,7 +164,11 @@ class HelpModelBox(PgContainer):
 
 class KeyboardControl(PgApp):
 
+    class ControlMode(Enum):
+        DIRECT = "DIRECT"
+
     show_grid_debug: bool = Field(default=False)
+    control_mode: ControlMode = Field(default=ControlMode.DIRECT)
 
     W_GRID: PgGrid = None
     W_VEHICLE_BACKGROUND: PgWidget = None
@@ -388,7 +393,7 @@ class KeyboardControl(PgApp):
             position=self.W_GRID.get_position(20, 6),
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
-            text="DIRECT",
+            text=self.control_mode.value,
             text_color=self.palette.SUCCESS.RGBA,
         )
 
