@@ -171,7 +171,7 @@ class KeyboardControl(PgApp):
         DIRECT = "DIRECT"
 
     show_grid_debug: bool = Field(default=False)
-    shm_topic: str | None = Field(default=None)
+    vehicle_name: str | None = Field(default=None)
     control_mode: ControlMode = Field(default=ControlMode.DIRECT)
 
     W_GRID: PgGrid = None
@@ -196,8 +196,8 @@ class KeyboardControl(PgApp):
     W_KEY_PRESSED_TEXT: PgText = None
     W_KEY_PRESSED_VAL: PgText = None
     W_HELP_MODEL: HelpModelBox = None
-    W_SHM_TOPIC_TEXT: PgTextStatic = None
-    W_SHM_TOPIC_VAL: PgTextValue = None
+    W_VEHICLE_NAME_TEXT: PgTextStatic = None
+    W_VEHICLE_NAME_VAL: PgTextValue = None
 
     # 键盘输入的响应参数
     CTRL_THROTTLE_RATE: float = 0.02  # 油门增加速率
@@ -209,12 +209,20 @@ class KeyboardControl(PgApp):
     CTRL_STEERING_QUICK_RETURN_RATE: float = 0.02  # 快速回中速率
 
     _control_cmd: VehicleDirectControl = PrivateAttr(default=VehicleDirectControl())
-    _shm: Any | None = PrivateAttr(default=None)
+    _shm_control: SharedMemory | None = PrivateAttr(default=None)
+    _shm_control_topic: str | None = PrivateAttr(default=None)
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
-        if not self.shm_topic:
-            self._logger.warning("No SHM topic specified, control command will not be sent to simulator.")
+
+        self._logger.info(f"Control mode is set to: '{self.control_mode.value}'")
+
+        if not self.vehicle_name:
+            self._logger.warning("No vehicle name specified, connection to SHM will not be established.")
+        
+        if self.control_mode == self.ControlMode.DIRECT:
+            self._shm_control_topic = f"{self.vehicle_name}_DIRECT_CONTROL"
+
 
     def _init_widgets(self):
         self.W_GRID = PgGrid(
@@ -394,22 +402,22 @@ class KeyboardControl(PgApp):
             status=PgTextValue.Status.DANGER,
         )
 
-        # SHM Topic
-        self.W_SHM_TOPIC_TEXT = PgTextStatic(
+        # 车辆名称
+        self.W_VEHICLE_NAME_TEXT = PgTextStatic(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 1),
             width=self.W_GRID.col_interval * 5,
             height=self.W_GRID.row_interval,
-            text="SHM TOPIC:",
+            text="VEHICLE:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
         )
-        self.W_SHM_TOPIC_VAL = PgTextValue(
+        self.W_VEHICLE_NAME_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 6),
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
-            text=self.shm_topic if self.shm_topic else "NONE",
-            status=PgTextValue.Status.NORMAL if self.shm_topic else PgTextValue.Status.DANGER,
+            text=self.vehicle_name if self.vehicle_name else "NONE",
+            status=PgTextValue.Status.NORMAL if self.vehicle_name else PgTextValue.Status.DANGER,
         )
 
         # 控制模式
@@ -448,8 +456,8 @@ class KeyboardControl(PgApp):
         )
 
     def _shutdown(self):
-        if self._shm:
-            SharedMemoryUtils.consumer_close(self._shm)
+        if self._shm_control:
+            SharedMemoryUtils.consumer_close(self._shm_control)
         super()._shutdown()
 
     def _update(self):
@@ -457,17 +465,17 @@ class KeyboardControl(PgApp):
             self.W_HELP_MODEL.show = not self.W_HELP_MODEL.show
 
         # 连接 SHM
-        if self.shm_topic and not self._shm:
+        if self._shm_control_topic and not self._shm_control:
             try:
-                self._shm = SharedMemory(name=self.shm_topic)
-                self._logger.info(f"SHM topic '{self.shm_topic}' connected.")
+                self._shm_control = SharedMemory(name=self._shm_control_topic)
+                self._logger.info(f"SHM topic '{self._shm_control_topic}' connected.")
             except FileNotFoundError:
-                LogUtils.interval(2.0, token=(id(self), self.shm_topic), log_call=self._logger.warning,
-                                  content=f"Trying connect to SHM topic: '{self.shm_topic}', retrying ...")
+                LogUtils.interval(2.0, token=(id(self), self._shm_control_topic), log_call=self._logger.warning,
+                                  content=f"Trying connect to SHM topic: '{self._shm_control_topic}', retrying ...")
 
         # 发送 SHM
-        if self._shm is not None:
-            self._control_cmd.serialize_to_shm(self._shm)
+        if self._shm_control is not None:
+            self._control_cmd.serialize_to_shm(self._shm_control)
 
         # 更新控制指令
         self._update_control_cmd()
@@ -491,7 +499,7 @@ class KeyboardControl(PgApp):
             self.W_KEY_PRESSED_VAL.status = PgTextValue.Status.WARNING
 
         # 连接状态
-        if self._shm:
+        if self._shm_control:
             self.W_CONNECTION_VAL.value = "OK"
             self.W_CONNECTION_VAL.status = PgTextValue.Status.NORMAL
         else:
@@ -584,7 +592,8 @@ if __name__ == "__main__":
     parser.add_argument('--ros2-export-node', type=str, default=None, help='ROS2 UI export node name to export UI.')
     parser.add_argument('--ros2-export-qos', type=int, default=10, help='ROS2 UI export QoS depth for topic export.')
     parser.add_argument('--ros2-export-fps', type=int, default=10, help='ROS2 UI export FPS.')
-    parser.add_argument('SHM_TOPIC', type=str, nargs='?', default=None, help='Shared Memory topic name to receive image from.')
+    parser.add_argument('--mode', type=str, default="DIRECT", help='Control mode.', choices=["DIRECT"])
+    parser.add_argument('VEHICLE_NAME', type=str, nargs='?', default=None, help='Vehicle name to send control.')
     args = parser.parse_args()
 
     app = KeyboardControl(
@@ -599,6 +608,7 @@ if __name__ == "__main__":
         ros2_export_node_name=args.ros2_export_node,
         ros2_export_qos=args.ros2_export_qos,
         ros2_export_fps=args.ros2_export_fps,
-        shm_topic=args.SHM_TOPIC,
+        vehicle_name=args.VEHICLE_NAME,
+        control_mode=KeyboardControl.ControlMode(args.mode)
     )
     app.run()
