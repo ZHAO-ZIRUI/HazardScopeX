@@ -592,7 +592,7 @@ if __name__ == "__main__":
         window_height=args.height,
         window_fps=args.fps,
         window_title=args.name,
-        show_grid_debug= True,
+        show_grid_debug=args.debug_grid,
         logger_level=logging.DEBUG if args.debug else logging.INFO,
         ros2_export=True if args.ros2_export_topic else False,
         ros2_export_topic=args.ros2_export_topic,
