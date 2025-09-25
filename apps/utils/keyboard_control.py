@@ -5,9 +5,10 @@ import pygame
 from pydantic import PrivateAttr, Field
 from typing import Any, Tuple
 from enum import Enum
+from multiprocessing.shared_memory import SharedMemory
 
 from core.pygame import *
-from core.utils import SharedMemoryUtils
+from core.utils import SharedMemoryUtils, LogUtils
 from core.data import VehicleDirectControl
 
 
@@ -210,6 +211,11 @@ class KeyboardControl(PgApp):
     _control_cmd: VehicleDirectControl = PrivateAttr(default=VehicleDirectControl())
     _shm: Any | None = PrivateAttr(default=None)
 
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+        if not self.shm_topic:
+            self._logger.warning("No SHM topic specified, control command will not be sent to simulator.")
+
     def _init_widgets(self):
         self.W_GRID = PgGrid(
             surface=self._screen,
@@ -384,12 +390,8 @@ class KeyboardControl(PgApp):
             surface=self._screen,
             position=self.W_GRID.get_position(19, 6),
             height=self.W_GRID.row_interval,
-            text="1",
-            status=PgTextValue.Status.NORMAL,
-            blink_text=True,
-            border=2,
-            blink_border=True,
-            show_sign=True,
+            text="-",
+            status=PgTextValue.Status.DANGER,
         )
 
         # SHM Topic
@@ -454,6 +456,19 @@ class KeyboardControl(PgApp):
         if pygame.K_h in self._keys_released:
             self.W_HELP_MODEL.show = not self.W_HELP_MODEL.show
 
+        # 连接 SHM
+        if self.shm_topic and not self._shm:
+            try:
+                self._shm = SharedMemory(name=self.shm_topic)
+                self._logger.info(f"SHM topic '{self.shm_topic}' connected.")
+            except FileNotFoundError:
+                LogUtils.interval(2.0, token=(id(self), self.shm_topic), log_call=self._logger.warning,
+                                  content=f"Trying connect to SHM topic: '{self.shm_topic}', retrying ...")
+
+        # 发送 SHM
+        if self._shm is not None:
+            self._control_cmd.serialize_to_shm(self._shm)
+
         # 更新控制指令
         self._update_control_cmd()
 
@@ -474,6 +489,14 @@ class KeyboardControl(PgApp):
         else:
             self.W_KEY_PRESSED_VAL.text = 'NONE'
             self.W_KEY_PRESSED_VAL.status = PgTextValue.Status.WARNING
+
+        # 连接状态
+        if self._shm:
+            self.W_CONNECTION_VAL.value = "OK"
+            self.W_CONNECTION_VAL.status = PgTextValue.Status.NORMAL
+        else:
+            self.W_CONNECTION_VAL.value = "ERROR"
+            self.W_CONNECTION_VAL.status = PgTextValue.Status.DANGER
 
     def _update_control_cmd(self):
         if self.control_mode == self.ControlMode.DIRECT:
