@@ -362,7 +362,7 @@ class KeyboardControl(PgApp):
         self.W_GARE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(22, 16),
-            width=self.W_GRID.col_interval * 2,
+            width=self.W_GRID.col_interval * 3,
             height=self.W_GRID.row_interval,
             text="FWD",
             text_color=self.palette.SUCCESS.RGBA,
