@@ -432,6 +432,9 @@ class KeyboardControl(PgApp):
         if pygame.K_h in self._keys_released:
             self.W_HELP_MODEL.show = not self.W_HELP_MODEL.show
 
+        # 更新控制指令
+        self._update_control_cmd()
+
         # 更新 UI
         self.W_THROTTLE_BAR.value = self._control_cmd.throttle
         self.W_STEERING_BAR.value = self._control_cmd.steering
