@@ -264,9 +264,9 @@ class KeyboardControl(PgApp):
             width=self.W_GRID.col_interval * 2,
             height=self.W_GRID.row_interval,
             text=0,
-            text_color=self.palette.SUCCESS.RGBA,
             align_x=PgText.Align.END,
             decimal_places=2,
+            show_sign=True,
         )
         self.W_THROTTLE_BAR = PgProgressBarLinear(
             surface=self._screen,
@@ -294,8 +294,8 @@ class KeyboardControl(PgApp):
             height=self.W_GRID.row_interval,
             text=0,
             decimal_places=2,
-            text_color=self.palette.SUCCESS.RGBA,
             align_x=PgText.Align.END,
+            show_sign=True,
         )
         self.W_BRAKE_BAR = PgProgressBarLinear(
             surface=self._screen,
@@ -323,8 +323,8 @@ class KeyboardControl(PgApp):
             height=self.W_GRID.row_interval,
             text=0,
             decimal_places=2,
-            text_color=self.palette.SUCCESS.RGBA,
             align_x=PgText.Align.END,
+            show_sign=True,
         )
         self.W_STEERING_BAR = PgProgressBarBipolar(
             surface=self._screen,
