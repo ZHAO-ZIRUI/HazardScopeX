@@ -147,7 +147,7 @@ class DebugImageGenerator:
 class ImageViewer(PgApp):
 
     show_grid_debug: bool = Field(default=False)
-    no_debug_image: bool = Field(default=False)
+    no_debug_image: bool = Field(default=True)
     shm_topic: str | None = Field(default=None)
 
     W_GRID: PgGrid = None
@@ -215,6 +215,7 @@ class ImageViewer(PgApp):
             width=self.W_GRID.content_width,
             height=self.W_GRID.content_height,
             image=self._image_display,
+            show_no_data=False,
         )
 
         # 调试信息框
@@ -486,8 +487,12 @@ class ImageViewer(PgApp):
 
         if self._image is not None:
             self._image_display = self._image
-        if not self.no_debug_image and self._image is None:
+        elif not self.no_debug_image:
             self._image_display = next(self._debug_image_gen)
+        else:
+            self._image_display = None
+            # 直接在这里绘制 NO DATA
+            self._render_no_data()
         self.W_IMAGE.image = self._image_display
 
         # 统计（基于图像 OS 时间戳）
@@ -539,6 +544,15 @@ class ImageViewer(PgApp):
             self._img_prev_ts_os = img.timestamp_os
             self._img_frame_id_last = img.frame_id
 
+    def _render_no_data(self) -> None:
+        """
+        在屏幕中心渲染一个 NO DATA 的文本
+        """
+        font = pygame.font.SysFont(None, 48)
+        text = font.render("NO DATA", True, self.palette.BRIGHT_RED.RGBA)
+        text_rect = text.get_rect(center=(self.width // 2, self.height // 2))
+        self._screen.blit(text, text_rect)
+
     def _shutdown(self):
         if self._shm:
             SharedMemoryUtils.consumer_close(self._shm)
@@ -547,8 +561,9 @@ class ImageViewer(PgApp):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Image Viewer Application")
-    parser.add_argument('--debug', action='store_true', help='Enable debug grid display.')
+    parser.add_argument('--debug', action='store_true', help='Enable debug log display.')
     parser.add_argument('--debug-grid', action='store_true', help='Enable debug grid display for UI development.')
+    parser.add_argument('--debug-img', action='store_true', help='Enable debug image generation.')
     parser.add_argument('--width', type=int, default=800, help='Window width.')
     parser.add_argument('--height', type=int, default=600, help='Window height.')
     parser.add_argument('--fps', type=int, default=30, help='Window FPS.')
@@ -565,7 +580,7 @@ if __name__ == "__main__":
         window_height=args.height,
         window_fps=args.fps,
         window_title=args.name,
-        no_debug_image=not args.debug,
+        no_debug_image=not args.debug_img,
         show_grid_debug=args.debug_grid,
         logger_level=logging.DEBUG if args.debug else logging.INFO,
         ros2_export=True if args.ros2_export_topic else False,
