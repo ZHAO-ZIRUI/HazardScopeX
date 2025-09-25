@@ -193,6 +193,15 @@ class KeyboardControl(PgApp):
     W_KEY_PRESSED_VAL: PgText = None
     W_HELP_MODEL: HelpModelBox = None
 
+    # 键盘输入的响应参数
+    CTRL_THROTTLE_RATE: float = 0.02  # 油门增加速率
+    CTRL_BRAKE_RATE: float = 0.02  # 刹车增加速率
+    CTRL_THROTTLE_RETURN_RATE: float = 0.005  # 油门回零速率
+    CTRL_BRAKE_RETURN_RATE: float = 0.005  # 刹车回零速率
+    CTRL_STEERING_RATE: float = 0.01  # 方向盘转向速率
+    CTRL_STEERING_RETURN_RATE: float = 0.005  # 方向盘回中速率
+    CTRL_STEERING_QUICK_RETURN_RATE: float = 0.02  # 快速回中速率
+
     _control_cmd: VehicleDirectControl = PrivateAttr(default=VehicleDirectControl())
     _shm: Any | None = PrivateAttr(default=None)
 
@@ -437,6 +446,80 @@ class KeyboardControl(PgApp):
         else:
             self.W_KEY_PRESSED_VAL.text = 'NONE'
             self.W_KEY_PRESSED_VAL.status = PgTextValue.Status.WARNING
+
+    def _update_control_cmd(self):
+        if self.control_mode == self.ControlMode.DIRECT:
+            self._update_direct_control_cmd()
+        else:
+            raise NotImplementedError
+
+    def _update_direct_control_cmd(self):
+        is_steering = False
+        # 上一帧控制指令拆包
+        throttle = self._control_cmd.throttle
+        brake = self._control_cmd.brake
+        steering = self._control_cmd.steering
+        reverse = self._control_cmd.reverse
+
+        # 油门控制
+        if pygame.K_w in self._keys_pressed or pygame.K_UP in self._keys_pressed:
+            if brake > 0:
+                brake = 0
+            throttle = min(1.0, throttle + self.CTRL_THROTTLE_RATE)
+        else:
+            if throttle > 0:
+                throttle = max(0.0, throttle - self.CTRL_THROTTLE_RETURN_RATE)
+
+        # 刹车控制 (S 或 ↓)
+        if pygame.K_s in self._keys_pressed or pygame.K_DOWN in self._keys_pressed:
+            if throttle > 0:
+                throttle = 0
+            brake = min(1.0, brake + self.CTRL_BRAKE_RATE)
+        else:
+            if brake > 0:
+                brake = max(0.0, brake - self.CTRL_BRAKE_RETURN_RATE)
+
+        # 左转控制 (A 或 ←)
+        if pygame.K_a in self._keys_pressed or pygame.K_LEFT in self._keys_pressed:
+            is_steering = True
+            if steering > 0:
+                steering = max(-1.0, steering - self.CTRL_STEERING_QUICK_RETURN_RATE)
+            else:
+                steering = max(-1.0, steering - self.CTRL_STEERING_RATE)
+
+        # 右转控制 (D 或 →)
+        if pygame.K_d in self._keys_pressed or pygame.K_RIGHT in self._keys_pressed:
+            is_steering = True
+            if steering < 0:
+                steering = min(1.0, steering + self.CTRL_STEERING_QUICK_RETURN_RATE)
+            else:
+                steering = min(1.0, steering + self.CTRL_STEERING_RATE)
+
+        # 方向盘自动回中
+        if not is_steering:
+            if steering > 0:
+                steering = max(0.0, steering - self.CTRL_STEERING_RETURN_RATE)
+            elif steering < 0:
+                steering = min(0.0, steering + self.CTRL_STEERING_RETURN_RATE)
+
+        # 倒挡控制
+        if pygame.K_PLUS in self._keys_released:
+            reverse = False
+        elif pygame.K_MINUS in self._keys_released:
+            reverse = True
+
+        # 快速归中
+        if pygame.K_SPACE in self._keys_released:
+            throttle = 0
+            brake = 0
+            steering = 0
+
+        self._control_cmd = VehicleDirectControl(
+            throttle=throttle,
+            steering=steering,
+            brake=brake,
+            reverse=reverse
+        )
 
 if __name__ == "__main__":
     app = KeyboardControl(
