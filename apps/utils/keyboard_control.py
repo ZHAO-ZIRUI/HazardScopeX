@@ -265,7 +265,7 @@ class KeyboardControl(PgApp):
         self.W_THROTTLE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(19, 16),
-            width=self.W_GRID.col_interval * 2,
+            width=self.W_GRID.col_interval * 3,
             height=self.W_GRID.row_interval,
             text=0,
             align_x=PgText.Align.END,
@@ -274,7 +274,7 @@ class KeyboardControl(PgApp):
         )
         self.W_THROTTLE_BAR = PgProgressBarLinear(
             surface=self._screen,
-            position=self.W_GRID.get_position(19, 19),
+            position=self.W_GRID.get_position(19, 20),
             width=self.W_GRID.col_interval * 13,
             height=self.W_GRID.row_interval,
             border=2,
@@ -294,7 +294,7 @@ class KeyboardControl(PgApp):
         self.W_BRAKE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 16),
-            width=self.W_GRID.col_interval * 2,
+            width=self.W_GRID.col_interval * 3,
             height=self.W_GRID.row_interval,
             text=0,
             decimal_places=2,
@@ -303,7 +303,7 @@ class KeyboardControl(PgApp):
         )
         self.W_BRAKE_BAR = PgProgressBarLinear(
             surface=self._screen,
-            position=self.W_GRID.get_position(20, 19),
+            position=self.W_GRID.get_position(20, 20),
             width=self.W_GRID.col_interval * 13,
             height=self.W_GRID.row_interval,
             border=2,
@@ -323,7 +323,7 @@ class KeyboardControl(PgApp):
         self.W_STEERING_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 16),
-            width=self.W_GRID.col_interval * 2,
+            width=self.W_GRID.col_interval * 3,
             height=self.W_GRID.row_interval,
             text=0,
             decimal_places=2,
@@ -332,7 +332,7 @@ class KeyboardControl(PgApp):
         )
         self.W_STEERING_BAR = PgProgressBarBipolar(
             surface=self._screen,
-            position=self.W_GRID.get_position(21, 19),
+            position=self.W_GRID.get_position(21, 20),
             width=self.W_GRID.col_interval * 13,
             height=self.W_GRID.row_interval,
             border=2,
