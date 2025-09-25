@@ -38,6 +38,6 @@ class PgProgressBarLinear(PgProgressBar):
     def _draw_content(self):
         pygame.draw.rect(
             self.surface,
-            self.palette.PRIMARY.RGBA,
+            self.content_color,
             self.content_rect,
         )

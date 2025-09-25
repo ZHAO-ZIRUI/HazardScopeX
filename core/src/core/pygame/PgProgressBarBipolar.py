@@ -67,7 +67,7 @@ class PgProgressBarBipolar(PgProgressBar):
         # 进度条
         pygame.draw.rect(
             self.surface,
-            self.palette.PRIMARY.RGBA,
+            self.content_color,
             self.content_rect,
         )
 
