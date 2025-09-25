@@ -2,6 +2,8 @@ import colorsys
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Literal, Tuple, Iterator
 
+ColorMode = Literal["RGBA", "HSVA"]
+
 
 class PgColor(BaseModel):
     """
@@ -11,16 +13,16 @@ class PgColor(BaseModel):
         validate_assignment=True,
     )
 
-    mode: Literal["RGBA", "HSVA"] = Field(default="RGBA", description="Color mode")
+    mode: ColorMode = Field(default="RGBA", description="Color mode")
 
     channel_1: int = Field(ge=0, le=255, description="Red or Hue channel")
     channel_2: int = Field(ge=0, le=255, description="Green or Saturation channel")
     channel_3: int = Field(ge=0, le=255, description="Blue or Value channel")
     channel_a: int = Field(ge=0, le=255, default=255, description="Alpha channel")
 
-    def __init__(self, r: int, g: int, b:int, a:int = 255) -> None:
+    def __init__(self, r: int, g: int, b: int, a: int = 255, mode: ColorMode = "RGBA") -> None:
         super().__init__(
-            mode="RGBA",
+            mode=mode,
             channel_1=r,
             channel_2=g,
             channel_3=b,
