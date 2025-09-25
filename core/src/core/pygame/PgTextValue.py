@@ -47,6 +47,14 @@ class PgTextValue(PgText):
     _cache_border_color: tuple[int, int, int, int] | None = PrivateAttr(default=None)
     _count_frame: int = PrivateAttr(default=0)
 
+    @property
+    def value(self) -> str | float | int:
+        return self.text
+
+    @value.setter
+    def value(self, v: str | float | int) -> None:
+        self.text = v
+
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
         self.MAPPING_STATUS_TO_COLOR = {
