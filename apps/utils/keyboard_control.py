@@ -391,7 +391,7 @@ class KeyboardControl(PgApp):
             width=grid.col_interval * 8,
             height=grid.row_interval,
             text="DIRECT",
-            text_color=self.palette.SUCCESS,
+            text_color=self.palette.SUCCESS.RGBA,
             bold=True,
         )
 
@@ -402,7 +402,7 @@ class KeyboardControl(PgApp):
             width=grid.col_interval * 5,
             height=grid.row_interval,
             text="KEY PRESS:",
-            text_color=self.palette.TEXT_PRIMARY,
+            text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
         self.widgets[self.W_KEY_PRESSED_VAL] = PgText(
