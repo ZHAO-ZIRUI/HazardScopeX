@@ -216,14 +216,13 @@ class KeyboardControl(PgApp):
         )
 
         # 顶部文本
-        self.W_HEADER_TEXT = PgText(
+        self.W_HEADER_TEXT = PgTextStatic(
             surface=self._screen,
             position=(0, 0),
             width=self.width,
             height=self.W_GRID.row_interval,
             text="[ KEYBOARD CONTROL ]",
             text_color=self.palette.INFO.RGBA,
-            bold=True,
             align_x=PgText.Align.CENTER,
         )
 
@@ -252,23 +251,22 @@ class KeyboardControl(PgApp):
         self.widgets["HELP_MODEL"] = self.W_HELP_MODEL
 
         # 油门
-        self.W_THROTTLE_TEXT = PgText(
+        self.W_THROTTLE_TEXT = PgTextStatic(
             surface=self._screen,
             position=self.W_GRID.get_position(19, 12),
             width=self.W_GRID.col_interval * 4,
             height=self.W_GRID.row_interval,
             text="THROTTLE:",
-            bold=True,
         )
-        self.W_THROTTLE_VAL = PgText(
+        self.W_THROTTLE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(19, 16),
             width=self.W_GRID.col_interval * 2,
             height=self.W_GRID.row_interval,
-            text="0.00",
+            text=0,
             text_color=self.palette.SUCCESS.RGBA,
-            bold=True,
             align_x=PgText.Align.END,
+            decimal_places=2,
         )
         self.W_THROTTLE_BAR = PgProgressBarLinear(
             surface=self._screen,
@@ -282,22 +280,21 @@ class KeyboardControl(PgApp):
         )
 
         # 刹车
-        self.W_BRAKE_TEXT = PgText(
+        self.W_BRAKE_TEXT = PgTextStatic(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 12),
             width=self.W_GRID.col_interval * 4,
             height=self.W_GRID.row_interval,
             text="BRAKE:",
-            bold=True,
         )
-        self.W_BRAKE_VAL = PgText(
+        self.W_BRAKE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 16),
             width=self.W_GRID.col_interval * 2,
             height=self.W_GRID.row_interval,
-            text="0.00",
+            text=0,
+            decimal_places=2,
             text_color=self.palette.SUCCESS.RGBA,
-            bold=True,
             align_x=PgText.Align.END,
         )
         self.W_BRAKE_BAR = PgProgressBarLinear(
@@ -312,22 +309,21 @@ class KeyboardControl(PgApp):
         )
 
         # 转向
-        self.W_STEERING_TEXT = PgText(
+        self.W_STEERING_TEXT = PgTextStatic(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 12),
             width=self.W_GRID.col_interval * 4,
             height=self.W_GRID.row_interval,
             text="STEERING:",
-            bold=True,
         )
-        self.W_STEERING_VAL = PgText(
+        self.W_STEERING_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 16),
             width=self.W_GRID.col_interval * 2,
             height=self.W_GRID.row_interval,
-            text="0.00",
+            text=0,
+            decimal_places=2,
             text_color=self.palette.SUCCESS.RGBA,
-            bold=True,
             align_x=PgText.Align.END,
         )
         self.W_STEERING_BAR = PgProgressBarBipolar(
@@ -349,7 +345,6 @@ class KeyboardControl(PgApp):
             height=self.W_GRID.row_interval,
             text="GEAR:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
-            bold=True,
         )
         self.W_GARE_VAL = PgTextValue(
             surface=self._screen,
@@ -359,7 +354,6 @@ class KeyboardControl(PgApp):
             text="FWD",
             text_color=self.palette.SUCCESS.RGBA,
             align_x=PgTextValue.Align.END,
-            bold=True,
         )
 
         # 连接状态
@@ -368,14 +362,12 @@ class KeyboardControl(PgApp):
             position=self.W_GRID.get_position(19, 1),
             height=self.W_GRID.row_interval,
             text="CONNECTION:",
-            bold=True,
         )
         self.W_CONNECTION_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(19, 6),
             height=self.W_GRID.row_interval,
             text="1",
-            bold=True,
             status=PgTextValue.Status.NORMAL,
             blink_text=True,
             border=2,
@@ -384,43 +376,39 @@ class KeyboardControl(PgApp):
         )
 
         # 控制模式
-        self.W_MODE_TEXT = PgText(
+        self.W_MODE_TEXT = PgTextStatic(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 1),
             width=self.W_GRID.col_interval * 5,
             height=self.W_GRID.row_interval,
             text="CTRL MODE:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
-            bold=True,
         )
-        self.W_MODE_VAL = PgText(
+        self.W_MODE_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 6),
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
             text="DIRECT",
             text_color=self.palette.SUCCESS.RGBA,
-            bold=True,
         )
 
         # 按键显示
-        self.W_KEY_PRESSED_TEXT = PgText(
+        self.W_KEY_PRESSED_TEXT = PgTextStatic(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 1),
             width=self.W_GRID.col_interval * 5,
             height=self.W_GRID.row_interval,
             text="KEY PRESS:",
             text_color=self.palette.TEXT_PRIMARY.RGBA,
-            bold=True,
         )
-        self.W_KEY_PRESSED_VAL = PgText(
+        self.W_KEY_PRESSED_VAL = PgTextValue(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 6),
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
             text="NONE",
             text_color=self.palette.WARNING.RGBA,
-            bold=True,
         )
 
     def _shutdown(self):
