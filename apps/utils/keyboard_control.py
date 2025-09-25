@@ -432,12 +432,13 @@ class KeyboardControl(PgApp):
         if pygame.K_h in self._keys_released:
             self.W_HELP_MODEL.show = not self.W_HELP_MODEL.show
 
-        self.W_THROTTLE_BAR.update(self._control_cmd.throttle)
-        self.W_THROTTLE_VAL.update(self._control_cmd.throttle)
-        self.W_BRAKE_BAR.update(self._control_cmd.brake)
-        self.W_BRAKE_VAL.update(self._control_cmd.brake)
-        self.W_STEERING_VAL.update(self._control_cmd.steering)
-        self.W_STEERING_BAR.update(self._control_cmd.steering)
+        # 更新 UI
+        self.W_THROTTLE_BAR.value = self._control_cmd.throttle
+        self.W_STEERING_BAR.value = self._control_cmd.steering
+        self.W_BRAKE_BAR.value = self._control_cmd.brake
+        self.W_THROTTLE_VAL.value = self._control_cmd.throttle
+        self.W_BRAKE_VAL.value = self._control_cmd.brake
+        self.W_STEERING_VAL.value = self._control_cmd.steering
 
         # 按键状态
         if len(self._keys_pressed) > 0:
