@@ -189,7 +189,7 @@ class KeyboardControl(PgApp):
     W_KEY_PRESSED_VAL: PgText = None
     W_HELP_MODEL: HelpModelBox = None
 
-    # 与其它 Viewer 对齐，补齐 _shm 以便统一关闭
+    _control_cmd: VehicleDirectControl = PrivateAttr(default=VehicleDirectControl())
     _shm: Any | None = PrivateAttr(default=None)
 
     def _init_widgets(self):
@@ -431,9 +431,12 @@ class KeyboardControl(PgApp):
         if pygame.K_h in self._keys_released:
             self.W_HELP_MODEL.show = not self.W_HELP_MODEL.show
 
-        self.W_THROTTLE_BAR.update(0.3)
-        self.W_BRAKE_BAR.update(0.9)
-        self.W_STEERING_BAR.update(-0.6)
+        self.W_THROTTLE_BAR.update(self._control_cmd.throttle)
+        self.W_THROTTLE_VAL.update(self._control_cmd.throttle)
+        self.W_BRAKE_BAR.update(self._control_cmd.brake)
+        self.W_BRAKE_VAL.update(self._control_cmd.brake)
+        self.W_STEERING_VAL.update(self._control_cmd.steering)
+        self.W_STEERING_BAR.update(self._control_cmd.steering)
 
 if __name__ == "__main__":
     app = KeyboardControl(
