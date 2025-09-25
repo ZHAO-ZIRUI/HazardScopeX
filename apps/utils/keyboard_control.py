@@ -249,10 +249,9 @@ class KeyboardControl(PgApp):
             show=False,
             z_index=100,
         )
-        # 与其它文件保持一致：帮助组件也登记在 widgets 中，便于统一切换
         self.widgets["HELP_MODEL"] = self.W_HELP_MODEL
 
-        # 油门刹车转向
+        # 油门
         self.W_THROTTLE_TEXT = PgText(
             surface=self._screen,
             position=self.W_GRID.get_position(19, 12),
@@ -282,6 +281,7 @@ class KeyboardControl(PgApp):
             content_color=self.palette.SUCCESS.RGBA
         )
 
+        # 刹车
         self.W_BRAKE_TEXT = PgText(
             surface=self._screen,
             position=self.W_GRID.get_position(20, 12),
@@ -311,6 +311,7 @@ class KeyboardControl(PgApp):
             content_color=self.palette.SUCCESS.RGBA
         )
 
+        # 转向
         self.W_STEERING_TEXT = PgText(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 12),
