@@ -195,6 +195,8 @@ class KeyboardControl(PgApp):
     W_KEY_PRESSED_TEXT: PgText = None
     W_KEY_PRESSED_VAL: PgText = None
     W_HELP_MODEL: HelpModelBox = None
+    W_SHM_TOPIC_TEXT: PgTextStatic = None
+    W_SHM_TOPIC_VAL: PgTextValue = None
 
     # 键盘输入的响应参数
     CTRL_THROTTLE_RATE: float = 0.02  # 油门增加速率
@@ -390,10 +392,28 @@ class KeyboardControl(PgApp):
             show_sign=True,
         )
 
+        # SHM Topic
+        self.W_SHM_TOPIC_TEXT = PgTextStatic(
+            surface=self._screen,
+            position=self.W_GRID.get_position(20, 1),
+            width=self.W_GRID.col_interval * 5,
+            height=self.W_GRID.row_interval,
+            text="SHM TOPIC:",
+            text_color=self.palette.TEXT_PRIMARY.RGBA,
+        )
+        self.W_SHM_TOPIC_VAL = PgTextValue(
+            surface=self._screen,
+            position=self.W_GRID.get_position(20, 6),
+            width=self.W_GRID.col_interval * 8,
+            height=self.W_GRID.row_interval,
+            text=self.shm_topic if self.shm_topic else "NONE",
+            status=PgTextValue.Status.NORMAL if self.shm_topic else PgTextValue.Status.DANGER,
+        )
+
         # 控制模式
         self.W_MODE_TEXT = PgTextStatic(
             surface=self._screen,
-            position=self.W_GRID.get_position(20, 1),
+            position=self.W_GRID.get_position(21, 1),
             width=self.W_GRID.col_interval * 5,
             height=self.W_GRID.row_interval,
             text="CTRL MODE:",
@@ -401,7 +421,7 @@ class KeyboardControl(PgApp):
         )
         self.W_MODE_VAL = PgTextValue(
             surface=self._screen,
-            position=self.W_GRID.get_position(20, 6),
+            position=self.W_GRID.get_position(21, 6),
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
             text=self.control_mode.value,
@@ -411,7 +431,7 @@ class KeyboardControl(PgApp):
         # 按键显示
         self.W_KEY_PRESSED_TEXT = PgTextStatic(
             surface=self._screen,
-            position=self.W_GRID.get_position(21, 1),
+            position=self.W_GRID.get_position(22, 1),
             width=self.W_GRID.col_interval * 5,
             height=self.W_GRID.row_interval,
             text="KEY PRESS:",
@@ -419,7 +439,7 @@ class KeyboardControl(PgApp):
         )
         self.W_KEY_PRESSED_VAL = PgTextValue(
             surface=self._screen,
-            position=self.W_GRID.get_position(21, 6),
+            position=self.W_GRID.get_position(22, 6),
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
             text="NONE",
