@@ -101,20 +101,16 @@ class PgTextValue(PgText):
             return text
 
         # 处理小数位数
-        if value.is_integer():
-            result = f"{int(value)}"
-        else:
-            result = f"{value:.{self.decimal_places}f}"
+        result = f"{value:.{self.decimal_places}f}"
 
         # 处理正负号
         if self.show_sign:
             abs_value = abs(value)
             # 避免浮点数精度问题，使用绝对值判断
             if abs_value < 1e-10:
-                result = f"+{abs_value}"
+                result = f"+{0:.{self.decimal_places}f}"
             elif value > 0:
                 result = f"+{result}"
-
         return result
 
     def _calc_text_color(self) -> tuple[int, int, int, int]:
