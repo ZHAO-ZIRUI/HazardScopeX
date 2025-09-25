@@ -5,6 +5,7 @@ from typing import Any, Tuple
 
 from core.pygame import *
 from core.utils import SharedMemoryUtils
+from core.data import VehicleDirectControl
 
 
 class VehicleBackgroundWidget(PgWidget):
@@ -200,7 +201,7 @@ class KeyboardControl(PgApp):
             show=self.show_grid_debug,
         )
 
-        # 背景车辆（保持原有布局参数）
+        # 背景车辆
         w_vehicle_background_width = 100
         w_vehicle_background_height = 200
         self.W_VEHICLE_BACKGROUND = VehicleBackgroundWidget(
@@ -211,6 +212,7 @@ class KeyboardControl(PgApp):
             ),
             width=w_vehicle_background_width,
             height=w_vehicle_background_height,
+            line_color=self.palette.GREEN.RGBA,
         )
 
         # 顶部文本
@@ -257,28 +259,8 @@ class KeyboardControl(PgApp):
             width=self.W_GRID.col_interval * 4,
             height=self.W_GRID.row_interval,
             text="THROTTLE:",
-            text_color=self.palette.TEXT_PRIMARY.RGBA,
             bold=True,
         )
-        self.W_BRAKE_TEXT = PgText(
-            surface=self._screen,
-            position=self.W_GRID.get_position(20, 12),
-            width=self.W_GRID.col_interval * 4,
-            height=self.W_GRID.row_interval,
-            text="BRAKE:",
-            text_color=self.palette.TEXT_PRIMARY.RGBA,
-            bold=True,
-        )
-        self.W_STEERING_TEXT = PgText(
-            surface=self._screen,
-            position=self.W_GRID.get_position(21, 12),
-            width=self.W_GRID.col_interval * 4,
-            height=self.W_GRID.row_interval,
-            text="STEERING:",
-            text_color=self.palette.TEXT_PRIMARY.RGBA,
-            bold=True,
-        )
-
         self.W_THROTTLE_VAL = PgText(
             surface=self._screen,
             position=self.W_GRID.get_position(19, 16),
@@ -288,6 +270,25 @@ class KeyboardControl(PgApp):
             text_color=self.palette.SUCCESS.RGBA,
             bold=True,
             align_x=PgText.Align.END,
+        )
+        self.W_THROTTLE_BAR = PgProgressBarLinear(
+            surface=self._screen,
+            position=self.W_GRID.get_position(19, 19),
+            width=self.W_GRID.col_interval * 13,
+            height=self.W_GRID.row_interval,
+            border=2,
+            margin_y=2,
+            border_color=self.palette.WHITE.RGBA,
+            content_color=self.palette.SUCCESS.RGBA
+        )
+
+        self.W_BRAKE_TEXT = PgText(
+            surface=self._screen,
+            position=self.W_GRID.get_position(20, 12),
+            width=self.W_GRID.col_interval * 4,
+            height=self.W_GRID.row_interval,
+            text="BRAKE:",
+            bold=True,
         )
         self.W_BRAKE_VAL = PgText(
             surface=self._screen,
@@ -299,6 +300,25 @@ class KeyboardControl(PgApp):
             bold=True,
             align_x=PgText.Align.END,
         )
+        self.W_BRAKE_BAR = PgProgressBarLinear(
+            surface=self._screen,
+            position=self.W_GRID.get_position(20, 19),
+            width=self.W_GRID.col_interval * 13,
+            height=self.W_GRID.row_interval,
+            border=2,
+            margin_y=2,
+            border_color=self.palette.WHITE.RGBA,
+            content_color=self.palette.SUCCESS.RGBA
+        )
+
+        self.W_STEERING_TEXT = PgText(
+            surface=self._screen,
+            position=self.W_GRID.get_position(21, 12),
+            width=self.W_GRID.col_interval * 4,
+            height=self.W_GRID.row_interval,
+            text="STEERING:",
+            bold=True,
+        )
         self.W_STEERING_VAL = PgText(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 16),
@@ -309,25 +329,6 @@ class KeyboardControl(PgApp):
             bold=True,
             align_x=PgText.Align.END,
         )
-
-        self.W_THROTTLE_BAR = PgProgressBarLinear(
-            surface=self._screen,
-            position=self.W_GRID.get_position(19, 19),
-            width=self.W_GRID.col_interval * 13,
-            height=self.W_GRID.row_interval,
-            border=2,
-            margin_y=2,
-            border_color=self.palette.TEXT_PRIMARY.RGBA,
-        )
-        self.W_BRAKE_BAR = PgProgressBarLinear(
-            surface=self._screen,
-            position=self.W_GRID.get_position(20, 19),
-            width=self.W_GRID.col_interval * 13,
-            height=self.W_GRID.row_interval,
-            border=2,
-            margin_y=2,
-            border_color=self.palette.TEXT_PRIMARY.RGBA,
-        )
         self.W_STEERING_BAR = PgProgressBarBipolar(
             surface=self._screen,
             position=self.W_GRID.get_position(21, 19),
@@ -335,7 +336,8 @@ class KeyboardControl(PgApp):
             height=self.W_GRID.row_interval,
             border=2,
             margin_y=2,
-            border_color=self.palette.TEXT_PRIMARY.RGBA,
+            border_color=self.palette.WHITE.RGBA,
+            content_color=self.palette.SUCCESS.RGBA,
         )
 
         # 档位
