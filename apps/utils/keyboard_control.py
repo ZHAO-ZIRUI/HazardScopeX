@@ -412,7 +412,6 @@ class KeyboardControl(PgApp):
             width=self.W_GRID.col_interval * 8,
             height=self.W_GRID.row_interval,
             text="NONE",
-            text_color=self.palette.WARNING.RGBA,
         )
 
     def _shutdown(self):
@@ -430,6 +429,14 @@ class KeyboardControl(PgApp):
         self.W_BRAKE_VAL.update(self._control_cmd.brake)
         self.W_STEERING_VAL.update(self._control_cmd.steering)
         self.W_STEERING_BAR.update(self._control_cmd.steering)
+
+        # 按键状态
+        if len(self._keys_pressed) > 0:
+            self.W_KEY_PRESSED_VAL.text = ', '.join([pygame.key.name(k).upper() for k in self._keys_pressed])
+            self.W_KEY_PRESSED_VAL.status = PgTextValue.Status.NORMAL
+        else:
+            self.W_KEY_PRESSED_VAL.text = 'NONE'
+            self.W_KEY_PRESSED_VAL.status = PgTextValue.Status.WARNING
 
 if __name__ == "__main__":
     app = KeyboardControl(
