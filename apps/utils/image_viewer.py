@@ -192,12 +192,21 @@ class ImageViewer(PgApp):
     _img_dt_avg: float = PrivateAttr(default=0.0)
 
     _shm: SharedMemory | None = PrivateAttr(default=None)
+    _shm_frame_count: int = PrivateAttr(default=0)
+    _shm_last_stats_time: float = PrivateAttr(default=0.0)
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
         self._debug_image_gen = DebugImageGenerator(width=200, height=100)
         if not self.no_debug_image:
             self._image_display = next(self._debug_image_gen)
+            self._logger.warning("Debug image generator enabled - synthetic test images will be displayed")
+        
+        if self.show_grid_debug:
+            self._logger.warning("Grid debug mode enabled - you will see some grid points for UI development")
+        
+        if not self.shm_topic:
+            self._logger.warning("SHM TOPIC is empty - no data will be received from shared memory")
 
     def _init_widgets(self):
         self.W_GRID = PgGrid(
@@ -484,6 +493,18 @@ class ImageViewer(PgApp):
             self._image = Image.try_deserialize_from_shm(self._shm)
             if self._image is None:
                 self._logger.warning(f"SHM deserialize failed at topic: '{self.shm_topic}'")
+            elif not hasattr(self, '_shm_connected_logged'):
+                self._logger.info(f"Successfully reading data from SHM topic: '{self.shm_topic}'")
+                self._shm_connected_logged = True
+                self._shm_last_stats_time = time.time()
+            else:
+                # SHM 帧数统计日志
+                self._shm_frame_count += 1
+                current_time = time.time()
+                if current_time - self._shm_last_stats_time >= 5.0:
+                    self._logger.debug(f"SHM data flow: {self._shm_frame_count} frames processed in last 5 seconds")
+                    self._shm_frame_count = 0
+                    self._shm_last_stats_time = current_time
 
         if self._image is not None:
             self._image_display = self._image
