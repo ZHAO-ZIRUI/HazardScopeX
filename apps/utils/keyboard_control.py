@@ -1,3 +1,5 @@
+import argparse
+import logging
 import textwrap
 import pygame
 from pydantic import PrivateAttr, Field
@@ -168,6 +170,7 @@ class KeyboardControl(PgApp):
         DIRECT = "DIRECT"
 
     show_grid_debug: bool = Field(default=False)
+    shm_topic: str | None = Field(default=None)
     control_mode: ControlMode = Field(default=ControlMode.DIRECT)
 
     W_GRID: PgGrid = None
@@ -527,7 +530,32 @@ class KeyboardControl(PgApp):
         )
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Keyboard Control Application")
+    parser.add_argument('--debug', action='store_true', help='Enable debug log display.')
+    parser.add_argument('--debug-grid', action='store_true', help='Enable debug grid display for UI development.')
+    parser.add_argument('--width', type=int, default=800, help='Window width.')
+    parser.add_argument('--height', type=int, default=600, help='Window height.')
+    parser.add_argument('--fps', type=int, default=30, help='Window FPS.')
+    parser.add_argument('--name', type=str, default="Image Viewer", help='Window title.')
+    parser.add_argument('--ros2-export-topic', type=str, default=None, help='ROS2 UI export topic name to export UI.')
+    parser.add_argument('--ros2-export-node', type=str, default=None, help='ROS2 UI export node name to export UI.')
+    parser.add_argument('--ros2-export-qos', type=int, default=10, help='ROS2 UI export QoS depth for topic export.')
+    parser.add_argument('--ros2-export-fps', type=int, default=10, help='ROS2 UI export FPS.')
+    parser.add_argument('SHM_TOPIC', type=str, nargs='?', default=None, help='Shared Memory topic name to receive image from.')
+    args = parser.parse_args()
+
     app = KeyboardControl(
+        window_width=args.width,
+        window_height=args.height,
+        window_fps=args.fps,
+        window_title=args.name,
         show_grid_debug= True,
+        logger_level=logging.DEBUG if args.debug else logging.INFO,
+        ros2_export=True if args.ros2_export_topic else False,
+        ros2_export_topic=args.ros2_export_topic,
+        ros2_export_node_name=args.ros2_export_node,
+        ros2_export_qos=args.ros2_export_qos,
+        ros2_export_fps=args.ros2_export_fps,
+        shm_topic=args.SHM_TOPIC,
     )
     app.run()
