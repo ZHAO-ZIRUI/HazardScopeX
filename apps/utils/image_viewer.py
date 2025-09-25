@@ -440,7 +440,7 @@ class ImageViewer(PgApp):
             surface=self._screen,
             position=self.W_GRID.get_position(13, 0),
             text="""
-            Press <H> to toggle info.
+            Press <I> to toggle info.
             Press <ECS> to quit.
             """,
             height=self.W_GRID.row_interval * 2,
@@ -464,7 +464,7 @@ class ImageViewer(PgApp):
         ) + self.W_GRID.col_interval * 5 + 10
 
         # 处理信息框的键盘响应
-        if pygame.K_h in self._keys_released:
+        if pygame.K_i in self._keys_released:
             for widget in self.widgets.values():
                 if widget is self.W_IMAGE:
                     continue
