@@ -28,3 +28,6 @@ context:
     # 在 Windows 下, 该路径需要以 .exe 结尾
     # 在 Linux 下, 该路径需要以 .sh 结尾
     exe_path: ""
+
+    # 是否在服务端启动失败或者丢失连接时自动重启服务端
+    restart_on_failure: true
