@@ -2,6 +2,12 @@
 # YOU SHOULD COPY THIS FILE AND RENAME IT TO config.yaml
 # 该文件是配置文件的模板, 你应当复制该文件并重命名为 config.yaml, 并编辑该文件以满足你的需求
 
+# 日志配置
+logging:
+  # 日志级别
+  # 可选: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  
 # CarlaContext 配置
 context:
   # CARLA 服务端的配置
@@ -21,4 +27,4 @@ context:
     # 服务端的可执行文件路径
     # 在 Windows 下, 该路径需要以 .exe 结尾
     # 在 Linux 下, 该路径需要以 .sh 结尾
-    server_exe_path: ""
+    exe_path: ""
