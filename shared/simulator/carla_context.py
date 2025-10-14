@@ -1,3 +1,4 @@
+from re import S
 import carla
 import random
 import socket
@@ -53,6 +54,7 @@ class CarlaContext:
         self._thread_restarter: None | threading.Thread = None
         self._event_server_dead: threading.Event = threading.Event()
         self._event_manual_restart: threading.Event = threading.Event()
+        self._event_manual_shutdown: threading.Event = threading.Event()
 
         # 执行初始化后处理
         self._post_init()
@@ -176,6 +178,22 @@ class CarlaContext:
             self._thread_restarter = threading.Thread(target=self._thread_func_restarter, daemon=True)
             self._thread_restarter.start()
 
+    def spin(self):
+        """自动 Tick 服务端"""
+        try:
+            while True:
+                if not self._event_server_dead.is_set():
+                    try:
+                        self.tick()
+                        time.sleep(1/self._sync_mode_fps)
+                    except RuntimeError:
+                        self.logger.warning('Spin tick failed, maybe the server is dead')
+                        time.sleep(1)
+        except KeyboardInterrupt:
+            self.logger.info('Spin thread stopped by manual')
+            self._event_manual_shutdown.set()
+            return
+
     def _server_start_primary(self):
         """以 nullrhi 模式启动 CARLA 服务端的主进程, 该进程不进行任何渲染"""
         cmd = [self._exe_path]
@@ -236,7 +254,7 @@ class CarlaContext:
         detector_client.set_timeout(check_timeout)
         
         try:
-            while not self._event_server_dead.is_set():
+            while not self._event_server_dead.is_set() and not self._event_manual_shutdown.is_set():
                 try:
                     detector_client.get_server_version()
                     time.sleep(check_timeout)
@@ -251,8 +269,10 @@ class CarlaContext:
     def _thread_func_restarter(self):
         """自动重启线程"""
         self.logger.debug('Thread restarter started waiting for server dead event')
-        while True:
+        while not self._event_manual_shutdown.is_set():
             self._event_server_dead.wait()
+            if self._event_manual_shutdown.is_set():
+                break
             if not self._event_manual_restart.is_set():
                 self.logger.warning('Server dead event received, auto-restarting server')
                 self.server_restart()
