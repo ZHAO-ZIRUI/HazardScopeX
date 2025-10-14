@@ -1,0 +1,6 @@
+# THIS IS A TEMPLATE CONFIG FILE
+# YOU SHOULD COPY THIS FILE AND RENAME IT TO config.yaml
+# 该文件是配置文件的模板, 你应当复制该文件并重命名为 config.yaml, 并编辑该文件以满足你的需求
+
+context:
+  server_reander_offsceen: false
