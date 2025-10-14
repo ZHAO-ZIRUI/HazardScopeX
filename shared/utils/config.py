@@ -15,7 +15,7 @@ class Config:
     def __init__(self, config: Dict):
         self._config = config
 
-    def get(self, route: str, target_type: type = NoneType, default=None) -> Any:
+    def get(self, route: str, target_type: type = NoneType, *, default=None) -> Any:
         """以路由地柜方式找到深层字典中的值, 并进行类型转换. 
     
         Args:
