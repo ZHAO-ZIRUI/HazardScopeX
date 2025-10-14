@@ -32,7 +32,7 @@ class Logging:
 
     def _post_init(self):
         self._init_basic_config()
-        self.get_logger('Logging').info('Logging initialized')
+        self.get_logger('Logging').info('Initialized')
 
     def _init_basic_config(self):
         logging.basicConfig(
