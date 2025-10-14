@@ -1,4 +1,7 @@
+import yaml
+import json
 from typing import Dict, Any
+from typing_extensions import Self
 
 
 class Config:
@@ -90,3 +93,15 @@ class Config:
 
         # str
         return str(value)
+
+    @classmethod
+    def from_yaml(cls, file_path: str) -> Self:
+        with open(file_path, 'r') as file:
+            config = yaml.load(file, Loader=yaml.FullLoader)
+        return cls(config)
+
+    @classmethod
+    def from_json(cls, file_path: str) -> Self:
+        with open(file_path, 'r') as file:
+            config = json.load(file)
+        return cls(config)
