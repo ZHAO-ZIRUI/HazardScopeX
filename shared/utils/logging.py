@@ -1,4 +1,6 @@
 import logging
+import time
+from typing import Callable, Dict
 from rich.logging import RichHandler
 from typing_extensions import Self
 
@@ -11,6 +13,7 @@ class Logging:
     """
     _instance = None  # 单例模式实例
     _initialized = False  # 标记单例是否已初始化
+    _interval_timer_cache: Dict[str, float] = {}
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -52,3 +55,36 @@ class Logging:
         return cls(
             level=level,
         )
+
+    @staticmethod
+    def interval(
+        seconds: float,
+        log_call: Callable,
+        message: str,
+        token: str,
+    ):
+        """每间隔一段时间执行一次日志记录, 用于在某些情况下避免日志记录过于频繁
+
+        该方法可以被频繁调用, 只有在间隔时间到达时才会实际执行一次日志记录
+
+        Args:
+            seconds (float): 间隔时间
+            log_call (Callable): 日志记录函数, 如 logger.info
+            message (str): 日志消息
+            token (str): 凭据
+        """
+        now = time.perf_counter()
+        last = Logging._interval_timer_cache.get(token, 0)
+        if now - last < seconds:
+            return
+        Logging._interval_timer_cache[token] = now
+        log_call(message)
+
+    @staticmethod
+    def cancel_interval(token: str):
+        """取消间隔日志记录, 用于在某些情况下停止间隔日志记录
+
+        Args:
+            token (str): 凭据
+        """
+        Logging._interval_timer_cache.pop(token, None)
