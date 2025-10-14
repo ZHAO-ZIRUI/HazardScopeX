@@ -10,7 +10,11 @@ class SimulatorOutput(BaseData, ABC):
     """
     仿真器的输出数据
     """
-    def __init__(self, sim_frame: int, sim_timestamp: float):
+    def __init__(
+        self, 
+        sim_frame: int, 
+        sim_timestamp: float,
+    ):
         super().__init__()
         self._sim_frame = sim_frame
         self._sim_timestamp = sim_timestamp
