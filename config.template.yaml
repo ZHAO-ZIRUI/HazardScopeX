@@ -6,28 +6,39 @@
 logging:
   # 日志级别
   # 可选: DEBUG, INFO, WARNING, ERROR, CRITICAL
-  level: INFO
-  
+  level: DEBUG
+
 # CarlaContext 配置
 context:
   # CARLA 服务端的配置
   server:
-    host: localhost
+    host: 127.0.0.1 # 除非使用外部服务器, 否则不要修改该值
     port: 2000
-    timeout: 10
+    timeout: 1
+
+    # 服务端同步模式的速度, 单位: FPS
+    # 该同步模式的设置方式与以往不同, 在服务端启动时指定, 且不需再由 world.settings 指定
+    sync_mode_fps: 20
     
     # 是否使用外部服务器,
-    # 如果为 true, 则 CarlaContext 不再管理 CARLA 服务端的生命周期, 且部分功能将不可用
+    # 如果为 true, 则 CarlaContext 不再管理 CARLA 服务端的生命周期, 且以下配置将会失效
     use_external_server: false
 
-    # 注意: 如果 use_external_server 为 true, 则以下配置将会被忽略
-    # 是否显示服务端窗口
-    reander_offsceen: false
+    # 注意: 本工程使用了 CARLA 的 MULTI_GPU 功能
+    # 参考: https://carla.readthedocs.io/en/latest/adv_multigpu/
     
     # 服务端的可执行文件路径
     # 在 Windows 下, 该路径需要以 .exe 结尾
     # 在 Linux 下, 该路径需要以 .sh 结尾
     exe_path: ""
+
+    # 指定使用的 GPU
+    gpus:
+      - 0
+
+    # 服务端启动时的等待时间
+    server_start_wait_time: 2
+    server_start_timeout: 10
 
     # 是否在服务端启动失败或者丢失连接时自动重启服务端
     restart_on_failure: true
