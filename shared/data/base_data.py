@@ -12,7 +12,11 @@ class BaseData(ABC):
     HEADER_SIZE = 4 # 数据帧头长度
     
     def __init__(self):
-        self.raw: Any = None
+        self._raw: Any = None
+
+    @property
+    def raw(self) -> Any:
+        return self._raw
 
     def serialize(self) -> bytes:
         serialized_data = pickle.dumps(self)
