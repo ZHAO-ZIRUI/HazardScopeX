@@ -1,5 +1,6 @@
 import yaml
 import json
+from types import NoneType
 from typing import Dict, Any
 from typing_extensions import Self
 
@@ -9,12 +10,12 @@ class Config:
     配置文件读取类
     """
 
-    ALLOWED_TYPES = (int, float, str, bool)
+    ALLOWED_TYPES = (int, float, str, bool, NoneType)
 
     def __init__(self, config: Dict):
         self._config = config
 
-    def get(self, route: str, default=None, target_type: type = None) -> Any:
+    def get(self, route: str, target_type: type = NoneType, default=None) -> Any:
         """以路由地柜方式找到深层字典中的值, 并进行类型转换. 
     
         Args:
@@ -51,6 +52,10 @@ class Config:
     def _type_convert(self, value: Any, target_type: type) -> Any:
         if target_type not in self.ALLOWED_TYPES:
             raise TypeError(f"Invalid target type: {target_type}")
+
+        # None, 不进行任何转换
+        if target_type == NoneType:
+            return value
         
         # bool 
         if target_type == bool:
