@@ -102,7 +102,7 @@ class CarlaContext:
         return self._factory
 
     @property
-    def blueprints(self) -> CarlaBlueprints:
+    def blueprints(self) -> type[CarlaBlueprints]:
         """CARLA 蓝图枚举类, 此处是一个别名"""
         return CarlaBlueprints
 
