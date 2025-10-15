@@ -10,7 +10,7 @@ class CarlaActor:
 
     def __init__(
         self,
-        blueprint: carla.Blueprint,
+        blueprint: carla.ActorBlueprint,
         tf: carla.Transform,
         attach_to: carla.Actor | Self | None = None,
         **attributes: Dict[str, Any],
