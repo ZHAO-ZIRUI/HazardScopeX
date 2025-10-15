@@ -88,10 +88,6 @@ class CarlaContext:
         return self.client.get_trafficmanager()
 
     @property
-    def blueprint_library(self) -> carla.BlueprintLibrary:
-        return self.world.get_blueprint_library()
-
-    @property
     def factory(self) -> CarlaFactory:
         """CARLA Actor 工厂"""
         if self._factory is None:
