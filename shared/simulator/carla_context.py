@@ -1,4 +1,3 @@
-from re import S
 import carla
 import random
 import socket
@@ -8,7 +7,6 @@ import time
 import uuid
 import threading
 from typing_extensions import Self
-
 
 from shared.utils import Config, Logging
 
