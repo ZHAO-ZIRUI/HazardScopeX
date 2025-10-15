@@ -9,6 +9,7 @@ import threading
 from typing_extensions import Self
 
 from shared.utils import Config, Logging
+from shared.simulator import CarlaFactory, CarlaBlueprints
 
 
 class CarlaContext:
@@ -54,6 +55,8 @@ class CarlaContext:
         self._event_manual_restart: threading.Event = threading.Event()
         self._event_manual_shutdown: threading.Event = threading.Event()
 
+        self._factory: None | CarlaFactory = None
+        
         # 执行初始化后处理
         self._post_init()
 
@@ -87,6 +90,21 @@ class CarlaContext:
     @property
     def blueprint_library(self) -> carla.BlueprintLibrary:
         return self.world.get_blueprint_library()
+
+    @property
+    def factory(self) -> CarlaFactory:
+        """CARLA Actor 工厂"""
+        if self._factory is None:
+            self._factory = CarlaFactory(
+                world=self.world,
+                blueprint_library=self.blueprint_library,
+            )
+        return self._factory
+
+    @property
+    def blueprints(self) -> CarlaBlueprints:
+        """CARLA 蓝图枚举类, 此处是一个别名"""
+        return CarlaBlueprints
 
     def tick(self):
         self.world.tick()
