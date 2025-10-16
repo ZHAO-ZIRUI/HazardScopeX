@@ -1,6 +1,8 @@
+import re
 import carla
 import logging
 from functools import wraps
+from typing import Generator
 from typing_extensions import Self
 
 from shared.utils import IdGenerator, Logging
@@ -88,6 +90,12 @@ class CarlaActor:
         """初始变换"""
         return self._tf_init
 
+    @property
+    @require_actor_alive
+    def tf_now(self) -> carla.Transform:
+        """当前变换"""
+        return self._actor.get_transform()
+
     @tf_init.setter
     def tf_init(self, value: carla.Transform):
         if self._tf_init is not None:
@@ -171,3 +179,21 @@ class CarlaActor:
         except RuntimeError as e:
             self.logger.error(f"Failed to destroy actor: {e}")
         return self
+
+    def wait_stable(self, threshold: float = 0.0001) -> Generator[bool, None, None]:
+        """等待 Actor 稳定, 当 actor 生成后下落到指定位置且不再变化时稳定"""
+        tf_last = self.tf_now
+        yield False  # 第一次必须返回 False, 让外部进行 tick 后再比较
+        
+        while True:
+            tf_current = self.tf_now
+            if (
+                abs(tf_current.location.x - tf_last.location.x) < threshold and
+                abs(tf_current.location.y - tf_last.location.y) < threshold and
+                abs(tf_current.location.z - tf_last.location.z) < threshold
+            ):
+                self.logger.debug(f"Actor is stable at {Logging.short_tf(tf_current)}")
+                yield True
+            else:
+                tf_last = tf_current
+                yield False

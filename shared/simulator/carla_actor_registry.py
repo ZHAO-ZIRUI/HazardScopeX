@@ -36,6 +36,9 @@ class CarlaActorRegistry:
         self._world = value
         return
 
+    def values(self) -> list[CarlaActor]:
+        return list(self._actors.values())
+
     def add(self, actor: CarlaActor):
         self._actors[actor.id_local] = actor
         self.logger.info(f"Registered actor container '{actor.id_local}'")
