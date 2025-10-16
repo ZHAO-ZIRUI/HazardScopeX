@@ -146,12 +146,8 @@ class CarlaActor:
                 raise e
         return self
 
-    def destroy(self, world: carla.World) -> Self:
-        """销毁 Actor 实例
-
-        Args:
-            world (carla.World): 仿真世界
-        """
+    def destroy(self) -> Self:
+        """销毁 Actor 实例"""
         if self._actor is None:
             self.logger.warning(f'Actor not spawned yet. Call spawn() first.')
         if not self._actor.is_alive:

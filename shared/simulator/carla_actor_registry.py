@@ -56,5 +56,5 @@ class CarlaActorRegistry:
 
     def destroy_all(self) -> Self:
         for actor in self._actors.values():
-            actor.destroy(self._world)
+            actor.destroy()
         return self
