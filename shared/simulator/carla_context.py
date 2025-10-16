@@ -8,7 +8,6 @@ import uuid
 import threading
 from typing_extensions import Self
 
-from shared.simulator.carla_actor import CarlaActor
 from shared.utils import Config, Logging
 from shared.simulator import CarlaBlueprints, CarlaActorManager
 
