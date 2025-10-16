@@ -297,6 +297,6 @@ class CarlaContext:
             gpus=config.get("context/server/gpus", default=[0]),
             server_start_wait_time=config.get("context/server/server_start_wait_time", default=5),
             server_start_timeout=config.get("context/server/server_start_timeout", default=10),
-            runtime_actors_stable_threshold=config.get("context/runtime/actors_stable_threshold", default=0.0001),
-            runtime_actors_stable_timeout=config.get("context/runtime/actors_stable_timeout", default=3),
+            actors_spawn_stable_threshold=config.get("context/actors/spawn_stable_threshold", default=0.0001),
+            actors_spawn_stable_timeout=config.get("context/actors/spawn_stable_timeout", default=3),
         )

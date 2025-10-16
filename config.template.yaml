@@ -39,3 +39,10 @@ context:
     # 服务端启动时的等待时间
     server_start_wait_time: 2
     server_start_timeout: 10
+
+  # Actor 管理器配置
+  actors:
+    # Actor 生成后稳定阈值
+    spawn_stable_threshold: 0.0001
+    # Actor 生成后稳定超时时间
+    spawn_stable_timeout: 3
