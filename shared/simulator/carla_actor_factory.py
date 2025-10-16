@@ -184,6 +184,10 @@ class CarlaActorFactory:
         Returns:
             Self: 链式调用支持
         """
+        # 先处理默认别名
+        if actor.bp.has_attribute('role_name'):
+            actor.bp.set_attribute('role_name', actor.name)
+
         for key, value in attributes.items():
             try:
                 actor.bp.set_attribute(key, str(value))
