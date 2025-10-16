@@ -5,7 +5,7 @@ from typing_extensions import Self, Unpack
 from shared.simulator import CarlaActor, CarlaVehicle, CarlaSensor, CarlaBlueprints, CarlaTransform, CarlaActorRegistry
 from shared.utils import Logging
 
-class CarlaFactory:
+class CarlaActorFactory:
     """
     CARLA 工厂, 用于创建 CARLA Actor
     """
@@ -15,7 +15,7 @@ class CarlaFactory:
         world: carla.World,
         registry: CarlaActorRegistry,
     ):
-        self.logger = Logging().get_logger('Factory')
+        self.logger = Logging().get_logger('ActorFactory')
         self._world = world
         self._blueprint_library = self._world.get_blueprint_library()
         self._registry = registry
