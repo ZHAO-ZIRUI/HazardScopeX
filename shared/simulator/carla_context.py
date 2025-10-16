@@ -9,7 +9,7 @@ import threading
 from typing_extensions import Self
 
 from shared.utils import Config, Logging
-from shared.simulator import CarlaFactory, CarlaBlueprints
+from shared.simulator import CarlaActorFactory, CarlaBlueprints, CarlaActorRegistry
 
 
 class CarlaContext:
@@ -55,7 +55,10 @@ class CarlaContext:
         self._event_manual_restart: threading.Event = threading.Event()
         self._event_manual_shutdown: threading.Event = threading.Event()
 
-        self._factory: None | CarlaFactory = None
+        self._factory: None | CarlaActorFactory = None
+
+        # 注册表
+        self._actors: CarlaActorRegistry = CarlaActorRegistry()
         
         # 执行初始化后处理
         self._post_init()
@@ -88,14 +91,16 @@ class CarlaContext:
         return self.client.get_trafficmanager()
 
     @property
-    def factory(self) -> CarlaFactory:
+    def factory(self) -> CarlaActorFactory:
         """CARLA Actor 工厂"""
         if self._factory is None:
-            self._factory = CarlaFactory(
-                world=self.world,
-                blueprint_library=self.blueprint_library,
-            )
+            self._factory = CarlaActorFactory(world=self.world, registry=self.actors)
         return self._factory
+
+    @property
+    def actors(self) -> CarlaActorRegistry:
+        """CARLA Actor 注册表"""
+        return self._actors
 
     @property
     def blueprints(self) -> type[CarlaBlueprints]:
