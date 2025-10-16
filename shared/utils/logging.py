@@ -1,5 +1,6 @@
 import logging
 import time
+import carla
 from typing import Callable, Dict
 from rich.logging import RichHandler
 from typing_extensions import Self
@@ -88,3 +89,15 @@ class Logging:
             token (str): 凭据
         """
         Logging._interval_timer_cache.pop(token, None)
+
+    @staticmethod
+    def short_tf(tf: carla.Transform) -> str:
+        """将 carla.Transform 转换为短字符串
+
+        Args:
+            tf (carla.Transform): 变换
+
+        Returns:
+            str: 日志用短字符串
+        """
+        return f"TF(X={tf.location.x:.2f}, Y={tf.location.y:.2f}, Z={tf.location.z:.2f}, Yaw={tf.rotation.yaw:.2f}, Pitch={tf.rotation.pitch:.2f}, Roll={tf.rotation.roll:.2f})"
