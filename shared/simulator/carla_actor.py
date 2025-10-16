@@ -48,6 +48,8 @@ class CarlaActor:
 
         # 别名
         self._name = name
+        if self._bp.has_attribute('role_name'): 
+            self._bp.set_attribute('role_name', self.name)
 
         # 日志记录器
         self._logger = Logging().get_logger(self.name)
