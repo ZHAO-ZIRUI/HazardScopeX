@@ -96,7 +96,12 @@ class CarlaContext:
     def actors(self) -> CarlaActorManager:
         """CARLA Actor 管理器"""
         if self._actors is None:
-            self._actors = CarlaActorManager(world=self.world)
+            self._actors = CarlaActorManager(
+                world=self.world,
+                sync_mode_fps=self._sync_mode_fps,
+                actors_stable_threshold=self._runtime_actors_stable_threshold,
+                actors_stable_timeout=self._runtime_actors_stable_timeout,
+            )
         return self._actors
 
     @property
@@ -207,40 +212,6 @@ class CarlaContext:
             return
         except RuntimeError as e:
             self.logger.critical(f'Spin stopped by runtime error: {e}')
-
-    def wait_actors_stable(self, *actors: CarlaActor):
-        """等待指定 Actor 稳定
-        
-        Args:
-            *actors (CarlaActor): 指定的 Actor, 如果为空, 则使用注册表中的所有 actors
-        """
-        # 当 actors 为空时，使用注册表中的所有 actors
-        if not actors:
-            actors = self.actors.values()
-        
-        generators = [actor.wait_stable(self._runtime_actors_stable_threshold) for actor in actors]
-        
-        # 开始计时
-        timer = time.perf_counter()
-
-        while True:
-            flags = [next(gen) for gen in generators]
-            if all(flags):
-                break
-
-            # 检查是否超时
-            if time.perf_counter() - timer > self._runtime_actors_stable_timeout:
-                self.logger.warning(f'Actors stable wait timeout after {self._runtime_actors_stable_timeout} seconds')
-                break
-
-            # 进行 tick 操作
-            self.tick()
-            time.sleep(1/self._sync_mode_fps)
-
-        # 清理迭代器残留
-        for gen in generators:
-            gen.close()
-        del generators
 
     def _server_start_primary(self):
         """以 nullrhi 模式启动 CARLA 服务端的主进程, 该进程不进行任何渲染"""

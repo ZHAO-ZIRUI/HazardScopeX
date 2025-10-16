@@ -1,4 +1,5 @@
 import carla
+import time
 from typing import Dict, Any
 from typing_extensions import Self, Unpack
 
@@ -11,10 +12,19 @@ class CarlaActorManager:
     CARLA Actor 管理器, 用于管理 CARLA Actor 的生命周期和创建
     """
 
-    def __init__(self, world: carla.World):
+    def __init__(
+        self,
+        world: carla.World,
+        sync_mode_fps: float = 20,
+        actors_stable_threshold: float = 0.0001,
+        actors_stable_timeout: float = 3,
+    ):
         self._world = world
         self._actors: Dict[str, CarlaActor] = {}
         self._blueprint_library = self._world.get_blueprint_library()
+        self._sync_mode_fps = sync_mode_fps
+        self._actors_stable_threshold = actors_stable_threshold
+        self._actors_stable_timeout = actors_stable_timeout
         self.logger = Logging().get_logger('ActorManager')
 
     @property
@@ -314,3 +324,64 @@ class CarlaActorManager:
             tf = tf.to_carla()
         actor.tf_init = tf
         return self
+
+    def wait_stable(self, *actors: CarlaActor):
+        """等待指定 Actor 稳定
+        
+        Args:
+            *actors (CarlaActor): 指定的 Actor, 如果为空, 则使用注册表中的所有 actors
+        """
+        # 当 actors 为空时，使用注册表中的所有 actors
+        if not actors:
+            actors = tuple(self._actors.values())
+        
+        # 记录每个 actor 的上次变换和稳定状态
+        last_transforms: Dict[str, carla.Transform] = {}
+        stable_flags: Dict[str, bool] = {}
+        for actor in actors:
+            last_transforms[actor.id_local] = actor.tf_now
+            stable_flags[actor.id_local] = False
+        
+        # 开始计时
+        timer = time.perf_counter()
+        
+        # 第一次必须进行 tick, 让 actors 有机会移动
+        self._world.tick()
+        time.sleep(1/self._sync_mode_fps)
+        
+        while True:
+            # 检查所有 actors 是否都稳定
+            all_stable = True
+            for actor in actors:
+                # 跳过已经稳定的 actor
+                if stable_flags[actor.id_local]:
+                    continue
+                
+                tf_current = actor.tf_now
+                tf_last = last_transforms[actor.id_local]
+                
+                # 检查位置变化是否小于阈值
+                if (
+                    abs(tf_current.location.x - tf_last.location.x) < self._actors_stable_threshold and
+                    abs(tf_current.location.y - tf_last.location.y) < self._actors_stable_threshold and
+                    abs(tf_current.location.z - tf_last.location.z) < self._actors_stable_threshold
+                ):
+                    stable_flags[actor.id_local] = True
+                    actor.logger.debug(f"Actor is stable at {Logging.short_tf(tf_current)}")
+                else:
+                    all_stable = False
+                    last_transforms[actor.id_local] = tf_current
+            
+            # 如果所有 actors 都稳定，退出循环
+            if all_stable:
+                self.logger.info(f'All {len(actors)} actors are stable: {[actor.name for actor in actors]}')
+                break
+            
+            # 检查是否超时
+            if time.perf_counter() - timer > self._actors_stable_timeout:
+                self.logger.warning(f'Actors stable wait timeout after {self._actors_stable_timeout} seconds')
+                break
+            
+            # 进行 tick 操作
+            self._world.tick()
+            time.sleep(1/self._sync_mode_fps)
