@@ -51,7 +51,7 @@ class CarlaActor:
         # 初始值
         self._bp = bp
         self._tf_init: carla.Transform | None = None
-        self._attach_target: Self | None = None
+        self._parent: Self | None = None
 
         # carla.Actor 实例
         self._actor = actor
@@ -89,21 +89,21 @@ class CarlaActor:
         return
 
     @property
-    def attach_target(self) -> Self | None:
-        """附着到的目标 Actor"""
-        return self._attach_target
+    def parent(self) -> Self | None:
+        """父 Actor"""
+        return self._parent
 
-    @attach_target.setter
-    def attach_target(self, value: Self | None):
-        if self._attach_target is not None:
-            self.logger.warning(f"Attach target already set to {self._attach_target.name}. Overwriting with {value.name}")
+    @parent.setter
+    def parent(self, value: Self | None):
+        if self._parent is not None:
+            self.logger.warning(f"Parent already set to {self._parent.name}. Overwriting with {value.name}")
         if self._actor is not None:
-            self.logger.warning(f"Actor already spawned. Setting attach target will have no effect.")
+            self.logger.warning(f"Actor already spawned. Setting parent will have no effect.")
             return
         if value is None:
             return
-        self.logger.info(f"Setting attach target to {value.id_local}")
-        self._attach_target = value
+        self.logger.info(f"Setting parent to {value.id_local}")
+        self._parent = value
         return
 
     @property
@@ -135,7 +135,7 @@ class CarlaActor:
             Self: 链式调用支持
         """
         try:
-            self.actor = world.spawn_actor(self._bp, self._tf_init, attach_to=self._attach_target.actor if self._attach_target is not None else None)
+            self.actor = world.spawn_actor(self._bp, self._tf_init, attach_to=self._parent.actor if self._parent is not None else None)
             self.logger.info(f"Spawned actor (CARLA ID: {self.actor.id})")
         except RuntimeError as e:
             if ignore_spawn_failure:
