@@ -144,7 +144,10 @@ class CarlaContext:
     def wait_server_available(self):
         """等待服务端可用"""
         self.logger.debug(f'Waiting {self._server_start_wait_time} seconds first ...')
-        time.sleep(self._server_start_wait_time)
+
+        # 如果使用外部服务器, 则不进行初始等待
+        if not self._use_external_server:
+            time.sleep(self._server_start_wait_time)
 
         self.logger.info('Waiting for CARLA server available ...')
         timeout = 1/self._sync_mode_fps + self.CLIENT_CONNECTION_CHECK_TIMEOUT_OFFSET
