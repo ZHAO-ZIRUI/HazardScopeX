@@ -182,6 +182,26 @@ class CarlaContext:
         self._client.set_timeout(self._timeout)
         self.logger.info('CARLA server is available now')
 
+    def wait_seconds(self, seconds: float) -> Self:
+        """等待指定秒数"""
+        self.logger.info(f'Waiting {seconds} seconds ...')
+        begin = time.perf_counter()
+        while time.perf_counter() - begin < seconds:
+            self.tick()
+            time.sleep(1/self._sync_mode_fps)
+        self.logger.info(f'Waiting finished')
+        return self
+
+    def wait_ticks(self, ticks: int) -> Self:
+        """等待指定帧数"""
+        self.logger.info(f'Waiting {ticks} ticks ...')
+        begin = time.perf_counter()
+        while time.perf_counter() - begin < ticks:
+            self.tick()
+            time.sleep(1/self._sync_mode_fps)
+        self.logger.info(f'Waiting finished')
+        return self
+
     def start_dead_detector_thread(self):
         """启动服务端死亡检测线程"""
         # 等待旧进程退出
