@@ -146,15 +146,17 @@ class CarlaActor:
                 raise e
         return self
 
+    @warn_actor_not_alive
     def destroy(self) -> Self:
         """销毁 Actor 实例"""
         if self._actor is None:
-            self.logger.warning(f'Actor not spawned yet. Call spawn() first.')
-        if not self._actor.is_alive:
-            self.logger.warning(f'Actor is not alive anymore.')
+            return self
+        
         try:
+            actor_id = self._actor.id   # 暂存 CARLA ID, 防止销毁后无法获取
             self._actor.destroy()
-            self.logger.info(f"Destroyed actor (CARLA ID: {self.actor.id})")
+            self._actor = None
+            self.logger.info(f"Destroyed actor (CARLA ID: {actor_id})")
         except RuntimeError as e:
             self.logger.error(f"Failed to destroy actor: {e}")
         return self
