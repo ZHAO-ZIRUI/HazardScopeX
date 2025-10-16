@@ -1,3 +1,5 @@
+import carla
+
 from shared.simulator import CarlaActor
 
 
@@ -8,5 +10,8 @@ class CarlaSensor(CarlaActor):
 
     def __init__(
         self,
+        bp: carla.ActorBlueprint,
+        name: str = '',
+        actor: carla.Actor | None = None,
     ):
-        super().__init__()
+        super().__init__(bp=bp, name=name, actor=actor)
