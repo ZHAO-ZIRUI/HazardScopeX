@@ -52,6 +52,7 @@ class CarlaActorRegistry:
     def spawn_all(self) -> Self:
         for actor in self._actors.values():
             actor.spawn(self._world)
+        self._world.tick()   # 防止 attch 到空目标或者销毁错误
         return self
 
     def destroy_all(self) -> Self:
