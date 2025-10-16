@@ -18,7 +18,7 @@ class CarlaActor:
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             if self._actor is None:
-                raise RuntimeError(f'Actor not spawned yet. Call context.factory.spawn() first.')
+                raise RuntimeError(f'Actor not spawned yet. Call context.actors.spawn() first.')
             if not self._actor.is_alive:
                 raise RuntimeError(f'Actor is not alive anymore.')
             return func(self, *args, **kwargs)
@@ -30,7 +30,7 @@ class CarlaActor:
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             if self._actor is None:
-                self.logger.warning(f'Actor not spawned yet. Call context.factory.spawn() first.')
+                self.logger.warning(f'Actor not spawned yet. Call context.actors.spawn() first.')
             if not self._actor.is_alive:
                 self.logger.warning(f'Actor is not alive anymore.')
             return func(self, *args, **kwargs)
