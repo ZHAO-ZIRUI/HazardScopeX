@@ -96,6 +96,7 @@ class CarlaActorRegistry:
         
         # 按照依赖顺序spawn所有actors
         self.logger.info(f"Spawning {len(sorted_actors)} actors in dependency order")
+        self.logger.debug(f"Sorted actors: {[actor.id_local for actor in sorted_actors]}")
         for actor in sorted_actors:
             actor.spawn(self._world, ignore_spawn_failure=ignore_spawn_failure)
         
