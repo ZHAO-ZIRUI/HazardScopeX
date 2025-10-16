@@ -29,6 +29,7 @@ class CarlaContext:
         exe_path: str,
         use_external_server: bool = False,
         sync_mode_fps: float = 20,
+        use_multi_gpu: bool = False,
         gpus: list[int] = [],
         server_start_wait_time: float = 5,
         server_start_timeout: float = 10,
@@ -43,6 +44,7 @@ class CarlaContext:
         self._exe_path = exe_path
         self._use_external_server = use_external_server
         self._sync_mode_fps = sync_mode_fps
+        self._use_multi_gpu = use_multi_gpu
         self._gpus = gpus
         self._server_start_wait_time = server_start_wait_time
         self._server_start_timeout = server_start_timeout
@@ -125,9 +127,12 @@ class CarlaContext:
 
     def server_start(self):
         """启动 CARLA 服务端"""
-        self._server_start_primary()
-        for gpu_id in self._gpus:
-            self._server_start_render(gpu_id)
+        if self._use_multi_gpu:
+            self._server_start_primary()
+            for gpu_id in self._gpus:
+                self._server_start_render(gpu_id)
+        else:
+            self._server_start_normal()
     
     def server_stop(self):
         """停止 CARLA 服务端"""
@@ -212,6 +217,16 @@ class CarlaContext:
         except RuntimeError as e:
             self.logger.critical(f'Spin stopped by runtime error: {e}')
 
+    def _server_start_normal(self):
+        """正常启动 CARLA 服务端"""
+        cmd = [self._exe_path]
+        cmd.append('-RenderOffscreen')
+        cmd.append(f'-carla-rpc-port={self._port}')
+        cmd = ' '.join(cmd)
+
+        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.logger.info(f'CARLA server process started, port: {self._port}')
+
     def _server_start_primary(self):
         """以 nullrhi 模式启动 CARLA 服务端的主进程, 该进程不进行任何渲染"""
         cmd = [self._exe_path]
@@ -293,6 +308,7 @@ class CarlaContext:
             exe_path=config.get("context/server/exe_path"),
             use_external_server=config.get("context/server/use_external_server", default=False),
             sync_mode_fps=config.get("context/server/sync_mode_fps", default=20),
+            use_multi_gpu=config.get("context/server/use_multi_gpu", default=False),
             gpus=config.get("context/server/gpus", default=[0]),
             server_start_wait_time=config.get("context/server/server_start_wait_time", default=5),
             server_start_timeout=config.get("context/server/server_start_timeout", default=10),
