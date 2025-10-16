@@ -26,7 +26,7 @@ class CarlaContext:
         port: int,
         timeout: float,
         *,
-        exe_path: str,
+        exe_path: str = '',
         use_external_server: bool = False,
         sync_mode_fps: float = 20,
         use_multi_gpu: bool = False,
