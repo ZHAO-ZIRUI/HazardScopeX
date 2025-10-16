@@ -58,7 +58,7 @@ class CarlaContext:
         self._factory: None | CarlaActorFactory = None
 
         # 注册表
-        self._actors: CarlaActorRegistry = CarlaActorRegistry()
+        self._actors: None | CarlaActorRegistry = None
         
         # 执行初始化后处理
         self._post_init()
@@ -100,6 +100,8 @@ class CarlaContext:
     @property
     def actors(self) -> CarlaActorRegistry:
         """CARLA Actor 注册表"""
+        if self._actors is None:
+            self._actors = CarlaActorRegistry(world=self.world)
         return self._actors
 
     @property
