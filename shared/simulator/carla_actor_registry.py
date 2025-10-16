@@ -43,7 +43,8 @@ class CarlaActorRegistry:
 
     def remove(self, actor: CarlaActor):
         if actor.id_local not in self._actors:
-            raise KeyError(f"Actor '{actor.id_local}' not found in registry")
+            self.logger.warning(f"Actor container '{actor.id_local}' not found in registry")
+            return
         del self._actors[actor.id_local]
         self.logger.info(f"Removed actor container '{actor.id_local}'")
         return
