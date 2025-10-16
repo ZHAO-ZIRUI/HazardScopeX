@@ -105,3 +105,60 @@ class CarlaActor:
         self.logger.info(f"Setting attach target to {value.id_local}")
         self._attach_target = value
         return
+
+    @property
+    @require_actor_alive
+    def actor(self) -> carla.Actor:
+        """carla.Actor 实例"""
+        return self._actor
+
+    @actor.setter
+    def actor(self, value: carla.Actor):
+        if self._actor is not None:
+            self.logger.warning(f"Actor already set. Overwriting with {value.id}")
+            return
+        self.logger.info(f"Bind actor instance (CARLA ID: {value.id})")
+        self._actor = value
+        return
+
+    def spawn(self, world: carla.World, ignore_spawn_failure: bool = False) -> Self:
+        """在仿真中生成 Actor 实例
+
+        Args:
+            world (carla.World): 仿真世界
+            ignore_spawn_failure (bool): 是否忽略生成失败, 如果为 True, 则不会抛出异常
+
+        Raises:
+            RuntimeError: 生成失败, 且 ignore_spawn_failure 为 False
+
+        Returns:
+            Self: 链式调用支持
+        """
+        try:
+            self.actor = world.spawn_actor(self._bp, self._tf_init, attach_to=self._attach_target.actor if self._attach_target is not None else None)
+            self.logger.info(f"Spawned actor (CARLA ID: {self.actor.id})")
+        except RuntimeError as e:
+            if ignore_spawn_failure:
+                self.logger.warning(f"Failed to spawn actor but ignored: {e}")
+                return self
+            else:
+                self.logger.error(f"Failed to spawn actor: {e}")
+                raise e
+        return self
+
+    def destroy(self, world: carla.World) -> Self:
+        """销毁 Actor 实例
+
+        Args:
+            world (carla.World): 仿真世界
+        """
+        if self._actor is None:
+            self.logger.warning(f'Actor not spawned yet. Call spawn() first.')
+        if not self._actor.is_alive:
+            self.logger.warning(f'Actor is not alive anymore.')
+        try:
+            self._actor.destroy()
+            self.logger.info(f"Destroyed actor (CARLA ID: {self.actor.id})")
+        except RuntimeError as e:
+            self.logger.error(f"Failed to destroy actor: {e}")
+        return self
