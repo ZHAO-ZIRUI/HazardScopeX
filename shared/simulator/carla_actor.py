@@ -39,14 +39,18 @@ class CarlaActor:
     def __init__(
         self, 
         bp: carla.ActorBlueprint,
+        name: str = '',
         actor: carla.Actor | None = None,
     ):
         # 生成本地 ID
         self._id_generator = IdGenerator(header=self.ID_GENERATOR_HEADER)
         self._id_local = next(self._id_generator)
 
+        # 别名
+        self._name = name
+
         # 日志记录器
-        self._logger = Logging().get_logger(self._id_local)
+        self._logger = Logging().get_logger(self.name)
 
         # 初始值
         self._bp = bp
@@ -66,6 +70,13 @@ class CarlaActor:
     @property
     def logger(self) -> logging.Logger:
         return self._logger
+
+    @property
+    def name(self) -> str:
+        if self._name == '':
+            return self._id_local
+        else:
+            return self._name
 
     @property
     def id_local(self) -> str:

@@ -23,6 +23,7 @@ class CarlaActorFactory:
     def create_actor(
         self,
         bp: str | carla.ActorBlueprint | CarlaBlueprints,
+        name: str = '',
         tf: carla.Transform | CarlaTransform | None = None,
         attach_to: carla.Actor | CarlaActor | None = None,
         *,
@@ -34,6 +35,7 @@ class CarlaActorFactory:
 
         Args:
             bp (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
+            name (str): 别名
             tf (carla.Transform): 初始变换
             attach_to (carla.Actor | CarlaActor | None): 附着到的目标 Actor
             ignore_attribute_failure (bool): 是否忽略属性失败
@@ -52,7 +54,7 @@ class CarlaActorFactory:
         bp = self._resolve_blueprint(bp)
         
         # 创建一个目标 CarlaActor 或其子类实例, 仅用作容器
-        actor = target(bp)
+        actor = target(bp, name=name)
 
         # 解析属性与变换
         self._resolve_attributes(actor, attributes, ignore_failure=ignore_attribute_failure)
