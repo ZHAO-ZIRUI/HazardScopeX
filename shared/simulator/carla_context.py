@@ -33,8 +33,8 @@ class CarlaContext:
         gpus: list[int] = [],
         server_start_wait_time: float = 5,
         server_start_timeout: float = 10,
-        runtime_actors_stable_threshold: float = 0.0001,
-        runtime_actors_stable_timeout: float = 3,
+        actors_spawn_stable_threshold: float = 0.0001,
+        actors_spawn_stable_timeout: float = 3,
     ):
         self.logger = Logging().get_logger('Context')
 
@@ -47,8 +47,8 @@ class CarlaContext:
         self._gpus = gpus
         self._server_start_wait_time = server_start_wait_time
         self._server_start_timeout = server_start_timeout
-        self._runtime_actors_stable_threshold = runtime_actors_stable_threshold
-        self._runtime_actors_stable_timeout = runtime_actors_stable_timeout
+        self._actors_spawn_stable_threshold = actors_spawn_stable_threshold
+        self._actors_spawn_stable_timeout = actors_spawn_stable_timeout
 
         self._client: None | carla.Client = None
         self._thread_dead_detector: None | threading.Thread = None
@@ -99,8 +99,8 @@ class CarlaContext:
             self._actors = CarlaActorManager(
                 world=self.world,
                 sync_mode_fps=self._sync_mode_fps,
-                actors_stable_threshold=self._runtime_actors_stable_threshold,
-                actors_stable_timeout=self._runtime_actors_stable_timeout,
+                actors_stable_threshold=self._actors_spawn_stable_threshold,
+                actors_stable_timeout=self._actors_spawn_stable_timeout,
             )
         return self._actors
 
