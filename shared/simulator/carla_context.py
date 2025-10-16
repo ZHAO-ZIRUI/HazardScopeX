@@ -18,7 +18,6 @@ class CarlaContext:
     """
 
     MULTI_GPU_PORT_OFFSET = 2
-    RESTART_INTERVAL = 3
     CLIENT_CONNECTION_CHECK_TIMEOUT_OFFSET = 0.1
 
     def __init__(
@@ -29,7 +28,6 @@ class CarlaContext:
         *,
         exe_path: str,
         use_external_server: bool = False,
-        restart_on_failure: bool = True,
         sync_mode_fps: float = 20,
         gpus: list[int] = [],
         server_start_wait_time: float = 5,
@@ -42,7 +40,6 @@ class CarlaContext:
         self._timeout = timeout
         self._exe_path = exe_path
         self._use_external_server = use_external_server
-        self._restart_on_failure = restart_on_failure
         self._sync_mode_fps = sync_mode_fps
         self._gpus = gpus
         self._server_start_wait_time = server_start_wait_time
@@ -50,10 +47,8 @@ class CarlaContext:
 
         self._client: None | carla.Client = None
         self._thread_dead_detector: None | threading.Thread = None
-        self._thread_restarter: None | threading.Thread = None
         self._event_server_dead: threading.Event = threading.Event()
-        self._event_manual_restart: threading.Event = threading.Event()
-        self._event_manual_shutdown: threading.Event = threading.Event()
+        self._event_shutdown: threading.Event = threading.Event()
 
         self._factory: None | CarlaActorFactory = None
 
@@ -121,10 +116,9 @@ class CarlaContext:
             self.server_start()
         self.wait_server_available()
         self.start_dead_detector_thread()
-        if self._restart_on_failure and not self._use_external_server:
-            self.start_restarter_thread()
 
     def shutdown(self):
+        self._event_shutdown.set()
         self._event_server_dead.set()
         self.server_stop()
         self.logger.info('Shutdown')
@@ -141,15 +135,6 @@ class CarlaContext:
         self._client = None
         self._server_kill()
         self.logger.info('CARLA server killed')
-
-    def server_restart(self):
-        """重启 CARLA 服务端"""
-        self.server_stop()
-        self._event_manual_restart.set()
-        time.sleep(self.RESTART_INTERVAL)
-        self.bringup()
-        self.logger.info('CARLA server restart completed')
-        self._event_manual_restart.clear()
 
     def wait_server_available(self):
         """等待服务端可用"""
@@ -215,27 +200,17 @@ class CarlaContext:
         self._thread_dead_detector = threading.Thread(target=self._thread_func_dead_detector, daemon=True)
         self._thread_dead_detector.start()
 
-    def start_restarter_thread(self):
-        """启动服务端重启线程"""
-        if self._thread_restarter is None:
-            self._thread_restarter = threading.Thread(target=self._thread_func_restarter, daemon=True)
-            self._thread_restarter.start()
-
     def spin(self):
         """自动 Tick 服务端"""
         try:
-            while True:
-                if not self._event_server_dead.is_set():
-                    try:
-                        self.tick()
-                        time.sleep(1/self._sync_mode_fps)
-                    except RuntimeError:
-                        self.logger.warning('Spin tick failed, maybe the server is dead')
-                        time.sleep(1)
+            while not self._event_shutdown.is_set():
+                self.tick()
+                time.sleep(1/self._sync_mode_fps)
         except KeyboardInterrupt:
-            self.logger.info('Spin stopped by manual')
-            self._event_manual_shutdown.set()
+            self.logger.info('Spin stopped by manual interrupt')
             return
+        except RuntimeError as e:
+            self.logger.critical(f'Spin stopped by runtime error: {e}')
 
     def _server_start_primary(self):
         """以 nullrhi 模式启动 CARLA 服务端的主进程, 该进程不进行任何渲染"""
@@ -297,32 +272,17 @@ class CarlaContext:
         detector_client.set_timeout(check_timeout)
         
         try:
-            while not self._event_server_dead.is_set() and not self._event_manual_shutdown.is_set():
+            while not self._event_server_dead.is_set() and not self._event_shutdown.is_set():
                 try:
                     detector_client.get_server_version()
                     time.sleep(check_timeout)
                 except Exception as e:
-                    self.logger.error(f'CARLA server is DEAD, detected by detector thread: {type(e).__name__}')
+                    self.logger.critical(f'CARLA server is DEAD, detected by detector thread: {type(e).__name__}')
                     self._event_server_dead.set()
-                    break
+                    exit(1)
         finally:
             del detector_client
             self.logger.debug('Thread dead detector stopped')
-
-    def _thread_func_restarter(self):
-        """自动重启线程"""
-        self.logger.debug('Thread restarter started waiting for server dead event')
-        while not self._event_manual_shutdown.is_set():
-            self._event_server_dead.wait()
-            if self._event_manual_shutdown.is_set():
-                break
-            if not self._event_manual_restart.is_set():
-                self.logger.warning('Server dead event received, auto-restarting server')
-                self.server_restart()
-            else:
-                self.logger.debug('Manual restart in progress, waiting...')
-                while self._event_manual_restart.is_set():
-                    time.sleep(0.5)
 
     @classmethod
     def from_config(cls, config: Config) -> Self:
@@ -332,7 +292,6 @@ class CarlaContext:
             timeout=config.get("context/server/timeout"),
             exe_path=config.get("context/server/exe_path"),
             use_external_server=config.get("context/server/use_external_server", default=False),
-            restart_on_failure=config.get("context/server/restart_on_failure", default=False),
             sync_mode_fps=config.get("context/server/sync_mode_fps", default=20),
             gpus=config.get("context/server/gpus", default=[0]),
             server_start_wait_time=config.get("context/server/server_start_wait_time", default=5),

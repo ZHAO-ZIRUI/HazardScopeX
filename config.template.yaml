@@ -39,6 +39,3 @@ context:
     # 服务端启动时的等待时间
     server_start_wait_time: 2
     server_start_timeout: 10
-
-    # 是否在服务端启动失败或者丢失连接时自动重启服务端
-    restart_on_failure: true
