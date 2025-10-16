@@ -91,6 +91,10 @@ class CarlaContext:
         return self.client.get_trafficmanager()
 
     @property
+    def spawn_points(self) -> list[carla.Transform]:
+        return self.world.get_map().get_spawn_points()
+
+    @property
     def factory(self) -> CarlaActorFactory:
         """CARLA Actor 工厂"""
         if self._factory is None:
