@@ -35,7 +35,7 @@ class CarlaContext:
         server_start_wait_time: float = 5,
         server_start_timeout: float = 10,
     ):
-        self.logger = Logging().get_logger('CarlaContext')
+        self.logger = Logging().get_logger('Context')
 
         self._host = host
         self._port = port
