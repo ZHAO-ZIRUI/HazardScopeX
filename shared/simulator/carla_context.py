@@ -119,7 +119,7 @@ class CarlaContext:
 
     def shutdown(self):
         self._event_shutdown.set()
-        if self._use_external_server:
+        if not self._use_external_server:
             self.server_stop()
         self.logger.info('Shutdown')
 
