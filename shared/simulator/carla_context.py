@@ -202,7 +202,7 @@ class CarlaContext:
                         self.logger.warning('Spin tick failed, maybe the server is dead')
                         time.sleep(1)
         except KeyboardInterrupt:
-            self.logger.info('Spin thread stopped by manual')
+            self.logger.info('Spin stopped by manual')
             self._event_manual_shutdown.set()
             return
 
