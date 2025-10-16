@@ -10,7 +10,7 @@ from typing_extensions import Self
 
 from shared.simulator.carla_actor import CarlaActor
 from shared.utils import Config, Logging
-from shared.simulator import CarlaActorFactory, CarlaBlueprints, CarlaActorRegistry
+from shared.simulator import CarlaBlueprints, CarlaActorManager
 
 
 class CarlaContext:
@@ -55,10 +55,8 @@ class CarlaContext:
         self._event_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
 
-        self._factory: None | CarlaActorFactory = None
-
-        # 注册表
-        self._actors: None | CarlaActorRegistry = None
+        # 管理器
+        self._actors: None | CarlaActorManager = None
         
         # 执行初始化后处理
         self._post_init()
@@ -95,17 +93,10 @@ class CarlaContext:
         return self.world.get_map().get_spawn_points()
 
     @property
-    def factory(self) -> CarlaActorFactory:
-        """CARLA Actor 工厂"""
-        if self._factory is None:
-            self._factory = CarlaActorFactory(world=self.world, registry=self.actors)
-        return self._factory
-
-    @property
-    def actors(self) -> CarlaActorRegistry:
-        """CARLA Actor 注册表"""
+    def actors(self) -> CarlaActorManager:
+        """CARLA Actor 管理器"""
         if self._actors is None:
-            self._actors = CarlaActorRegistry(world=self.world)
+            self._actors = CarlaActorManager(world=self.world)
         return self._actors
 
     @property
