@@ -84,7 +84,7 @@ class CarlaActor:
         if self._actor is not None:
             self.logger.warning(f"Actor already spawned. Setting initial transform will have no effect.")
             return
-        self.logger.info(f"Setting initial transform to {Logging.short_tf(value)}")
+        self.logger.debug(f"Setting initial transform to {Logging.short_tf(value)}")
         self._tf_init = value
         return
 
@@ -117,7 +117,7 @@ class CarlaActor:
         if self._actor is not None:
             self.logger.warning(f"Actor already set. Overwriting with {value.id}")
             return
-        self.logger.info(f"Bind actor instance (CARLA ID: {value.id})")
+        self.logger.debug(f"Bind actor instance (CARLA ID: {value.id})")
         self._actor = value
         return
 
