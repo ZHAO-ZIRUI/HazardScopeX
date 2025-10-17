@@ -1,11 +1,14 @@
 import carla
 import numpy as np
 from enum import Enum
-from typing import Literal
+from typing import TYPE_CHECKING
 from typing_extensions import Self
 
-from shared.data import SimulatorOutput
+from shared.data import SimulatorOutput, TimestampSource
 
+
+if TYPE_CHECKING:
+    from sensor_msgs.msg import Image as ROS2Image
 
 class Image(SimulatorOutput):
     """
@@ -59,5 +62,38 @@ class Image(SimulatorOutput):
             image=img,
             width=carla_input.width,
             height=carla_input.height,
+            format=cls.Format.BGRA8,
+        )
+
+    def to_ros2(self, frame_id: str = 'world', timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2Image":
+        from sensor_msgs.msg import Image as ROS2Image
+        from builtin_interfaces.msg import Time
+
+        # 获取时间戳并转换为 ROS2 Time 格式
+        timestamp = self.sim_timestamp if timestamp_source == TimestampSource.SIM else self.os_timestamp
+        stamp = Time()
+        stamp.sec = int(timestamp)
+        stamp.nanosec = int((timestamp - stamp.sec) * 1e9)
+
+        # 组装 ROS2 消息
+        msg = ROS2Image()
+        msg.header.stamp = stamp
+        msg.header.frame_id = frame_id
+        msg.width = self.width
+        msg.height = self.height
+        msg.encoding = 'bgra8'
+        msg.is_bigendian = False
+        msg.step = self.width * 4
+        msg.data = self._raw.data.cast('B')
+        return msg
+
+    @classmethod
+    def from_ros2(cls, ros2_msg: "ROS2Image") -> Self:
+        return cls(
+            sim_frame=ros2_msg.header.stamp,
+            sim_timestamp=ros2_msg.header.stamp,
+            image=ros2_msg.data,
+            width=ros2_msg.width,
+            height=ros2_msg.height,
             format=cls.Format.BGRA8,
         )
