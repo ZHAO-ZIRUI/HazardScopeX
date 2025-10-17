@@ -47,3 +47,19 @@ context:
     spawn_stable_threshold: 0.0001
     # Actor 生成后稳定超时时间
     spawn_stable_timeout: 3
+
+  # IO 管理器配置, 包括 ROS2 和 SharedMemory(SHM)
+  io:
+    # SharedMemory(SHM) 配置
+    shm:
+      # SHM 默认域的名称, 例: 'hazard_scope/sensor_data'
+      domain: 'hazard_scope'
+      # SHM 的默认大小, 单位: MB, 该大小足以覆盖多数传感器数据
+      default_size_mb: 2
+
+    # ROS2 配置
+    ros2:
+      # ROS2 节点的名称, 例: 'hazard_scope_ros2_node'
+      node_name: 'hazard_scope_ros2_node'
+      # ROS2 节点的 QoS 配置
+      node_qos: 10

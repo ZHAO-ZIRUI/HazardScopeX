@@ -36,6 +36,10 @@ class CarlaContext:
         server_start_timeout: float = 10,
         actors_spawn_stable_threshold: float = 0.0001,
         actors_spawn_stable_timeout: float = 3,
+        shm_domain: str = 'hazard_scope',
+        shm_default_size_mb: int = 2,
+        ros2_node_name: str = 'hazard_scope_ros2_node',
+        ros2_node_qos: int = 10,
     ):
         self.logger = Logging().get_logger('Context')
 
@@ -111,7 +115,12 @@ class CarlaContext:
     def io(self) -> CarlaIOManager:
         """CARLA IO 管理器"""
         if self._io is None:
-            self._io = CarlaIOManager()
+            self._io = CarlaIOManager(
+                shm_domain=self._shm_domain,
+                shm_default_size_mb=self._shm_default_size_mb,
+                ros2_node_name=self._ros2_node_name,
+                ros2_node_qos=self._ros2_node_qos,
+            )
         return self._io
 
     @property
@@ -347,4 +356,8 @@ class CarlaContext:
             server_start_timeout=config.get("context/server/server_start_timeout", default=10),
             actors_spawn_stable_threshold=config.get("context/actors/spawn_stable_threshold", default=0.0001),
             actors_spawn_stable_timeout=config.get("context/actors/spawn_stable_timeout", default=3),
+            shm_domain=config.get("context/io/shm/domain", default='hazard_scope'),
+            shm_default_size_mb=config.get("context/io/shm/default_size_mb", default=2),
+            ros2_node_name=config.get("context/io/ros2/node_name", default='hazard_scope_ros2_node'),
+            ros2_node_qos=config.get("context/io/ros2/node_qos", default=10),
         )
