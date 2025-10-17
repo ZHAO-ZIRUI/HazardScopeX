@@ -21,7 +21,7 @@ class CarlaIOManager:
         """
         return self._shm_registry
 
-    def create_shm(self, topic: str, size: int) -> SharedMemoryAdapter:
+    def create_shm(self, topic: str, size: int = 2) -> SharedMemoryAdapter:
         """创建共享内存, 如果共享内存已存在, 则使用已存在的共享内存
 
         由本程序创建的共享内存, 会被标记为 host=True, 这些共享内存会在程序退出时自动销毁
