@@ -12,7 +12,11 @@ class SharedMemoryAdapter(IOAdapter):
 
     def __init__(self, shm: SharedMemory):
         super().__init__()
-        self.shm = shm
+        self._shm = shm
+
+    @property
+    def shm(self) -> SharedMemory:
+        return self._shm
 
     def bind_sensor_output(self, sensor: CarlaSensor) -> Self:
         sensor.hook_sensor_data_ready.append(
