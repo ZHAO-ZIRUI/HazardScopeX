@@ -55,6 +55,10 @@ class CarlaContext:
         self._server_start_timeout = server_start_timeout
         self._actors_spawn_stable_threshold = actors_spawn_stable_threshold
         self._actors_spawn_stable_timeout = actors_spawn_stable_timeout
+        self._shm_domain = shm_domain
+        self._shm_default_size_mb = shm_default_size_mb
+        self._ros2_node_name = ros2_node_name
+        self._ros2_node_qos = ros2_node_qos
 
         self._client: None | carla.Client = None
         self._thread_dead_detector: None | threading.Thread = None
