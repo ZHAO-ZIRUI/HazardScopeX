@@ -3,14 +3,16 @@ from multiprocessing.shared_memory import SharedMemory
 from shared.simulator import CarlaSensor
 from shared.simulator import CarlaVehicle
 from typing_extensions import Self
+from shared.io import IOAdapter
 
 
-class SharedMemoryAdapter:
+class SharedMemoryAdapter(IOAdapter):
     """
     共享内存适配器, 用于将仿真器的数据转换为共享内存数据
     """
 
     def __init__(self, shm: SharedMemory):
+        super().__init__()
         self.shm = shm
 
     def bind_sensor_output(self, sensor: CarlaSensor) -> Self:
