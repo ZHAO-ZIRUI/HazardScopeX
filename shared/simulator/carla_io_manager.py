@@ -10,6 +10,8 @@ class CarlaIOManager:
     
     def __init__(self):
         self.logger = Logging().get_logger('IOManager')
+
+        # SHM
         self._shm_registry: Dict[str, Tuple[SharedMemoryAdapter, bool]] = {}
 
     @property
