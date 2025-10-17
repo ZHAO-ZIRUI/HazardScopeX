@@ -129,10 +129,21 @@ class CarlaContext:
         self.start_dead_detector_thread()
 
     def shutdown(self):
+        self.logger.info('Shutdown')
+
+        # 立即设置 shutdown 事件，停止 dead detector 线程
         self._event_shutdown.set()
+
+        # 先销毁所有 Actor 再销毁所有 IO 对象
+        self.actors.destroy_all()
+        self.io.destroy_all_shm()
+
+        # 停止服务端
         if not self._use_external_server:
             self.server_stop()
-        self.logger.info('Shutdown')
+
+        self.logger.info('Shutdown finished')
+
 
     def server_start(self):
         """启动 CARLA 服务端"""
