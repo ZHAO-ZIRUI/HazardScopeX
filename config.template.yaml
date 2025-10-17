@@ -33,7 +33,7 @@ context:
     exe_path: ""
 
     # 使用多 GPU 功能
-    use_multi_gpu: false # !BUG: 该功能存在问题, 请勿使用
+    use_multi_gpu: false
     gpus:
       - 0
 
