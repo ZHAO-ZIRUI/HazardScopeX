@@ -1,4 +1,5 @@
 import carla
+import os
 import random
 import socket
 import subprocess
@@ -227,7 +228,9 @@ class CarlaContext:
         cmd.append(f'-carla-rpc-port={self._port}')
         cmd = ' '.join(cmd)
 
-        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # 在 Linux 上使用 preexec_fn 隔离进程组, 避免 SIGINT 信号传播到子进程
+        preexec_fn = os.setsid if platform.system() == 'Linux' else None
+        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=preexec_fn)
         self.logger.info(f'CARLA server process started, port: {self._port}')
 
     def _server_start_primary(self):
@@ -238,7 +241,9 @@ class CarlaContext:
         cmd.append(f'-carla-primary-port={self._port + self.MULTI_GPU_PORT_OFFSET}')
         cmd = ' '.join(cmd)
 
-        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # 在 Linux 上使用 preexec_fn 隔离进程组, 避免 SIGINT 信号传播到子进程, 并且处理 MULTI_GPU 模式下无法收到数据的问题
+        preexec_fn = os.setsid if platform.system() == 'Linux' else None
+        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=preexec_fn)
         self.logger.info(f'CARLA server primary process started, port: {self._port}, primary port: {self._port + self.MULTI_GPU_PORT_OFFSET}')
 
     def _server_start_render(self, gpu_id: int = 0):
@@ -256,7 +261,9 @@ class CarlaContext:
         cmd.append(f'-ini:[/Script/Engine.RendererSettings]:r.GraphicsAdapter={gpu_id}')
         cmd = ' '.join(cmd)
 
-        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # 在 Linux 上使用 preexec_fn 隔离进程组, 避免 SIGINT 信号传播到子进程, 并且处理 MULTI_GPU 模式下无法收到数据的问题
+        preexec_fn = os.setsid if platform.system() == 'Linux' else None
+        subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=preexec_fn)
         self.logger.info(f'CARLA server render process started, port: {rpc_port}, primary port: {self._port + self.MULTI_GPU_PORT_OFFSET}, gpu: {gpu_id}')
 
     def _server_kill(self):
