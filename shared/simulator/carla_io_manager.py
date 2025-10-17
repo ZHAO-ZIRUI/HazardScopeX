@@ -57,7 +57,7 @@ class CarlaIOManager:
 
         # 提供 shm 的 domain
         if self._shm_domain is not None and self._shm_domain != '':
-            topic = f'{self._shm_domain}/{topic}'
+            topic = f'{self._shm_domain}_{topic}'
         else:
             topic = topic
 
