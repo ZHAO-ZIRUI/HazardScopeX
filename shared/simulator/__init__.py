@@ -4,6 +4,7 @@ from .carla_actor import CarlaActor
 from .carla_vehicle import CarlaVehicle
 from .carla_sensor import CarlaSensor
 from .carla_actor_manager import CarlaActorManager
+from .carla_io_manager import CarlaIOManager
 from .carla_context import CarlaContext
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "CarlaBlueprints",
     "CarlaTransform",
     "CarlaActorManager",
+    "CarlaIOManager",
 ]
