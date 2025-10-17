@@ -122,6 +122,10 @@ class CarlaActorManager:
         """销毁所有注册表中的 Actor"""
         for actor in self._actors.values():
             actor.destroy()
+        try:
+            self._world.tick()
+        except RuntimeError as e:
+            self.logger.error(f'Failed to tick world after destroying actors: {e}')
         return self
 
     def create_actor(

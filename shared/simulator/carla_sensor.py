@@ -45,7 +45,15 @@ class CarlaSensor(CarlaActor):
         return self
 
     def destroy(self) -> Self:
-        self.actor.stop()
+        # 清理钩子
+        self._hook_sensor_data_recv.clear()
+        self._hook_sensor_data_ready.clear()
+
+        # 停止监听
+        if self.actor is not None and self.actor.is_alive:
+            self.actor.stop()
+
+        # 销毁 Actor
         super().destroy()
         return self
 
