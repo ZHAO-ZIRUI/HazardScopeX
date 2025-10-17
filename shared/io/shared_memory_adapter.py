@@ -1,8 +1,7 @@
 from multiprocessing.shared_memory import SharedMemory
+from typing_extensions import Self
 
 from shared.simulator import CarlaSensor
-from shared.simulator import CarlaVehicle
-from typing_extensions import Self
 from shared.io import IOAdapter
 
 

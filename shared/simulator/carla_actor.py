@@ -1,4 +1,3 @@
-import re
 import carla
 import logging
 from functools import wraps
