@@ -10,7 +10,7 @@ import threading
 from typing_extensions import Self
 
 from shared.utils import Config, Logging
-from shared.simulator import CarlaBlueprints, CarlaActorManager
+from shared.simulator import CarlaBlueprints, CarlaActorManager, CarlaIOManager
 
 
 class CarlaContext:
@@ -59,6 +59,7 @@ class CarlaContext:
 
         # 管理器
         self._actors: None | CarlaActorManager = None
+        self._io: None | CarlaIOManager = None
         
         # 执行初始化后处理
         self._post_init()
@@ -105,6 +106,13 @@ class CarlaContext:
                 actors_stable_timeout=self._actors_spawn_stable_timeout,
             )
         return self._actors
+
+    @property
+    def io(self) -> CarlaIOManager:
+        """CARLA IO 管理器"""
+        if self._io is None:
+            self._io = CarlaIOManager()
+        return self._io
 
     @property
     def blueprints(self) -> type[CarlaBlueprints]:
