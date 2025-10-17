@@ -13,12 +13,16 @@ class CarlaIOManager:
     def __init__(
         self,
         *,
+        shm_domain: str = 'hazard_scope',
+        shm_default_size_mb: int = 2,
         ros2_node_name: str = 'hazard_scope_ros2_node',
         ros2_node_qos: int = 10,
     ):
         self.logger = Logging().get_logger('IOManager')
 
         # SHM
+        self._shm_domain = shm_domain
+        self._shm_default_size_mb = shm_default_size_mb
         self._shm_registry: Dict[str, Tuple[SharedMemoryAdapter, bool]] = {}
 
         # ROS2
@@ -35,7 +39,7 @@ class CarlaIOManager:
         """
         return self._shm_registry
 
-    def create_shm(self, topic: str, size: int = 2) -> SharedMemoryAdapter:
+    def create_shm(self, topic: str, size: int = None) -> SharedMemoryAdapter:
         """创建共享内存, 如果共享内存已存在, 则使用已存在的共享内存
 
         由本程序创建的共享内存, 会被标记为 host=True, 这些共享内存会在程序退出时自动销毁
@@ -47,6 +51,16 @@ class CarlaIOManager:
         Returns:
             SharedMemoryAdapter: 共享内存适配器
         """
+        # 提供 size 的默认值
+        if size is None:
+            size = self._shm_default_size_mb
+
+        # 提供 shm 的 domain
+        if self._shm_domain is not None and self._shm_domain != '':
+            topic = f'{self._shm_domain}/{topic}'
+        else:
+            topic = topic
+
         # 尝试创建共享内存
         try:
             shm = SharedMemory(topic, create=True, size=size * 1024 * 1024)
