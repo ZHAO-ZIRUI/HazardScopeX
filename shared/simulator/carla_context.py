@@ -147,6 +147,9 @@ class CarlaContext:
 
     def server_start(self):
         """启动 CARLA 服务端"""
+        # 当该方法被调用时代表该程序需要主动启动服务器, 此时需要对环境进行清理
+        self._server_kill()
+
         if self._use_multi_gpu:
             self._server_start_primary()
             for gpu_id in self._gpus:
