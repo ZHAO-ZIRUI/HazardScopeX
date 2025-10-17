@@ -1,8 +1,9 @@
 import pickle
 import struct
 import time
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any
+from enum import Enum
 from typing_extensions import Self
 from multiprocessing.shared_memory import SharedMemory
 
@@ -80,3 +81,14 @@ class BaseData(ABC):
             return cls.deserialize(shm.buf)
         except (pickle.UnpicklingError, EOFError, struct.error, ValueError) as e:
             return default
+
+    @abstractmethod
+    def to_ros2(self, frame_id: str = 'world', timestamp_source: TimestampSource = TimestampSource.OS) -> Any:
+        """将数据转换为 ROS2 消息"""
+        raise NotImplementedError
+
+    @classmethod
+    @abstractmethod
+    def from_ros2(cls, ros2_msg: Any) -> Self | None:
+        """从 ROS2 消息中创建数据"""
+        raise NotImplementedError
