@@ -3,16 +3,28 @@ from multiprocessing import resource_tracker
 from typing import Dict, Tuple
 from typing_extensions import Self
 
-from shared.io import SharedMemoryAdapter
+from shared.io import SharedMemoryAdapter, ROS2Adapter
 from shared.utils import Logging
+from shared.data import TimestampSource
+
 
 class CarlaIOManager:
     
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        ros2_node_name: str = 'hazard_scope_ros2_node',
+        ros2_node_qos: int = 10,
+    ):
         self.logger = Logging().get_logger('IOManager')
 
         # SHM
         self._shm_registry: Dict[str, Tuple[SharedMemoryAdapter, bool]] = {}
+
+        # ROS2
+        self._ros2_node = None
+        self._ros2_node_name = ros2_node_name
+        self._ros2_node_qos = ros2_node_qos
 
     @property
     def shm_registry(self) -> Dict[str, Tuple[SharedMemoryAdapter, bool]]:
@@ -91,4 +103,50 @@ class CarlaIOManager:
         topics = list(self.shm_registry.keys())
         for topic in topics:
             self.destroy_shm(topic)
+        return self
+
+    def create_ros2(
+        self, topic: str, 
+        frame_id: str = 'world', 
+        timestamp_source: TimestampSource = TimestampSource.OS,
+    ) -> ROS2Adapter:
+        # 如果 ROS2 节点不存在, 则创建 ROS2 节点
+        if self._ros2_node is None:
+            self._create_ros2_node()
+
+        # 创建 ROS2 适配器
+        adapter = ROS2Adapter(topic, self._ros2_node, self._ros2_node_qos, frame_id, timestamp_source)
+        return adapter
+
+    def _create_ros2_node(self) -> Self:
+        """创建 ROS2 节点"""
+        import rclpy
+
+        # 如果需要则初始化 RCLPY 环境
+        if not rclpy.ok():
+            rclpy.init()
+            self.logger.info(f"Initialized RCLPY environment")
+
+        # 创建 ROS2 节点
+        node = rclpy.create_node(self._ros2_node_name, enable_rosout=False)
+        self._ros2_node = node
+        self.logger.info(f"Created ROS2 node '{self._ros2_node_name}'")
+        return self
+
+    def destroy_ros2_node(self) -> Self:
+        """销毁 ROS2 节点"""
+        import rclpy
+        if self._ros2_node is not None:
+            self.logger.info(f"Destroying ROS2 node '{self._ros2_node_name}'")
+            
+            for pub in self._ros2_node.publishers:
+                pub.destroy()
+            for sub in self._ros2_node.subscriptions:
+                sub.destroy()
+
+            self._ros2_node.destroy_node()
+            self._ros2_node = None
+        if rclpy.ok():
+            self.logger.info(f"Shutting down RCLPY environment")
+            rclpy.shutdown()
         return self
