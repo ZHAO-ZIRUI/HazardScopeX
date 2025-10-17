@@ -1,4 +1,4 @@
-from .base_data import BaseData
+from .base_data import BaseData, TimestampSource
 from .simulator_input import SimulatorInput
 from .simulator_output import SimulatorOutput
 from .image import Image
@@ -7,6 +7,7 @@ from .collision import Collision
 
 __all__ = [
     "BaseData",
+    "TimestampSource",
     "SimulatorInput",
     "SimulatorOutput",
     "Image",

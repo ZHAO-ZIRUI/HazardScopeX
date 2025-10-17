@@ -6,6 +6,9 @@ from typing import Any
 from typing_extensions import Self
 from multiprocessing.shared_memory import SharedMemory
 
+class TimestampSource(Enum):
+    SIM = 'sim'
+    OS = 'os'
 
 class BaseData(ABC):
 
