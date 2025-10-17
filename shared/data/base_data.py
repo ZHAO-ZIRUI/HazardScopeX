@@ -44,6 +44,10 @@ class BaseData(ABC):
     def to_shm(self, shm: SharedMemory) -> Self:
         data = self.serialize()
 
+        # 检查 SHM 是否已关闭
+        if shm.buf is None:
+            return self
+
         # 检查 SHM 大小
         if shm.size < len(data):
             raise ValueError(f'SharedMemory size ({shm.size}) is too small, required {len(data)}')
