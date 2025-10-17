@@ -53,7 +53,7 @@ context:
     # SharedMemory(SHM) 配置
     shm:
       # SHM 默认域的名称, 例: 'hazard_scope/sensor_data'
-      domain: 'hazard_scope'
+      domain: ''
       # SHM 的默认大小, 单位: MB, 该大小足以覆盖多数传感器数据
       default_size_mb: 2
 
