@@ -84,7 +84,7 @@ class Image(SimulatorOutput):
         msg.encoding = 'bgra8'
         msg.is_bigendian = False
         msg.step = self.width * 4
-        msg.data = self._raw.data.cast('B')
+        msg.data = self._raw.data.tobytes()
         return msg
 
     @classmethod
