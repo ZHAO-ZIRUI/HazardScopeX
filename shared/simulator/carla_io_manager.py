@@ -3,7 +3,7 @@ from multiprocessing import resource_tracker
 from typing import Dict, Tuple
 from typing_extensions import Self
 
-from shared.io import SharedMemoryAdapter, ROS2Adapter
+from shared.io import SharedMemoryAdapter, ROS2Adapter, ROS2HighPerformanceAdapter
 from shared.utils import Logging
 from shared.data import TimestampSource
 
@@ -164,3 +164,29 @@ class CarlaIOManager:
             self.logger.info(f"Shutting down RCLPY environment")
             rclpy.shutdown()
         return self
+
+    def create_ros2_hp(
+        self, ros_topic_name: str, shm_topic: str = '',
+        ros_node_name: str = 'harzed_scope_ros2_hp_node',
+        ros_node_qos: int = 10,
+        frame_id: str = 'world',
+        timestamp_source: TimestampSource = TimestampSource.OS,
+    ) -> ROS2HighPerformanceAdapter:
+        """创建 ROS2 高性能适配器"""
+        # 先创建 SHM
+        if shm_topic is None or shm_topic == '':
+            shm_topic = f'{self._shm_domain}_{ros_topic_name.replace("/", "_")}'
+        else:
+            shm_topic = f'{self._shm_domain}_{shm_topic}'
+        shm = self.create_shm(shm_topic)
+
+        # 创建 ROS2 高性能适配器
+        adapter = ROS2HighPerformanceAdapter(
+            shm,
+            ros_topic_name,
+            ros_node_name=ros_node_name,
+            ros_qos=ros_node_qos,
+            ros_frame_id=frame_id,
+            timestamp_source=timestamp_source,
+        )
+        return adapter
