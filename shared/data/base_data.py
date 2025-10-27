@@ -42,7 +42,7 @@ class BaseData(ABC):
         if len(data) < size:
             raise ValueError(f"Invalid data size: {len(data)} < {size}")
         payload = data[cls.HEADER_SIZE:size]
-        instance = cls.deserialize(payload)
+        instance = pickle.loads(payload)
         return instance
 
     def to_shm(self, shm: SharedMemory) -> Self:
