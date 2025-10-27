@@ -64,6 +64,8 @@ class ROS2HighPerformanceAdapter(IOAdapter):
 
         # 启动 Worker
         self.start_worker()
+        
+        return self
 
     def start_worker(self) -> Self:
         """启动 Worker 进程"""
@@ -78,11 +80,23 @@ class ROS2HighPerformanceAdapter(IOAdapter):
         )
         
         self._worker_process = Process(
-            target=self._worker_process,
+            target=ROS2HighPerformanceAdapter._worker_process,
             args=worker_args,
             daemon=True
         )
         self._worker_process.start()
+        
+        # 等待进程启动并检查状态
+        import time
+        time.sleep(0.1)  # 给进程一点时间启动
+        
+        if self._worker_process.is_alive():
+            self.logger.info(f"[ROS2HP] Started worker process for '{self._ros_topic_name}' (PID: {self._worker_process.pid})")
+        else:
+            self.logger.error(f"[ROS2HP] Failed to start worker process for '{self._ros_topic_name}'")
+            if self._worker_process.exitcode is not None:
+                self.logger.error(f"[ROS2HP] Worker exit code: {self._worker_process.exitcode}")
+        
         return self
 
     def stop_worker(self) -> Self:
