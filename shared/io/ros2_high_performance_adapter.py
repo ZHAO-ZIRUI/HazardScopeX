@@ -135,7 +135,7 @@ class ROS2HighPerformanceAdapter(IOAdapter):
         from shared.data import Image as SharedImage, PointCloud as SharedPointCloud
         
         logger = Logging().get_logger('IOManager')
-        logger.debug(f"[ROS2HP] Starting worker for shm to ros2: {shm_topic} -> {ros_topic_name}")
+        logger.debug(f"[ROS2HP] Starting worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}'")
 
         # 连接到共享内存
         try:
@@ -211,7 +211,7 @@ class ROS2HighPerformanceAdapter(IOAdapter):
             except Exception as e:
                 logger.debug(f"[ROS2HP] Error closing shared memory: {e}")
 
-        logger.debug(f"[ROS2HP] Worker for shm to ros2: {shm_topic} -> {ros_topic_name} stopped")
+        logger.debug(f"[ROS2HP] Worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}' stopped")
 
     def _resolve_ros_node_name(self, name: str) -> str:
         """解析 ROS2 节点名称, 如果名称未指定或为空, 则生成一个默认名称, 其他情况则直接用户输入
