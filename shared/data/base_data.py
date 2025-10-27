@@ -124,10 +124,7 @@ class BaseData(ABC):
             # 检查数据长度
             if len(shm.buf) < cls.HEADER_SIZE:
                 return default
-            
-            # memoryview 可以直接用于 struct.unpack
-            frame = cls.deserialize_frame_only(shm.buf)
-            
+            frame = cls.deserialize_frame_only(shm.buf)            
             return frame if frame is not None else default
         except (struct.error, ValueError, TypeError, AttributeError) as e:
             return default
