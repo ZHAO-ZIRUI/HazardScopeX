@@ -87,8 +87,7 @@ class ROS2HighPerformanceAdapter(IOAdapter):
         self._worker_process.start()
         
         # 等待进程启动并检查状态
-        import time
-        time.sleep(0.1)  # 给进程一点时间启动
+        time.sleep(0.1)
         
         if self._worker_process.is_alive():
             self.logger.info(f"[ROS2HP] Started worker process for '{self._ros_topic_name}' (PID: {self._worker_process.pid})")
