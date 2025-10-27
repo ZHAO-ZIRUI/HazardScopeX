@@ -175,7 +175,7 @@ class ROS2HighPerformanceAdapter(IOAdapter):
 
                     # 跳过重复的数据帧
                     if data is None:
-                        time.sleep(0.001)
+                        time.sleep(0.01)
                         continue
                     
                     if data_cache is None or data.sim_frame != data_cache.sim_frame:
@@ -184,7 +184,7 @@ class ROS2HighPerformanceAdapter(IOAdapter):
                         ros_publisher.publish(ros2_data)
                         data_cache = data
                     else:
-                        time.sleep(0.001)
+                        time.sleep(0.01)
                         continue
 
             except KeyboardInterrupt:
