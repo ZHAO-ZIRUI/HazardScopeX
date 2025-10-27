@@ -16,6 +16,7 @@ class SimulatorOutput(BaseData, ABC):
         sim_timestamp: float,
     ):
         super().__init__()
+        self._frame = sim_frame
         self._sim_frame = sim_frame
         self._sim_timestamp = sim_timestamp
         self._os_timestamp = time.time()    # 对象被创建时的操作系统时间戳

@@ -13,37 +13,63 @@ class TimestampSource(Enum):
 
 class BaseData(ABC):
 
-    HEADER_SIZE = 4 # 数据帧头长度
+    HEADER_SIZE = 12 # 数据帧头长度: size(4字节 uint32) + frame(8字节 uint64)
     
     def __init__(self):
+        self._frame = 0
         self._raw: Any = None
 
     @property
     def raw(self) -> Any:
         return self._raw
 
+    @property
+    def frame(self) -> int:
+        return self._frame
+
     def serialize(self) -> bytes:
+        # 序列化格式: [total_size(4字节 uint32)] [frame(8字节 uint64)] [pickle数据...]
         serialized_data = pickle.dumps(self)
         data_size = len(serialized_data)
         total_size = data_size + self.HEADER_SIZE 
-
-        data = struct.pack('I', total_size)
+        data = struct.pack('<IQ', total_size, self._frame)
         data += serialized_data
         return data
 
     @classmethod
     def deserialize(cls, data: bytes) -> Self:
-        # 解析数据长度
+        # 解析数据长度和帧号
         if len(data) < cls.HEADER_SIZE:
-            raise ValueError(f"Invalid data size: {len(data)} < 4")
-        size = struct.unpack('I', data[:cls.HEADER_SIZE])[0]
+            raise ValueError(f"Invalid data size: {len(data)} < {cls.HEADER_SIZE}")
+        total_size, frame = struct.unpack('<IQ', data[:cls.HEADER_SIZE])
 
         # 解析数据
-        if len(data) < size:
-            raise ValueError(f"Invalid data size: {len(data)} < {size}")
-        payload = data[cls.HEADER_SIZE:size]
+        if len(data) < total_size:
+            raise ValueError(f"Invalid data size: {len(data)} < {total_size}")
+        payload = data[cls.HEADER_SIZE:total_size]
         instance = pickle.loads(payload)
         return instance
+    
+    @classmethod
+    def deserialize_frame_only(cls, data: bytes) -> int | None:
+        """
+        仅解析帧序号，用于快速检查是否为重复帧
+        
+        Returns:
+            int: 帧序号，如果数据无效则返回 None
+        """
+        try:
+            # 检查最小长度
+            if len(data) < cls.HEADER_SIZE:
+                return None
+            total_size, frame = struct.unpack('<IQ', data[:cls.HEADER_SIZE])
+            
+            # 验证 total_size 是否合理
+            if total_size < cls.HEADER_SIZE:
+                return None
+            return frame
+        except (struct.error, ValueError, TypeError) as e:
+            return None
 
     def to_shm(self, shm: SharedMemory) -> Self:
         data = self.serialize()
@@ -80,6 +106,30 @@ class BaseData(ABC):
         try:
             return cls.deserialize(shm.buf)
         except (pickle.UnpicklingError, EOFError, struct.error, ValueError) as e:
+            return default
+    
+    @classmethod
+    def try_from_shm_frame_only(cls, shm: SharedMemory, default: int | None = None) -> int | None:
+        """
+        仅从共享内存中提取帧序号，用于快速检查
+        
+        Returns:
+            int: 帧序号，如果数据无效则返回 default
+        """
+        try:
+            # 检查共享内存缓冲区是否有效
+            if shm.buf is None:
+                return default
+            
+            # 检查数据长度
+            if len(shm.buf) < cls.HEADER_SIZE:
+                return default
+            
+            # memoryview 可以直接用于 struct.unpack
+            frame = cls.deserialize_frame_only(shm.buf)
+            
+            return frame if frame is not None else default
+        except (struct.error, ValueError, TypeError, AttributeError) as e:
             return default
 
     @abstractmethod

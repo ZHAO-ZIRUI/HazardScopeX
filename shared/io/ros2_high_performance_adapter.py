@@ -167,22 +167,29 @@ class ROS2HighPerformanceAdapter(IOAdapter):
             logger.debug(f"[ROS2HP] Created ROS2 publisher for '{ros_topic_name}'")
 
             # 主工作循环
-            data_cache = None
+            last_frame = None
             try:
                 while True:
-                    # 从共享内存中获取数据
-                    data = data_type.try_from_shm(shm)
-
-                    # 跳过重复的数据帧
-                    if data is None:
+                    # 首先只读取帧号，避免反序列化大数据
+                    current_frame = data_type.try_from_shm_frame_only(shm, default=None)
+                    
+                    # 如果没有数据或帧号未变化，跳过
+                    if current_frame is None:
                         time.sleep(0.01)
                         continue
                     
-                    if data_cache is None or data.sim_frame != data_cache.sim_frame:
-                        # 将数据转换为 ROS2 消息
-                        ros2_data = data.to_ros2(frame_id=ros_frame_id, timestamp_source=timestamp_source)
-                        ros_publisher.publish(ros2_data)
-                        data_cache = data
+                    # 只有帧号变化时才处理
+                    if last_frame is None or current_frame != last_frame:
+                        data = data_type.try_from_shm(shm, default=None)
+                        if data is not None:
+                            if hasattr(data, 'sim_frame') and data.sim_frame == current_frame:
+                                # 将数据转换为 ROS2 消息
+                                ros2_data = data.to_ros2(frame_id=ros_frame_id, timestamp_source=timestamp_source)
+                                ros_publisher.publish(ros2_data)
+                                last_frame = current_frame
+                            else:
+                                time.sleep(0.001)
+                                continue
                     else:
                         time.sleep(0.01)
                         continue
