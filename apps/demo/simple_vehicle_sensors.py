@@ -12,7 +12,7 @@ if __name__ == "__main__":
     logger.info('Starting simple server')
     with CarlaContext.from_config(config) as context:
 
-        vehicle = context.actors.create_actor(
+        vehicle = context.actors.create_vehicle(
             bp=CarlaBlueprints.VEHICLE_AUDI_A2,
             tf=context.spawn_points[0],
         )
@@ -52,5 +52,9 @@ if __name__ == "__main__":
         context.io.create_ros2_hp(ros_topic_name='/harzed_scope/cam/front').bind_sensor_output(cam_front)
         context.io.create_ros2_hp(ros_topic_name='/harzed_scope/cam/game').bind_sensor_output(cam_game)
         context.io.create_ros2_hp(ros_topic_name='/harzed_scope/lidar/main').bind_sensor_output(lidar_main)
+
+        vehicle.set_carla_autopilot(enable=True)
+
+        # 启动主线程阻塞循环
         context.spin()
     logger.info('Goodbye!')
