@@ -167,7 +167,7 @@ class CarlaIOManager:
 
     def create_ros2_hp(
         self, ros_topic_name: str, shm_topic: str = '',
-        ros_node_name: str = 'harzed_scope_ros2_hp_node',
+        ros_node_name: str = ROS2HighPerformanceAdapter.DEFAULT_ROS_NODE_NAME,
         ros_node_qos: int = 10,
         frame_id: str = 'world',
         timestamp_source: TimestampSource = TimestampSource.OS,
