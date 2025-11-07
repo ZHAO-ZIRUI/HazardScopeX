@@ -8,6 +8,7 @@ import time
 import uuid
 import threading
 from typing_extensions import Self
+from typing import Dict
 
 from shared.utils import Config, Logging
 from shared.simulator import CarlaBlueprints, CarlaActorManager, CarlaIOManager, CarlaRecorder
@@ -41,6 +42,7 @@ class CarlaContext:
         ros2_node_name: str = 'hazard_scope_ros2_node',
         ros2_node_qos: int = 10,
         recorder_path: str = './recorders',
+        tick_blocker_timeout: float = 1.0,
     ):
         self.logger = Logging().get_logger('Context')
 
@@ -61,11 +63,13 @@ class CarlaContext:
         self._ros2_node_name = ros2_node_name
         self._ros2_node_qos = ros2_node_qos
         self._recorder_path = recorder_path
+        self._tick_blocker_timeout = tick_blocker_timeout
 
         self._client: None | carla.Client = None
         self._thread_dead_detector: None | threading.Thread = None
         self._event_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
+        self._tick_blockers: Dict[str, threading.Event] = {}
 
         # 管理器
         self._actors: None | CarlaActorManager = None
@@ -160,7 +164,40 @@ class CarlaContext:
         """CARLA 蓝图枚举类, 此处是一个别名"""
         return CarlaBlueprints
 
+    @property
+    def tick_blockers(self) -> Dict[str, threading.Event]:
+        """TICK 阻塞器, 用于阻塞 TICK 过程, 直到所有阻塞器都通过
+
+        由外部程度 set() 事件, 由 tick() 方法 clear() 事件
+
+        Returns:
+            Dict[str, threading.Event]: TICK 阻塞器, 键为阻塞器名称, 值为阻塞器事件
+        """
+        return self._tick_blockers
+
+    def add_tick_blocker(self, name: str):
+        self._tick_blockers[name] = threading.Event()
+        return self
+
     def tick(self):
+        begin = time.perf_counter()
+        try:
+            while True:
+                all_passed = all(blocker.is_set() for blocker in self._tick_blockers.values())
+                if all_passed:
+                    for blocker in self._tick_blockers.values():
+                        blocker.clear()
+                    break
+                if time.perf_counter() - begin > self._tick_blocker_timeout:
+                    blocker_status = 'Blocker Status: '
+                    for name, blocker in self._tick_blockers.items():
+                        blocker_status += f"'{name}': {blocker.is_set()}, "
+                    Logging().interval(1, self.logger.warning, f'Tick blocker timeout after {self._tick_blocker_timeout} seconds', 'tick_blocker_timeout')
+                    Logging().interval(1, self.logger.warning, blocker_status, 'tick_blocker_status')
+                    continue
+                time.sleep(1/self._sync_mode_fps)
+        except KeyboardInterrupt:
+            raise SystemExit(1)
         self.world.tick()
 
     def bringup(self):
@@ -393,4 +430,5 @@ class CarlaContext:
             ros2_node_name=config.get("context/io/ros2/node_name", default='hazard_scope_ros2_node'),
             ros2_node_qos=config.get("context/io/ros2/node_qos", default=10),
             recorder_path=config.get("context/recorder/path", default='./recorders'),
+            tick_blocker_timeout=config.get("context/tick/blocker_timeout", default=1.0),
         )
