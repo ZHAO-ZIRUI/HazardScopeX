@@ -47,6 +47,9 @@ class CarlaActorManager:
         self._world = value
         return
 
+    def serialize(self) -> list[dict[str, Any]]:
+        return [actor.serialize() for actor in self._actors.values()]
+
     def values(self) -> list[CarlaActor]:
         return list(self._actors.values())
 

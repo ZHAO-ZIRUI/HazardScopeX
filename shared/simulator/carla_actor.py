@@ -1,8 +1,10 @@
 import carla
 import logging
 from functools import wraps
+from typing import Any
 from typing_extensions import Self
 
+from shared.simulator import CarlaTransform
 from shared.utils import IdGenerator, Logging
 
 class CarlaActor:
@@ -61,7 +63,23 @@ class CarlaActor:
         self._actor = actor
 
         self.logger.info(f"Created with blueprint '{self._bp.id}'")
-        
+
+    def serialize(self) -> str:
+        """序列化为 YAML 字符串“”“
+
+        Returns:
+            str: YAML 字符串
+        """
+        dump_data = {
+            '_id_local': self._id_local,
+            '_name': self._name,
+            '_bp': self._bp.id,
+            '_tf_init': CarlaTransform.from_carla(self._tf_init).serialize(),
+            '_parent_name': self._parent.name if self._parent is not None else None,
+            '_attributes': self._actor.attributes,
+        }
+        return dump_data
+
     @property
     def bp(self) -> carla.ActorBlueprint:
         """蓝图, 包含创建 Actor 所需的属性信息"""
