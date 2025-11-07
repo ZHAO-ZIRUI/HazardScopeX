@@ -85,6 +85,10 @@ class CarlaContext:
             self.logger.warning('Using external CARLA server')
 
     @property
+    def project_root(self) -> str:
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    @property
     def client(self) -> carla.Client:
         if self._client is None:
             self._client = carla.Client(self._host, self._port)
