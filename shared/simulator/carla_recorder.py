@@ -216,7 +216,6 @@ class CarlaRecorder:
         
         try:
             while self._work_mode == self.WorkMode.REPLAY:
-
                 self._context.tick()
                 time.sleep(1/fps)
                 self._cache_replay_frames += 1
