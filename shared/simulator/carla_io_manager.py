@@ -15,7 +15,6 @@ class CarlaIOManager:
     
     def __init__(
         self,
-        *,
         context: 'CarlaContext',
     ):
         self.logger = Logging().get_logger('IOManager')
