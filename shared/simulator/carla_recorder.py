@@ -103,7 +103,7 @@ class CarlaRecorder:
         file_frame_count = self._get_replay_file_frame_count(self._cache_file_path)
         self.logger.info(f'Stopping record, program frame: {self._cache_total_frames}, file frame: {file_frame_count}, file: {self._cache_file_path}')
 
-    def start_replay(self, path_or_file_name: str, *, replay_sensors: bool = False):
+    def start_replay(self, path_or_file_name: str):
         if self._work_mode != self.WorkMode.NONE:
             self.logger.critical(f'Program Logic Error: Recorder is already in {self._work_mode.name} mode')
             raise SystemExit(1)
