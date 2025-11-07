@@ -55,7 +55,7 @@ class CarlaActorManager:
 
     def add(self, actor: CarlaActor):
         self._actors[actor.id_local] = actor
-        self.logger.info(f"Registered actor container '{actor.id_local}'")
+        self.logger.info(f"Registered actor container '{actor.id_local}' -> '{actor.name}'")
         return
 
     def remove(self, actor: CarlaActor):
@@ -185,6 +185,7 @@ class CarlaActorManager:
         tf: carla.Transform,
         parent: carla.Actor | CarlaActor | None = None,
         *,
+        name: str = '',
         ignore_attribute_failure: bool = False,
         **attributes: Unpack[Dict[str, Any]],
     ) -> CarlaVehicle:
@@ -192,6 +193,7 @@ class CarlaActorManager:
 
         Args:
             bp (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
+            name (str): 别名
             tf (carla.Transform): 初始变换
             parent (carla.Actor | CarlaActor | None): 附着到的目标 Actor
             ignore_attribute_failure (bool): 是否忽略属性失败
@@ -210,7 +212,7 @@ class CarlaActorManager:
         if not bp.id.lower().startswith('vehicle.'):
             raise ValueError(f"Blueprint '{bp.id}' is not a vehicle blueprint")
         
-        return self.create_actor(bp, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaVehicle, **attributes)
+        return self.create_actor(bp, name=name, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaVehicle, **attributes)
     
     def create_sensor(
         self,
@@ -218,6 +220,7 @@ class CarlaActorManager:
         tf: carla.Transform,
         parent: carla.Actor | CarlaActor | None = None,
         *,
+        name: str = '',
         ignore_attribute_failure: bool = False,
         **attributes: Unpack[Dict[str, Any]],
     ) -> CarlaSensor:
@@ -227,6 +230,7 @@ class CarlaActorManager:
             bp (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
             tf (carla.Transform): 初始变换
             parent (carla.Actor | CarlaActor | None): 附着到的目标 Actor
+            name (str): 别名
             ignore_attribute_failure (bool): 是否忽略属性失败
             attributes (Unpack[Dict[str, Any]]): 蓝图属性
 
@@ -243,14 +247,13 @@ class CarlaActorManager:
         if not bp.id.lower().startswith('sensor.'):
             raise ValueError(f"Blueprint '{bp.id}' is not a sensor blueprint")
         
-        return self.create_actor(bp, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaSensor, **attributes)
+        return self.create_actor(bp, name=name, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaSensor, **attributes)
 
-    def find_by_local_id(self, id: int) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+    def find_by_local_id(self, id: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
         """根据 ID 查找 Actor
         
         Args:
-            type (type[CarlaActor]):  Actor 类型
-            id (int):  本地 ID
+            id (str):  本地 ID
         """
         for actor in self._actors.values():
             if actor.id_local == id:
