@@ -218,8 +218,7 @@ class CarlaRecorder:
             raise SystemExit(1)
 
         if fps != self._sync_mode_fps:
-            self.logger.warning(f'Sync mode FPS is overridden, original: {self._sync_mode_fps}, new: {fps}')
-            fps = self._sync_mode_fps
+            self.logger.warning(f'FPS is overridden, original: {self._sync_mode_fps}, new: {fps}')
         
         while self._work_mode == self.WorkMode.REPLAY:
             self.world.tick()
