@@ -2,7 +2,7 @@
 # 回放记录的仿真数据, 并使用 ROS2 发布传感器数据
 from shared.simulator import *
 from shared.utils import Config, Logging
-from shared.simulator import CarlaTransform
+
 
 if __name__ == "__main__":
     # 基础组件初始化
