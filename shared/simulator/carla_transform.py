@@ -25,6 +25,16 @@ class CarlaTransform:
             rotation=carla.Rotation(yaw=self.yaw, pitch=self.pitch, roll=self.roll),
         )
 
+    def serialize(self) -> dict[str, float]:
+        return {
+            'x': self.x,
+            'y': self.y,
+            'z': self.z,
+            'yaw': self.yaw,
+            'pitch': self.pitch,
+            'roll': self.roll,
+        }
+
     @classmethod
     def from_carla(cls, carla_transform: carla.Transform) -> Self:
         return cls(
@@ -34,4 +44,15 @@ class CarlaTransform:
             yaw=carla_transform.rotation.yaw,
             pitch=carla_transform.rotation.pitch,
             roll=carla_transform.rotation.roll,
+        )
+
+    @classmethod
+    def deserialize(cls, data: dict[str, float]) -> Self:
+        return cls(
+            x=data['x'],
+            y=data['y'],
+            z=data['z'],
+            yaw=data['yaw'],
+            pitch=data['pitch'],
+            roll=data['roll'],
         )
