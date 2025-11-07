@@ -71,3 +71,8 @@ context:
   recorder:
     # 基础路径
     path: '<PROJECT_ROOT>/recorders'
+
+  # TICK 控制
+  tick:
+    # TICK 阻塞超时时间
+    blocker_timeout: 1.0
