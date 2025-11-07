@@ -68,12 +68,12 @@ class CarlaRecorder:
             self.stop_record()
 
     @contextmanager
-    def replay(self, path_or_file_name: str, *, sync_mode_fps: float = 20, log_interval: float = 3.0):
+    def replay(self, path_or_file_name: str, *, fps: float = 20, log_interval: float = 3.0):
         self.start_replay(path_or_file_name=path_or_file_name)
         try:
             yield
         finally:
-            self.spin_replay(sync_mode_fps=sync_mode_fps, log_interval=log_interval)
+            self.spin_replay(fps=fps, log_interval=log_interval)
 
     def start_record(self, *, path_or_file_name: str = None):
         if self._work_mode != self.WorkMode.NONE:
@@ -212,18 +212,18 @@ class CarlaRecorder:
         self._client.stop_replayer(True)
         self.logger.info(f'Stopping replay')
 
-    def spin_replay(self, *, sync_mode_fps: float = 20, log_interval: float = 3.0):
+    def spin_replay(self, *, fps: float = 20, log_interval: float = 3.0):
         if self._work_mode != self.WorkMode.REPLAY:
             self.logger.critical(f'Program Logic Error: Recorder is not in REPLAY mode')
             raise SystemExit(1)
 
-        if sync_mode_fps != self._sync_mode_fps:
-            self.logger.warning(f'Sync mode FPS is overridden, original: {self._sync_mode_fps}, new: {sync_mode_fps}')
-            sync_mode_fps = self._sync_mode_fps
+        if fps != self._sync_mode_fps:
+            self.logger.warning(f'Sync mode FPS is overridden, original: {self._sync_mode_fps}, new: {fps}')
+            fps = self._sync_mode_fps
         
         while self._work_mode == self.WorkMode.REPLAY:
             self.world.tick()
-            time.sleep(1/sync_mode_fps)
+            time.sleep(1/fps)
             self._cache_replay_frames += 1
             percentage = self._cache_replay_frames / self._cache_total_frames * 100
             Logging.interval(log_interval, self.logger.info, f'Replaying {percentage:.2f}%: frame: {self._cache_replay_frames}/{self._cache_total_frames}', 'replay_frame_count')
