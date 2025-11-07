@@ -6,3 +6,7 @@ __pycache__/
 
 # Ignore user config
 config.yaml
+
+# Ignore recorder files
+recorders/*
+!recorders/.gitkeep
