@@ -8,7 +8,7 @@ from typing import Callable, List, TYPE_CHECKING
 from contextlib import contextmanager
 
 from shared.utils import Logging
-from shared.simulator import CarlaActorManager, CarlaTransform
+from shared.simulator import CarlaTransform
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
