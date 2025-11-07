@@ -67,7 +67,7 @@ class CarlaIOManager:
             host = True
         except FileExistsError:
             self.logger.warning(f"SharedMemory with topic '{topic}' already exists, using existing one")
-            shm = SharedMemory(topic, read_only=False)
+            shm = SharedMemory(topic, create=False)
             host = False
 
         # 创建适配器并注册到注册表
