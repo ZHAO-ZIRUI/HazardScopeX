@@ -68,12 +68,12 @@ class CarlaRecorder:
             self.stop_record()
 
     @contextmanager
-    def replay(self, path_or_file_name: str):
+    def replay(self, path_or_file_name: str, *, sync_mode_fps: float = 20, log_interval: float = 3.0):
         self.start_replay(path_or_file_name=path_or_file_name)
         try:
             yield
         finally:
-            self.stop_replay()
+            self.spin_replay(sync_mode_fps=sync_mode_fps, log_interval=log_interval)
 
     def start_record(self, *, path_or_file_name: str = None):
         if self._work_mode != self.WorkMode.NONE:
