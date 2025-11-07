@@ -242,6 +242,96 @@ class CarlaActorManager:
         
         return self.create_actor(bp, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaSensor, **attributes)
 
+    def find_by_local_id(self, id: int) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+        """根据 ID 查找 Actor
+        
+        Args:
+            type (type[CarlaActor]):  Actor 类型
+            id (int):  本地 ID
+        """
+        for actor in self._actors.values():
+            if actor.id_local == id:
+                return actor
+        self.logger.warning(f"Actor with local ID '{id}' not found")
+        return None
+
+    def find_by_carla_id(self, id: int) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+        """根据 CARLA ID 查找 Actor
+        
+        Args:
+            type (type[CarlaActor]):  Actor 类型
+            id (int):  CARLA ID
+        """
+        # 查找已有注册表
+        for actor in self._actors.values():
+            if actor.actor.id == id:
+                return actor
+        
+        # 查找 CARLA 世界
+        actor = self._world.get_actor(id)
+        if actor is not None:
+            bp = self._resolve_blueprint(actor.type_id)
+
+            try:
+                name = actor.attributes['role_name']
+            except KeyError:
+                name = ''
+
+            # 组装本地容器
+            if isinstance(actor, carla.Vehicle):
+                local_actor = CarlaVehicle(bp, name=name, actor=actor)
+                self.add(local_actor)
+                return local_actor
+            elif isinstance(actor, carla.Sensor):
+                local_actor = CarlaSensor(bp, name=name, actor=actor)
+                self.add(local_actor)
+                return local_actor
+            else:
+                local_actor = CarlaActor(bp, name=name, actor=actor)
+                self.add(local_actor)
+                return local_actor
+        return None
+
+    def find_by_name(self, name: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+        """根据名称查找 Actor
+        
+        Args:
+            type (type[CarlaActor]):  Actor 类型
+            name (str):  Actor 名称
+        """
+        # 查找已有注册表
+        for actor in self._actors.values():
+            if actor.name == name:
+                return actor
+
+        # 查找 CARLA 世界
+        all_actors = self._world.get_actors()
+        for actor in all_actors:
+            try:
+                role_name = actor.attributes['role_name']
+            except KeyError:
+                continue
+
+            if role_name != name:
+                continue
+
+            bp = self._resolve_blueprint(actor.type_id)
+            if isinstance(actor, carla.Vehicle):
+                local_actor = CarlaVehicle(bp, name=name, actor=actor)
+                self.add(local_actor)
+                return local_actor
+            elif isinstance(actor, carla.Sensor):
+                local_actor = CarlaSensor(bp, name=name, actor=actor)
+                self.add(local_actor)
+                return local_actor
+            else:
+                local_actor = CarlaActor(bp, name=name, actor=actor)
+                self.add(local_actor)
+                return local_actor
+
+        self.logger.warning(f"Actor with name '{name}' not found")
+        return None
+
     def _resolve_blueprint(
         self,
         blueprint: str | carla.ActorBlueprint | CarlaBlueprints,
