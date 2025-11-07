@@ -122,12 +122,7 @@ class CarlaContext:
     def actors(self) -> CarlaActorManager:
         """CARLA Actor 管理器"""
         if self._actors is None:
-            self._actors = CarlaActorManager(
-                world=self.world,
-                sync_mode_fps=self._sync_mode_fps,
-                actors_stable_threshold=self._actors_spawn_stable_threshold,
-                actors_stable_timeout=self._actors_spawn_stable_timeout,
-            )
+            self._actors = CarlaActorManager(self)
         return self._actors
 
     @property

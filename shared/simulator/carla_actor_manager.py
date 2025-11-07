@@ -1,10 +1,13 @@
 import carla
 import time
-from typing import Dict, Any
+from typing import Dict, Any, TYPE_CHECKING
 from typing_extensions import Self, Unpack
 
 from shared.simulator import CarlaActor, CarlaVehicle, CarlaSensor, CarlaBlueprints, CarlaTransform
 from shared.utils import Logging
+
+if TYPE_CHECKING:
+    from shared.simulator import CarlaContext
 
 
 class CarlaActorManager:
@@ -14,17 +17,14 @@ class CarlaActorManager:
 
     def __init__(
         self,
-        world: carla.World,
-        sync_mode_fps: float = 20,
-        actors_stable_threshold: float = 0.0001,
-        actors_stable_timeout: float = 3,
+        context: 'CarlaContext',
     ):
-        self._world = world
+        self._context = context
         self._actors: Dict[str, CarlaActor] = {}
-        self._blueprint_library = self._world.get_blueprint_library()
-        self._sync_mode_fps = sync_mode_fps
-        self._actors_stable_threshold = actors_stable_threshold
-        self._actors_stable_timeout = actors_stable_timeout
+        self._blueprint_library = self._context.world.get_blueprint_library()
+        self._sync_mode_fps = context.fps
+        self._actors_stable_threshold = context._actors_spawn_stable_threshold
+        self._actors_stable_timeout = context._actors_spawn_stable_timeout
         self.logger = Logging().get_logger('ActorManager')
 
     @property
@@ -37,21 +37,11 @@ class CarlaActorManager:
     def __len__(self) -> int:
         return len(self._actors)
 
-    @property
-    def world(self) -> carla.World:
-        return self._world
-
-    @world.setter
-    def world(self, value: carla.World):
-        self.logger.warning(f"World is already set. Overwriting with {value.name}")
-        self._world = value
-        return
-
     def serialize(self) -> list[dict[str, Any]]:
         return [actor.serialize() for actor in self._actors.values()]
 
     def values(self) -> list[CarlaActor]:
-        return list(self._actors.values())
+        return list[CarlaActor](self._actors.values())
 
     def add(self, actor: CarlaActor):
         self._actors[actor.id_local] = actor
@@ -115,10 +105,10 @@ class CarlaActorManager:
         self.logger.info(f"Spawning {len(sorted_actors)} actors in dependency order")
         self.logger.debug(f"Sorted actors: {[actor.id_local for actor in sorted_actors]}")
         for actor in sorted_actors:
-            actor.spawn(self._world, ignore_spawn_failure=ignore_spawn_failure)
+            actor.spawn(self._context.world, ignore_spawn_failure=ignore_spawn_failure)
         
         # 防止 attch 到空目标或者销毁错误
-        self._world.tick()
+        self._context.world.tick()
         return self
 
     def destroy_all(self) -> Self:
@@ -126,7 +116,7 @@ class CarlaActorManager:
         for actor in self._actors.values():
             actor.destroy()
         try:
-            self._world.tick()
+            self._context.world.tick()
         except RuntimeError as e:
             self.logger.error(f'Failed to tick world after destroying actors: {e}')
         return self
@@ -274,7 +264,7 @@ class CarlaActorManager:
                 return actor
         
         # 查找 CARLA 世界
-        actor = self._world.get_actor(id)
+        actor = self._context.world.get_actor(id)
         if actor is not None:
             bp = self._resolve_blueprint(actor.type_id)
 
@@ -311,7 +301,7 @@ class CarlaActorManager:
                 return actor
 
         # 查找 CARLA 世界
-        all_actors = self._world.get_actors()
+        all_actors = self._context.world.get_actors()
         for actor in all_actors:
             try:
                 role_name = actor.attributes['role_name']
@@ -446,7 +436,7 @@ class CarlaActorManager:
         timer = time.perf_counter()
         
         # 第一次必须进行 tick, 让 actors 有机会移动
-        self._world.tick()
+        self._context.world.tick()
         time.sleep(1/self._sync_mode_fps)
         
         while True:
@@ -483,5 +473,5 @@ class CarlaActorManager:
                 break
             
             # 进行 tick 操作
-            self._world.tick()
+            self._context.world.tick()
             time.sleep(1/self._sync_mode_fps)
