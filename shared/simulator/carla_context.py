@@ -115,6 +115,10 @@ class CarlaContext:
         return self.world.get_map().get_spawn_points()
 
     @property
+    def fps(self) -> float:
+        return self._sync_mode_fps
+
+    @property
     def actors(self) -> CarlaActorManager:
         """CARLA Actor 管理器"""
         if self._actors is None:
@@ -152,10 +156,8 @@ class CarlaContext:
                     os.makedirs(recorder_path)
                     self.logger.warning(f'Recorder path does not exist, created: {recorder_path}')
             self._recorder = CarlaRecorder(
-                client=self.client,
-                actor_manager=self.actors,
+                context=self,
                 recorder_path=recorder_path,
-                sync_mode_fps=self._sync_mode_fps,
             )
         return self._recorder
 

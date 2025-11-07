@@ -4,11 +4,14 @@ import os
 import re
 import yaml
 from enum import Enum
-from typing import Callable, List
+from typing import Callable, List, TYPE_CHECKING
 from contextlib import contextmanager
 
 from shared.utils import Logging
 from shared.simulator import CarlaActorManager, CarlaTransform
+
+if TYPE_CHECKING:
+    from shared.simulator import CarlaContext
 
 
 class CarlaRecorder:
@@ -26,19 +29,14 @@ class CarlaRecorder:
 
     def __init__(
         self,
-        client: carla.Client,
-        actor_manager: CarlaActorManager,
+        context: 'CarlaContext',
         recorder_path: str = './recorders',
-        sync_mode_fps: float = 20,
     ):
         self.logger = Logging().get_logger('Recorder')
 
         self._work_mode = self.WorkMode.NONE
         self._recorder_path = recorder_path
-
-        self._client = client
-        self._actor_manager = actor_manager
-        self._sync_mode_fps = sync_mode_fps
+        self._context = context
 
         self._cache_file_path: str = None
         self._cache_total_frames: int = 0
@@ -46,10 +44,6 @@ class CarlaRecorder:
         self._record_tick_handler = None
 
         self._hook_on_replay_finished: List[Callable] = []
-
-    @property
-    def world(self) -> carla.World:
-        return self._client.get_world()
 
     @property
     def recorder_path(self) -> str:
@@ -107,13 +101,13 @@ class CarlaRecorder:
         # 记录元数据
         metadata_file_path = f'{self._cache_file_path}{self.METADATA_FILE_EXTENSION}'
         with open(metadata_file_path, 'w') as f:
-            yaml.dump(self._actor_manager.serialize(), f)
+            yaml.dump(self._context.actors.serialize(), f)
         self.logger.info(f'Recorded metadata to: {metadata_file_path}')
 
         self._record_tick_handler = self._on_record_tick
-        self.world.on_tick(self._record_tick_handler)
+        self._context.world.on_tick(self._record_tick_handler)
 
-        self._client.start_recorder(self._cache_file_path)
+        self._context.client.start_recorder(self._cache_file_path)
         self.logger.info(f'Starting record, file: {self._cache_file_path}')
 
     def stop_record(self):
@@ -123,11 +117,11 @@ class CarlaRecorder:
         
         self._work_mode = self.WorkMode.NONE
 
-        self._client.stop_recorder()
+        self._context.client.stop_recorder()
 
         if self._record_tick_handler is not None:
             try:
-                self.world.remove_on_tick(self._record_tick_handler)
+                self._context.world.remove_on_tick(self._record_tick_handler)
             except Exception as e:
                 self.logger.warning(f'Failed to remove tick handler: {e}')
             self._record_tick_handler = None
@@ -167,12 +161,12 @@ class CarlaRecorder:
         if self._cache_total_frames == 0:
             self.logger.warning(f'Failed to obtain total frames from recorder file: {self._cache_file_path}')
 
-        self._client.replay_file(self._cache_file_path, 0.0, 0.0, 0, False) # 不使用CARLA的传感器回放
+        self._context.client.replay_file(self._cache_file_path, 0.0, 0.0, 0, False) # 不使用CARLA的传感器回放
         for _ in range(2):
-            self.world.tick()
+            self._context.tick()
             self._cache_replay_frames += 1
 
-        self._actor_manager.find_by_name('ACTOR_001')
+        self._context.actors.find_by_name('ACTOR_001')
 
         # 重建传感器
         metadata = None
@@ -189,16 +183,16 @@ class CarlaRecorder:
             if not actor_dump['_bp'].lower().startswith('sensor.'):
                 continue
 
-            sensor = self._actor_manager.create_sensor(
+            sensor = self._context.actors.create_sensor(
                 bp=actor_dump['_bp'],
                 name=actor_dump['_name'],
                 tf=CarlaTransform.deserialize(actor_dump['_tf_init']).to_carla(),
-                parent=self._actor_manager.find_by_name(actor_dump['_parent_name']),
+                parent=self._context.actors.find_by_name(actor_dump['_parent_name']),
                 **actor_dump['_attributes'],
             )
-            sensor.spawn(self.world)
+            sensor.spawn(self._context.world)
 
-        self.world.tick() # 执行一次 TICK(), 确保传感器对象被 SPAWN
+        self._context.tick() # 执行一次 TICK(), 确保传感器对象被 SPAWN
         self._cache_replay_frames += 1
 
         self.logger.info(f'Starting replay, file: {self._cache_file_path}')
@@ -209,7 +203,7 @@ class CarlaRecorder:
             raise SystemExit(1)
         
         self._work_mode = self.WorkMode.NONE
-        self._client.stop_replayer(True)
+        self._context.client.stop_replayer(True)
         self.logger.info(f'Stopping replay')
 
     def spin_replay(self, *, fps: float = 20, log_interval: float = 3.0):
@@ -217,12 +211,13 @@ class CarlaRecorder:
             self.logger.critical(f'Program Logic Error: Recorder is not in REPLAY mode')
             raise SystemExit(1)
 
-        if fps != self._sync_mode_fps:
-            self.logger.warning(f'FPS is overridden, original: {self._sync_mode_fps}, new: {fps}')
+        if fps != self._context.fps:
+            self.logger.warning(f'FPS is overridden, original: {self._context.fps}, new: {fps}')
         
         try:
             while self._work_mode == self.WorkMode.REPLAY:
-                self.world.tick()
+
+                self._context.tick()
                 time.sleep(1/fps)
                 self._cache_replay_frames += 1
                 percentage = self._cache_replay_frames / self._cache_total_frames * 100
@@ -250,7 +245,7 @@ class CarlaRecorder:
             int: 总帧数
         """
         try:
-            info = self._client.show_recorder_file_info(path, False)
+            info = self._context.client.show_recorder_file_info(path, False)
         except RuntimeError as e:
             self.logger.error(f'Failed to read recorder file info: {e}')
             return 0
