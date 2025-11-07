@@ -134,12 +134,7 @@ class CarlaContext:
     def io(self) -> CarlaIOManager:
         """CARLA IO 管理器"""
         if self._io is None:
-            self._io = CarlaIOManager(
-                shm_domain=self._shm_domain,
-                shm_default_size_mb=self._shm_default_size_mb,
-                ros2_node_name=self._ros2_node_name,
-                ros2_node_qos=self._ros2_node_qos,
-            )
+            self._io = CarlaIOManager(self)
         return self._io
 
     @property
