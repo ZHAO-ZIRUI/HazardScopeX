@@ -185,7 +185,10 @@ class ROS2HighPerformanceAdapter(IOAdapter):
                             if hasattr(data, 'sim_frame') and data.sim_frame == current_frame:
                                 # 将数据转换为 ROS2 消息
                                 ros2_data = data.to_ros2(frame_id=ros_frame_id, timestamp_source=timestamp_source)
-                                ros_publisher.publish(ros2_data)
+                                if rclpy.ok():
+                                    ros_publisher.publish(ros2_data)
+                                else:
+                                    break
                                 last_frame = current_frame
                             else:
                                 time.sleep(0.001)
