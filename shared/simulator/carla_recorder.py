@@ -220,16 +220,20 @@ class CarlaRecorder:
         if fps != self._sync_mode_fps:
             self.logger.warning(f'FPS is overridden, original: {self._sync_mode_fps}, new: {fps}')
         
-        while self._work_mode == self.WorkMode.REPLAY:
-            self.world.tick()
-            time.sleep(1/fps)
-            self._cache_replay_frames += 1
-            percentage = self._cache_replay_frames / self._cache_total_frames * 100
-            Logging.interval(log_interval, self.logger.info, f'Replaying {percentage:.2f}%: frame: {self._cache_replay_frames}/{self._cache_total_frames}', 'replay_frame_count')
+        try:
+            while self._work_mode == self.WorkMode.REPLAY:
+                self.world.tick()
+                time.sleep(1/fps)
+                self._cache_replay_frames += 1
+                percentage = self._cache_replay_frames / self._cache_total_frames * 100
+                Logging.interval(log_interval, self.logger.info, f'Replaying {percentage:.2f}%: frame: {self._cache_replay_frames}/{self._cache_total_frames}', 'replay_frame_count')
 
-            if self._cache_replay_frames >= self._cache_total_frames:
-                self.logger.info(f'Replaying finished, frame: {self._cache_replay_frames}/{self._cache_total_frames}')
-                break
+                if self._cache_replay_frames >= self._cache_total_frames:
+                    self.logger.info(f'Replaying finished, frame: {self._cache_replay_frames}/{self._cache_total_frames}')
+                    break
+        except KeyboardInterrupt:
+            self.logger.info(f'Spin replay stopped by manual interrupt')
+            return
 
         self._work_mode = self.WorkMode.NONE
         for hook in self._hook_on_replay_finished:
