@@ -104,8 +104,8 @@ class CarlaRecorder:
             yaml.dump(self._context.actors.serialize(), f)
         self.logger.info(f'Recorded metadata to: {metadata_file_path}')
 
-        self._record_tick_handler = self._on_record_tick
-        self._context.world.on_tick(self._record_tick_handler)
+        self._record_tick_handler = self._tick_handler
+        self._context.hook_on_tick.append(self._record_tick_handler)
 
         self._context.client.start_recorder(self._cache_file_path)
         self.logger.info(f'Starting record, file: {self._cache_file_path}')
@@ -121,7 +121,7 @@ class CarlaRecorder:
 
         if self._record_tick_handler is not None:
             try:
-                self._context.world.remove_on_tick(self._record_tick_handler)
+                self._context.hook_on_tick.remove(self._record_tick_handler)
             except Exception as e:
                 self.logger.warning(f'Failed to remove tick handler: {e}')
             self._record_tick_handler = None
@@ -266,7 +266,7 @@ class CarlaRecorder:
         self.logger.warning(f'Unable to parse frame count from recorder info: {info}')
         return 0
 
-    def _on_record_tick(self, _: carla.WorldSnapshot):
+    def _tick_handler(self, _: carla.WorldSnapshot):
         self._cache_total_frames += 1
 
     @property
