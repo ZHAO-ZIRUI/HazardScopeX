@@ -11,4 +11,4 @@ config.yaml
 recorders/*
 !recorders/.gitkeep
 !recorders/demo.carla
-!recorders/demo.yaml
+!recorders/demo.carla.yaml
