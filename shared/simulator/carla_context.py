@@ -8,7 +8,7 @@ import time
 import uuid
 import threading
 from typing_extensions import Self
-from typing import Dict
+from typing import Dict, Tuple
 
 from shared.utils import Config, Logging
 from shared.simulator import CarlaBlueprints, CarlaActorManager, CarlaIOManager, CarlaRecorder
@@ -69,7 +69,7 @@ class CarlaContext:
         self._thread_dead_detector: None | threading.Thread = None
         self._event_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
-        self._tick_blockers: Dict[str, threading.Event] = {}
+        self._tick_blockers: Dict[str, Tuple[threading.Event, bool]] = {}   # key, (event, clear_on_tick)
 
         # 管理器
         self._actors: None | CarlaActorManager = None
@@ -175,8 +175,8 @@ class CarlaContext:
         """
         return self._tick_blockers
 
-    def add_tick_blocker(self, name: str):
-        self._tick_blockers[name] = threading.Event()
+    def add_tick_blocker(self, name: str, *, clear_on_tick: bool = True):
+        self._tick_blockers[name] = (threading.Event(), clear_on_tick)
         return self
 
     def tick(self):
@@ -185,12 +185,13 @@ class CarlaContext:
             while True:
                 all_passed = all(blocker.is_set() for blocker in self._tick_blockers.values())
                 if all_passed:
-                    for blocker in self._tick_blockers.values():
-                        blocker.clear()
+                    for blocker, clear_on_tick in self._tick_blockers.values():
+                        if clear_on_tick:
+                            blocker.clear()
                     break
                 if time.perf_counter() - begin > self._tick_blocker_timeout:
                     blocker_status = 'Blocker Status: '
-                    for name, blocker in self._tick_blockers.items():
+                    for name, (blocker, clear_on_tick) in self._tick_blockers.items():
                         blocker_status += f"'{name}': {blocker.is_set()}, "
                     Logging().interval(1, self.logger.warning, f'Tick blocker timeout after {self._tick_blocker_timeout} seconds', 'tick_blocker_timeout')
                     Logging().interval(1, self.logger.warning, blocker_status, 'tick_blocker_status')
