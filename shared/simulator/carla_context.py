@@ -10,7 +10,7 @@ import threading
 from typing_extensions import Self
 
 from shared.utils import Config, Logging
-from shared.simulator import CarlaBlueprints, CarlaActorManager, CarlaIOManager
+from shared.simulator import CarlaBlueprints, CarlaActorManager, CarlaIOManager, CarlaRecorder
 
 
 class CarlaContext:
@@ -40,6 +40,7 @@ class CarlaContext:
         shm_default_size_mb: int = 2,
         ros2_node_name: str = 'hazard_scope_ros2_node',
         ros2_node_qos: int = 10,
+        recorder_path: str = './recorders',
     ):
         self.logger = Logging().get_logger('Context')
 
@@ -59,6 +60,7 @@ class CarlaContext:
         self._shm_default_size_mb = shm_default_size_mb
         self._ros2_node_name = ros2_node_name
         self._ros2_node_qos = ros2_node_qos
+        self._recorder_path = recorder_path
 
         self._client: None | carla.Client = None
         self._thread_dead_detector: None | threading.Thread = None
@@ -68,6 +70,7 @@ class CarlaContext:
         # 管理器
         self._actors: None | CarlaActorManager = None
         self._io: None | CarlaIOManager = None
+        self._recorder: None | CarlaRecorder = None
         
         # 执行初始化后处理
         self._post_init()
@@ -130,6 +133,26 @@ class CarlaContext:
                 ros2_node_qos=self._ros2_node_qos,
             )
         return self._io
+
+    @property
+    def recorder(self) -> CarlaRecorder:
+        """CARLA 记录器"""
+        if self._recorder is None:
+            # 确定路径
+            if os.path.isabs(self._recorder_path):
+                recorder_path = self._recorder_path
+            else:
+                recorder_path = self._recorder_path.replace('<PROJECT_ROOT>', self.project_root)
+                recorder_path = os.path.abspath(recorder_path)
+                if not os.path.exists(recorder_path):
+                    os.makedirs(recorder_path)
+                    self.logger.warning(f'Recorder path does not exist, created: {recorder_path}')
+            self._recorder = CarlaRecorder(
+                client=self.client,
+                actor_manager=self.actors,
+                recorder_path=recorder_path,
+            )
+        return self._recorder
 
     @property
     def blueprints(self) -> type[CarlaBlueprints]:
@@ -368,4 +391,5 @@ class CarlaContext:
             shm_default_size_mb=config.get("context/io/shm/default_size_mb", default=2),
             ros2_node_name=config.get("context/io/ros2/node_name", default='hazard_scope_ros2_node'),
             ros2_node_qos=config.get("context/io/ros2/node_qos", default=10),
+            recorder_path=config.get("context/recorder/path", default='./recorders'),
         )
