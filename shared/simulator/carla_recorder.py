@@ -101,6 +101,9 @@ class CarlaRecorder:
         self._cache_file_path = file_path
         self._cache_total_frames = 0
 
+        # 程序问题警告
+        self.logger.warning(f'PLEASE MAKE SURE THAT THE SENSORS ARE ALL SPAWNED BEFORE RECORDING')
+
         # 记录元数据
         metadata_file_path = f'{self._cache_file_path}{self.METADATA_FILE_EXTENSION}'
         with open(metadata_file_path, 'w') as f:
