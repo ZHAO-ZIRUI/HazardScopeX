@@ -29,6 +29,7 @@ class CarlaIOManager:
         self._ros2_node = None
         self._ros2_node_name = ros2_node_name
         self._ros2_node_qos = ros2_node_qos
+        self._ros2_hp_registry: Dict[str, ROS2HighPerformanceAdapter] = {}
 
     @property
     def shm_registry(self) -> Dict[str, Tuple[SharedMemoryAdapter, bool]]:
@@ -38,6 +39,21 @@ class CarlaIOManager:
             Dict[str, Tuple[SharedMemoryAdapter, bool]]: 共享内存注册表, 键为共享内存的名称, 值为共享内存适配器和是否由本程序创建的元组
         """
         return self._shm_registry
+
+    @property
+    def ros2_hp_registry(self) -> Dict[str, ROS2HighPerformanceAdapter]:
+        """ROS2 高性能适配器注册表, 用于存储 ROS2 高性能适配器的名称和适配器
+        
+        Returns:
+            Dict[str, ROS2HighPerformanceAdapter]: ROS2 高性能适配器注册表, 键为共享内存的名称, 值为 ROS2 高性能适配器
+        """
+        return self._ros2_hp_registry
+
+    def destroy_all(self) -> Self:
+        self.destroy_all_shm()
+        self.destroy_all_ros2_node()
+        self.destroy_all_ros2_hp()
+        return self
 
     def create_shm(self, topic: str, size: int = None) -> SharedMemoryAdapter:
         """创建共享内存, 如果共享内存已存在, 则使用已存在的共享内存
@@ -147,7 +163,7 @@ class CarlaIOManager:
         self.logger.info(f"Created ROS2 node '{self._ros2_node_name}'")
         return self
 
-    def destroy_ros2_node(self) -> Self:
+    def destroy_all_ros2_node(self) -> Self:
         """销毁 ROS2 节点"""
         import rclpy
         if self._ros2_node is not None:
@@ -189,4 +205,12 @@ class CarlaIOManager:
             ros_frame_id=frame_id,
             timestamp_source=timestamp_source,
         )
+        self._ros2_hp_registry[shm.shm.name] = adapter
         return adapter
+
+    def destroy_all_ros2_hp(self) -> Self:
+        """销毁所有 ROS2 高性能适配器"""
+        for adapter in self._ros2_hp_registry.values():
+            adapter.stop_worker()
+        self._ros2_hp_registry.clear()
+        return self

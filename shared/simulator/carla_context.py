@@ -217,9 +217,7 @@ class CarlaContext:
 
         # 先销毁所有 Actor 再销毁所有 IO 对象
         self.actors.destroy_all()
-        self.io.destroy_all_shm()
-        self.io.destroy_ros2_node()
-
+        self.io.destroy_all()
         # 停止服务端
         if not self._use_external_server:
             self.server_stop()

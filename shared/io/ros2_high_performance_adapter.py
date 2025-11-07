@@ -1,3 +1,5 @@
+import os
+import signal
 import time
 from typing_extensions import Self
 from typing import TYPE_CHECKING
@@ -46,7 +48,6 @@ class ROS2HighPerformanceAdapter(IOAdapter):
         self._data_type: BaseData | None = None
         self._data_cache = None
 
-        self._flag_worker_running = False
         self._worker_process: None | Process = None
         self._sensor_type: str | None = None
 
@@ -100,12 +101,28 @@ class ROS2HighPerformanceAdapter(IOAdapter):
 
     def stop_worker(self) -> Self:
         """停止 Worker 进程"""
-        self._flag_worker_running = False
         if self._worker_process is not None:
-            self._worker_process.join(timeout=1.0)
             if self._worker_process.is_alive():
-                self._worker_process.terminate()
-                self._worker_process.join()
+                pid = self._worker_process.pid
+                self.logger.debug(f"[ROS2HP] Stopping worker process for '{self._ros_topic_name}' (PID: {pid})")
+                try:
+                    os.kill(pid, signal.SIGINT)
+                except ProcessLookupError:
+                    pass
+                self._worker_process.join(timeout=1.0)
+                if self._worker_process.is_alive():
+                    self._worker_process.terminate()
+                    self._worker_process.join(timeout=1.0)
+                if self._worker_process.is_alive():
+                    self.logger.warning(f"[ROS2HP] Worker process for '{self._ros_topic_name}' did not terminate in time, forcing shutdown")
+                    self._worker_process.kill()
+                    self._worker_process.join()
+            try:
+                self._worker_process.close()
+            except AttributeError:
+                pass
+            finally:
+                self._worker_process = None
         return self
     
     @staticmethod
