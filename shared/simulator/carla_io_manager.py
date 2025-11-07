@@ -1,11 +1,14 @@
 from multiprocessing.shared_memory import SharedMemory
 from multiprocessing import resource_tracker
-from typing import Dict, Tuple
+from typing import Dict, Tuple, TYPE_CHECKING
 from typing_extensions import Self
 
 from shared.io import SharedMemoryAdapter, ROS2Adapter, ROS2HighPerformanceAdapter
 from shared.utils import Logging
 from shared.data import TimestampSource
+
+if TYPE_CHECKING:
+    from shared.simulator import CarlaContext
 
 
 class CarlaIOManager:
@@ -13,22 +16,19 @@ class CarlaIOManager:
     def __init__(
         self,
         *,
-        shm_domain: str = 'hazard_scope',
-        shm_default_size_mb: int = 2,
-        ros2_node_name: str = 'hazard_scope_ros2_node',
-        ros2_node_qos: int = 10,
+        context: 'CarlaContext',
     ):
         self.logger = Logging().get_logger('IOManager')
 
         # SHM
-        self._shm_domain = shm_domain
-        self._shm_default_size_mb = shm_default_size_mb
+        self._shm_domain = context._shm_domain
+        self._shm_default_size_mb = context._shm_default_size_mb
         self._shm_registry: Dict[str, Tuple[SharedMemoryAdapter, bool]] = {}
 
         # ROS2
         self._ros2_node = None
-        self._ros2_node_name = ros2_node_name
-        self._ros2_node_qos = ros2_node_qos
+        self._ros2_node_name = context._ros2_node_name
+        self._ros2_node_qos = context._ros2_node_qos
         self._ros2_hp_registry: Dict[str, ROS2HighPerformanceAdapter] = {}
 
     @property
