@@ -58,7 +58,7 @@ class CarlaRecorder:
     def work_mode(self) -> WorkMode:
         return self._work_mode
 
-    def start_record(self):
+    def start_record(self, *, path_or_file_name: str = None):
         if self._work_mode != self.WorkMode.NONE:
             self.logger.critical(f'Program Logic Error: Recorder is already in {self._work_mode.name} mode')
             raise SystemExit(1)
@@ -66,9 +66,21 @@ class CarlaRecorder:
         self._work_mode = self.WorkMode.RECORD
 
         # 确定文件路径
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
-        file_name = f'{timestamp}{self.RECORDER_FILE_EXTENSION}'
-        file_path = os.path.join(self._recorder_path, file_name)
+        if path_or_file_name is None:
+            timestamp = time.strftime('%Y%m%d_%H%M%S')
+            file_name = f'{timestamp}{self.RECORDER_FILE_EXTENSION}'
+            file_path = os.path.join(self._recorder_path, file_name)
+        else:
+            file_path = path_or_file_name
+            if not file_path.lower().endswith(self.RECORDER_FILE_EXTENSION):
+                file_path = f'{file_path}{self.RECORDER_FILE_EXTENSION}'
+            if not os.path.isabs(file_path):
+                file_path = os.path.join(self._recorder_path, file_path)
+
+            if os.path.exists(file_path):
+                self.logger.critical(f'Recorder file already exists: {file_path}')
+                raise SystemExit(1)
+
         self._cache_file_path = file_path
         self._cache_total_frames = 0
 
