@@ -151,6 +151,7 @@ class CarlaContext:
                 client=self.client,
                 actor_manager=self.actors,
                 recorder_path=recorder_path,
+                sync_mode_fps=self._sync_mode_fps,
             )
         return self._recorder
 
