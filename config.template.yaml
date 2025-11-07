@@ -2,6 +2,9 @@
 # YOU SHOULD COPY THIS FILE AND RENAME IT TO config.yaml
 # 该文件是配置文件的模板, 你应当复制该文件并重命名为 config.yaml, 并编辑该文件以满足你的需求
 
+# VARIABLES
+# <PROJECT_ROOT> 表示项目根目录
+
 # 日志配置
 logging:
   # 日志级别
@@ -63,3 +66,8 @@ context:
       node_name: 'hazard_scope_ros2_node'
       # ROS2 节点的 QoS 配置
       node_qos: 10
+    
+  # 记录器的配置
+  recorder:
+    # 基础路径
+    path: '<PROJECT_ROOT>/recorders'
