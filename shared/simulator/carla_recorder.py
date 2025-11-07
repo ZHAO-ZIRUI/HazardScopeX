@@ -60,7 +60,7 @@ class CarlaRecorder:
         return self._work_mode
 
     @contextmanager
-    def record(self, *, path_or_file_name: str = None):
+    def record(self, path_or_file_name: str = None):
         self.start_record(path_or_file_name=path_or_file_name)
         try:
             yield
