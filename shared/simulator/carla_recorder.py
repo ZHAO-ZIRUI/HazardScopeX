@@ -5,6 +5,7 @@ import re
 import yaml
 from enum import Enum
 from typing import Callable, List
+from contextlib import contextmanager
 
 from shared.utils import Logging
 from shared.simulator import CarlaActorManager, CarlaTransform
@@ -57,6 +58,22 @@ class CarlaRecorder:
     @property
     def work_mode(self) -> WorkMode:
         return self._work_mode
+
+    @contextmanager
+    def record(self, *, path_or_file_name: str = None):
+        self.start_record(path_or_file_name=path_or_file_name)
+        try:
+            yield
+        finally:
+            self.stop_record()
+
+    @contextmanager
+    def replay(self, path_or_file_name: str):
+        self.start_replay(path_or_file_name=path_or_file_name)
+        try:
+            yield
+        finally:
+            self.stop_replay()
 
     def start_record(self, *, path_or_file_name: str = None):
         if self._work_mode != self.WorkMode.NONE:
