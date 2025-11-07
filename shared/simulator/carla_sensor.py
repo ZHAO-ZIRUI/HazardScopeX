@@ -41,7 +41,7 @@ class CarlaSensor(CarlaActor):
 
     def spawn(self, world: carla.World, ignore_spawn_failure: bool = False) -> Self:
         super().spawn(world, ignore_spawn_failure)
-        self.actor.listen(lambda data: self._listen_callback(data))
+        self.start_listen()
         return self
 
     def destroy(self) -> Self:
@@ -55,6 +55,10 @@ class CarlaSensor(CarlaActor):
 
         # 销毁 Actor
         super().destroy()
+        return self
+
+    def start_listen(self) -> Self:
+        self.actor.listen(lambda data: self._listen_callback(data))
         return self
 
     def _listen_callback(self, data: carla.SensorData):
