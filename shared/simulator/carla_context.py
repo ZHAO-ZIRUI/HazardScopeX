@@ -8,7 +8,7 @@ import time
 import uuid
 import threading
 from typing_extensions import Self
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Callable, List
 
 from shared.utils import Config, Logging
 from shared.simulator import CarlaBlueprints, CarlaActorManager, CarlaIOManager, CarlaRecorder
@@ -75,6 +75,9 @@ class CarlaContext:
         self._actors: None | CarlaActorManager = None
         self._io: None | CarlaIOManager = None
         self._recorder: None | CarlaRecorder = None
+
+        # 钩子
+        self._hook_on_tick: List[Callable[[carla.WorldSnapshot], None]] = []
         
         # 执行初始化后处理
         self._post_init()
@@ -192,6 +195,10 @@ class CarlaContext:
         except KeyboardInterrupt:
             raise SystemExit(1)
         self.world.tick()
+
+        # 执行钩子
+        for hook in self._hook_on_tick:
+            hook(self.world.get_snapshot())
 
     def bringup(self):
         if not self._use_external_server:
@@ -400,6 +407,10 @@ class CarlaContext:
         finally:
             del detector_client
             self.logger.debug('Thread dead detector stopped')
+
+    @property
+    def hook_on_tick(self) -> List[Callable[[carla.WorldSnapshot], None]]:
+        return self._hook_on_tick
 
     @classmethod
     def from_config(cls, config: Config) -> Self:
