@@ -125,7 +125,7 @@ class DatasetDumper:
         log_token = 'flush_dataset'
 
         for file_path, data in self._dataset.items():
-            data.to_file(file_path)
+            self._flush_sensor_data(data, file_path)
             count += 1
             percentage = count / total * 100
             Logging().interval(2, self.logger.info, f'Flushed {percentage:.2f}%: {count}/{total} files', log_token)
@@ -203,4 +203,17 @@ class DatasetDumper:
         if not self._is_memory_usage_safe():
             self.logger.warning(f'Memory usage is too high: {self._get_memory_usage():.2f}%, flushing dataset to disk immediately')
             self.flush()
+        return self
+
+    def _flush_sensor_data(self, data: BaseData, file_path: str) -> Self:
+        """将传感器数据导出到磁盘
+        
+        Args:
+            data (BaseData): 传感器数据
+            file_path (str): 文件路径
+
+        Returns:
+            Self: 返回自身
+        """
+        data.to_file(file_path)
         return self
