@@ -205,6 +205,18 @@ class CarlaContext:
         self.logger.debug(f'Bind tick blocker: {name}')
         return blocker
 
+    def remove_tick_blocker(self, name: str) -> threading.Event:
+        """移除 TICK 阻塞器
+
+        Args:
+            name (str): 阻塞器名称
+
+        Returns:
+            threading.Event: 返回阻塞器事件
+        """
+        self._tick_blockers.pop(name)
+        return self
+
     def tick(self):
         begin = time.perf_counter()
         try:
