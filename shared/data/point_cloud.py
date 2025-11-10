@@ -17,7 +17,10 @@ class PointCloud(SimulatorOutput):
     """
     
     class Format(Enum):
-        XYZIC = 'XYZIC' # x, y, z, intensity, channel
+        XYZ = 0 # x, y, z
+        XYZ_Intensity = 1 # x, y, z, intensity
+        XYZ_Intensity_Channel = 2 # x, y, z, intensity, channel
+        XYZ_Agnle_Id_SemTag = 3 # x, y, z, cos_inc_angle, object_id, object_semantic_tag
 
     def __init__(
         self, 
@@ -58,7 +61,7 @@ class PointCloud(SimulatorOutput):
             sim_frame=carla_input.frame,
             sim_timestamp=carla_input.timestamp,
             point_cloud=pc,
-            format=cls.Format.XYZIC,
+            format=cls.Format.XYZ_Intensity_Channel,
         )
         return instance
 
@@ -116,43 +119,47 @@ class PointCloud(SimulatorOutput):
         return self
 
     def _save_as_pcd(self, file_path: str) -> None:
-        if self._raw.ndim != 2 or self._raw.shape[1] != 5:
-            raise ValueError('PCD export currently supports only XYZIC format point clouds')
+        if self._raw.ndim != 2 or self._raw.shape[1] < 3:
+            raise ValueError('PCD export requires at least XYZ columns')
 
+        fields = ['x', 'y', 'z']
+        if self._raw.shape[1] >= 4:
+            fields.append('intensity')
         header = (
             '# .PCD v0.7 - Point Cloud Data file format\n'
             'VERSION 0.7\n'
-            'FIELDS x y z intensity channel\n'
-            'SIZE 4 4 4 4 4\n'
-            'TYPE F F F F F\n'
-            'COUNT 1 1 1 1 1\n'
+            f"FIELDS {' '.join(fields)}\n"
+            f"SIZE {' '.join(['4'] * len(fields))}\n"
+            f"TYPE {' '.join(['F'] * len(fields))}\n"
+            f"COUNT {' '.join(['1'] * len(fields))}\n"
             f'WIDTH {self.count}\n'
             'HEIGHT 1\n'
             'VIEWPOINT 0 0 0 1 0 0 0\n'
             f'POINTS {self.count}\n'
             'DATA ascii\n'
         )
-        points = self._raw.astype(np.float32)
+        points = self._raw[:, :len(fields)].astype(np.float32)
         with open(file_path, 'w', encoding='utf-8') as file_obj:
             file_obj.write(header)
             np.savetxt(file_obj, points, fmt='%.8f')
 
     def _save_as_ply(self, file_path: str) -> None:
-        if self._raw.ndim != 2 or self._raw.shape[1] != 5:
-            raise ValueError('PLY export currently supports only XYZIC format point clouds')
+        if self._raw.ndim != 2 or self._raw.shape[1] < 3:
+            raise ValueError('PLY export requires at least XYZ columns')
 
-        header = (
-            'ply\n'
-            'format ascii 1.0\n'
-            f'element vertex {self.count}\n'
-            'property float x\n'
-            'property float y\n'
-            'property float z\n'
-            'property float intensity\n'
-            'property float channel\n'
-            'end_header\n'
-        )
-        points = self._raw.astype(np.float32)
+        header_lines = [
+            'ply',
+            'format ascii 1.0',
+            f'element vertex {self.count}',
+            'property float x',
+            'property float y',
+            'property float z',
+        ]
+        if self._raw.shape[1] >= 4:
+            header_lines.append('property float intensity')
+        header_lines.append('end_header\n')
+        header = '\n'.join(header_lines)
+        points = self._raw[:, : (4 if self._raw.shape[1] >= 4 else 3)].astype(np.float32)
         with open(file_path, 'w', encoding='utf-8') as file_obj:
             file_obj.write(header)
             np.savetxt(file_obj, points, fmt='%.8f')
