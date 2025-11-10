@@ -20,7 +20,7 @@ class PointCloud(SimulatorOutput):
         XYZ = 0 # x, y, z
         XYZ_Intensity = 1 # x, y, z, intensity
         XYZ_Intensity_Channel = 2 # x, y, z, intensity, channel -> FROM carla.LidarMeasurement
-        XYZ_Agnle_Id_SemTag = 3 # x, y, z, cos_inc_angle, object_id, object_semantic_tag -> FROM carla.SemanticLidarMeasurement
+        XYZ_Channel_Agnle_Id_SemTag = 3 # x, y, z, channel, cos_inc_angle, object_id, object_semantic_tag -> FROM carla.SemanticLidarMeasurement
 
     def __init__(
         self, 
