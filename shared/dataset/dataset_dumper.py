@@ -66,6 +66,9 @@ class DatasetDumper:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.flush()
+        self._context.hook_on_tick.remove(self._update_frame_counter)
+        self._context.hook_on_tick.remove(self._flash_on_memory_usage_high)
+        self._context.remove_tick_blocker(self.DATASET_CLASS)
         return
 
     @property
@@ -176,16 +179,13 @@ class DatasetDumper:
         )
         return self
 
-    def _cache_sensor_data(self, data: BaseData, folder_path: str, naming_policy: NamingPolicy) -> Self:
+    def _cache_sensor_data(self, data: BaseData, folder_path: str, naming_policy: NamingPolicy) -> None:
         """存储传感器数据到内存缓存
         
         Args:
             data (BaseData): 传感器数据
             folder_path (str): 文件夹路径
             naming_policy (NamingPolicy): 命名策略
-
-        Returns:
-            Self: 返回自身
         """
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         file_path = os.path.join(folder_path, f"{counter_str}.{naming_policy.extension}")
@@ -194,7 +194,7 @@ class DatasetDumper:
             raise FileExistsError(f"File already exists: {file_path}")
 
         self._dataset[file_path] = data
-        return self
+        return None
 
     def _update_frame_counter(self, _) -> Self:
         self._frame_counter += 1
