@@ -37,6 +37,15 @@ class DatasetDumper:
         safe_memory_usage_threshold: float = SAFE_MEMORY_USAGE_THRESHOLD,
         create_folder: bool = True
     ):
+        """初始化数据集导出器
+
+        Args:
+            context (CarlaContext): 仿真上下文
+            folder_path (str): 数据集保存路径
+            name (str, optional): 数据集名称. 默认为 None, 将根据时间自动生成.
+            safe_memory_usage_threshold (float, optional): 安全内存使用阈值, 当内存使用率超过该阈值时, 将自动导出数据集到磁盘. 默认为 SAFE_MEMORY_USAGE_THRESHOLD.
+            create_folder (bool, optional): 是否创建数据集文件夹, 如果为 False, 则需要确保数据集文件夹存在. 默认为 True.
+        """
         self.logger = Logging().get_logger(self.DATASET_CLASS)
         
         self._context = context
