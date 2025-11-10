@@ -56,7 +56,7 @@ class DatasetDumper:
 
         self._tick_blocker = threading.Event()
         self._dataset: Dict[str, BaseData] = {}
-        self._frame_counter = 1
+        self._frame_counter = 0
 
         self.logger.info(f'Initialized {self.DATASET_CLASS} exporter')
         self._post_init()
