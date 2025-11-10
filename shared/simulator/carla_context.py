@@ -69,7 +69,7 @@ class CarlaContext:
         self._thread_dead_detector: None | threading.Thread = None
         self._event_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
-        self._tick_blockers: Dict[str, Tuple[threading.Event, bool]] = {}   # key, (event, clear_on_tick)
+        self._tick_blockers: Dict[str, threading.Event] = {}
 
         # 管理器
         self._actors: None | CarlaActorManager = None
@@ -170,33 +170,31 @@ class CarlaContext:
         """
         return self._tick_blockers
 
-    def add_tick_blocker(self, name: str, *, clear_on_tick: bool = True) -> threading.Event:
+    def add_tick_blocker(self, name: str) -> threading.Event:
         """添加 TICK 阻塞器
 
         Args:
             name (str): 阻塞器名称
-            clear_on_tick (bool, optional): 是否在 TICK 完成后清除阻塞器. 默认为 True.
 
         Returns:
             threading.Event: 返回阻塞器事件
         """
         event = threading.Event()
-        self._tick_blockers[name] = (event, clear_on_tick)
+        self._tick_blockers[name] = event
         self.logger.debug(f'Added tick blocker: {name}')
         return event
 
-    def bind_tick_blocker(self, name: str, blocker: threading.Event, *, clear_on_tick: bool = True) -> threading.Event:
+    def bind_tick_blocker(self, name: str, blocker: threading.Event) -> threading.Event:
         """绑定 TICK 阻塞器
 
         Args:
             name (str): 阻塞器名称
             blocker (threading.Event): 阻塞器事件
-            clear_on_tick (bool, optional): 是否在 TICK 完成后清除阻塞器. 默认为 True.
 
         Returns:
             threading.Event: 返回阻塞器事件
         """
-        self._tick_blockers[name] = (blocker, clear_on_tick)
+        self._tick_blockers[name] = blocker
         self.logger.debug(f'Bind tick blocker: {name}')
         return blocker
 
@@ -204,15 +202,12 @@ class CarlaContext:
         begin = time.perf_counter()
         try:
             while True:
-                all_passed = all(blocker.is_set() for blocker in self._tick_blockers.values())
+                all_passed = all(not blocker.is_set() for blocker in self._tick_blockers.values())
                 if all_passed:
-                    for blocker, clear_on_tick in self._tick_blockers.values():
-                        if clear_on_tick:
-                            blocker.clear()
                     break
                 if time.perf_counter() - begin > self._tick_blocker_timeout:
                     blocker_status = 'Blocker Status: '
-                    for name, (blocker, clear_on_tick) in self._tick_blockers.items():
+                    for name, blocker in self._tick_blockers.items():
                         blocker_status += f"'{name}': {blocker.is_set()}, "
                     Logging().interval(1, self.logger.warning, f'Tick blocker timeout after {self._tick_blocker_timeout} seconds', 'tick_blocker_timeout')
                     Logging().interval(1, self.logger.warning, blocker_status, 'tick_blocker_status')
