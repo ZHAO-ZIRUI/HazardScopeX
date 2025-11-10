@@ -205,25 +205,49 @@ class PointCloud(SimulatorOutput):
             raise ValueError('PCD export requires at least XYZ columns')
 
         format_fields = {
-            self.Format.XYZ: (self.Format.XYZ, ['x', 'y', 'z']),
-            self.Format.XYZ_Intensity: (self.Format.XYZ_Intensity, ['x', 'y', 'z', 'intensity']),
-            self.Format.XYZ_Intensity_Channel: (self.Format.XYZ_Intensity_Channel, ['x', 'y', 'z', 'intensity', 'channel']),
+            self.Format.XYZ: (
+                self.Format.XYZ,
+                ['x', 'y', 'z'],
+                ['F', 'F', 'F'],
+                ['float', 'float', 'float'],
+            ),
+            self.Format.XYZ_Intensity: (
+                self.Format.XYZ_Intensity,
+                ['x', 'y', 'z', 'intensity'],
+                ['F', 'F', 'F', 'F'],
+                ['float', 'float', 'float', 'float'],
+            ),
+            self.Format.XYZ_Intensity_Channel: (
+                self.Format.XYZ_Intensity_Channel,
+                ['x', 'y', 'z', 'intensity', 'channel'],
+                ['F', 'F', 'F', 'F', 'I'],
+                ['float', 'float', 'float', 'float', 'int'],
+            ),
             self.Format.XYZ_Channel_Agnle_Id_SemTag: (
                 self.Format.XYZ_Channel_Agnle_Id_SemTag,
                 ['x', 'y', 'z', 'channel', 'cos_inc_angle', 'object_id', 'object_semantic_tag'],
+                ['F', 'F', 'F', 'I', 'F', 'I', 'I'],
+                ['float', 'float', 'float', 'int', 'float', 'int', 'int'],
             ),
         }
 
-        target_format, fields = format_fields[self.format]
+        target_format, fields, field_types, _ = format_fields[self.format]
         formatted = self.reformat(target_format)
-        points = formatted._raw.astype(np.float32)
+        points = formatted._raw.copy()
+        for idx, field_type in enumerate(field_types):
+            if field_type == 'I':
+                points[:, idx] = np.rint(points[:, idx])
+            else:
+                points[:, idx] = points[:, idx].astype(np.float32)
+
+        fmt = ['%.8f' if field_type == 'F' else '%d' for field_type in field_types]
 
         header_lines = [
             '# .PCD v0.7 - Point Cloud Data file format',
             'VERSION 0.7',
             f"FIELDS {' '.join(fields)}",
             f"SIZE {' '.join(['4'] * len(fields))}",
-            f"TYPE {' '.join(['F'] * len(fields))}",
+            f"TYPE {' '.join(field_types)}",
             f"COUNT {' '.join(['1'] * len(fields))}",
             f'WIDTH {formatted.count}',
             'HEIGHT 1',
@@ -233,7 +257,7 @@ class PointCloud(SimulatorOutput):
         ]
 
         buffer = StringIO()
-        np.savetxt(buffer, points, fmt='%.8f')
+        np.savetxt(buffer, points, fmt=fmt)
         return '\n'.join(header_lines) + '\n' + buffer.getvalue()
 
     def _dump_to_ply(self) -> str:
@@ -241,27 +265,51 @@ class PointCloud(SimulatorOutput):
             raise ValueError('PLY export requires at least XYZ columns')
 
         format_fields = {
-            self.Format.XYZ: (self.Format.XYZ, ['x', 'y', 'z']),
-            self.Format.XYZ_Intensity: (self.Format.XYZ_Intensity, ['x', 'y', 'z', 'intensity']),
-            self.Format.XYZ_Intensity_Channel: (self.Format.XYZ_Intensity_Channel, ['x', 'y', 'z', 'intensity', 'channel']),
+            self.Format.XYZ: (
+                self.Format.XYZ,
+                ['x', 'y', 'z'],
+                ['F', 'F', 'F'],
+                ['float', 'float', 'float'],
+            ),
+            self.Format.XYZ_Intensity: (
+                self.Format.XYZ_Intensity,
+                ['x', 'y', 'z', 'intensity'],
+                ['F', 'F', 'F', 'F'],
+                ['float', 'float', 'float', 'float'],
+            ),
+            self.Format.XYZ_Intensity_Channel: (
+                self.Format.XYZ_Intensity_Channel,
+                ['x', 'y', 'z', 'intensity', 'channel'],
+                ['F', 'F', 'F', 'F', 'I'],
+                ['float', 'float', 'float', 'float', 'int'],
+            ),
             self.Format.XYZ_Channel_Agnle_Id_SemTag: (
                 self.Format.XYZ_Channel_Agnle_Id_SemTag,
                 ['x', 'y', 'z', 'channel', 'cos_inc_angle', 'object_id', 'object_semantic_tag'],
+                ['F', 'F', 'F', 'I', 'F', 'I', 'I'],
+                ['float', 'float', 'float', 'int', 'float', 'int', 'int'],
             ),
         }
 
-        target_format, fields = format_fields[self.format]
+        target_format, fields, field_types, property_types = format_fields[self.format]
         formatted = self.reformat(target_format)
-        points = formatted._raw.astype(np.float32)
+        points = formatted._raw.copy()
+        for idx, field_type in enumerate(field_types):
+            if field_type == 'I':
+                points[:, idx] = np.rint(points[:, idx])
+            else:
+                points[:, idx] = points[:, idx].astype(np.float32)
+
+        fmt = ['%.8f' if field_type == 'F' else '%d' for field_type in field_types]
 
         header_lines = [
             'ply',
             'format ascii 1.0',
             f'element vertex {formatted.count}',
         ]
-        header_lines.extend([f'property float {field}' for field in fields])
+        header_lines.extend([f'property {prop_type} {field}' for field, prop_type in zip(fields, property_types)])
         header_lines.append('end_header')
 
         buffer = StringIO()
-        np.savetxt(buffer, points, fmt='%.8f')
+        np.savetxt(buffer, points, fmt=fmt)
         return '\n'.join(header_lines) + '\n' + buffer.getvalue()
