@@ -92,6 +92,10 @@ class CarlaSensor(CarlaActor):
             SimulatorOutput: 框架中的统一仿真器输出数据
         """
         if isinstance(data, carla.Image):
+            if self.bp.id == CarlaBlueprints.SENSOR_CAMERA_INSTANCE_SEGMENTATION.value or self.bp.id == CarlaBlueprints.SENSOR_CAMERA_SEMANTIC_SEGMENTATION.value:
+                data.convert(carla.ColorConverter.CityScapesPalette)
+            elif self.bp.id == CarlaBlueprints.SENSOR_CAMERA_DEPTH.value:
+                data.convert(carla.ColorConverter.Depth)
             return Image.from_carla(data)
         if isinstance(data, carla.LidarMeasurement | carla.SemanticLidarMeasurement):
             return PointCloud.from_carla(data)
