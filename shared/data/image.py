@@ -1,5 +1,6 @@
 import carla
 import numpy as np
+import cv2
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing_extensions import Self
@@ -97,3 +98,7 @@ class Image(SimulatorOutput):
             height=ros2_msg.height,
             format=cls.Format.BGRA8,
         )
+
+    def to_file(self, file_path: str) -> Self:
+        cv2.imwrite(file_path, self._raw)
+        return self
