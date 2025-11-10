@@ -198,7 +198,7 @@ class DatasetDumper:
         self._frame_counter += 1
         return self
 
-    def _flash_on_memory_usage_high(self) -> Self:
+    def _flash_on_memory_usage_high(self, _) -> Self:
         """当内存使用率过高时, 将数据导出到磁盘"""
         if not self._is_memory_usage_safe():
             self.logger.warning(f'Memory usage is too high: {self._get_memory_usage():.2f}%, flushing dataset to disk immediately')
