@@ -103,3 +103,56 @@ class PointCloud(SimulatorOutput):
     @classmethod
     def from_ros2(cls, ros2_msg: "PointCloud2") -> Self:
         raise NotImplemented()
+
+    def to_file(self, file_path: str) -> Self:
+        if file_path.endswith('.pcd'):
+            self._save_as_pcd(file_path)
+        elif file_path.endswith('.ply'):
+            self._save_as_ply(file_path)
+        elif file_path.endswith('.npz'):
+            np.savez(file_path, points=self._raw)
+        else:
+            raise ValueError(f'Unsupported file extension: {file_path}')
+        return self
+
+    def _save_as_pcd(self, file_path: str) -> None:
+        if self._raw.ndim != 2 or self._raw.shape[1] != 5:
+            raise ValueError('PCD export currently supports only XYZIC format point clouds')
+
+        header = (
+            '# .PCD v0.7 - Point Cloud Data file format\n'
+            'VERSION 0.7\n'
+            'FIELDS x y z intensity channel\n'
+            'SIZE 4 4 4 4 4\n'
+            'TYPE F F F F F\n'
+            'COUNT 1 1 1 1 1\n'
+            f'WIDTH {self.count}\n'
+            'HEIGHT 1\n'
+            'VIEWPOINT 0 0 0 1 0 0 0\n'
+            f'POINTS {self.count}\n'
+            'DATA ascii\n'
+        )
+        points = self._raw.astype(np.float32)
+        with open(file_path, 'w', encoding='utf-8') as file_obj:
+            file_obj.write(header)
+            np.savetxt(file_obj, points, fmt='%.8f')
+
+    def _save_as_ply(self, file_path: str) -> None:
+        if self._raw.ndim != 2 or self._raw.shape[1] != 5:
+            raise ValueError('PLY export currently supports only XYZIC format point clouds')
+
+        header = (
+            'ply\n'
+            'format ascii 1.0\n'
+            f'element vertex {self.count}\n'
+            'property float x\n'
+            'property float y\n'
+            'property float z\n'
+            'property float intensity\n'
+            'property float channel\n'
+            'end_header\n'
+        )
+        points = self._raw.astype(np.float32)
+        with open(file_path, 'w', encoding='utf-8') as file_obj:
+            file_obj.write(header)
+            np.savetxt(file_obj, points, fmt='%.8f')
