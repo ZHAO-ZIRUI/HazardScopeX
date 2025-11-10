@@ -170,9 +170,35 @@ class CarlaContext:
         """
         return self._tick_blockers
 
-    def add_tick_blocker(self, name: str, *, clear_on_tick: bool = True):
-        self._tick_blockers[name] = (threading.Event(), clear_on_tick)
-        return self
+    def add_tick_blocker(self, name: str, *, clear_on_tick: bool = True) -> threading.Event:
+        """添加 TICK 阻塞器
+
+        Args:
+            name (str): 阻塞器名称
+            clear_on_tick (bool, optional): 是否在 TICK 完成后清除阻塞器. 默认为 True.
+
+        Returns:
+            threading.Event: 返回阻塞器事件
+        """
+        event = threading.Event()
+        self._tick_blockers[name] = (event, clear_on_tick)
+        self.logger.debug(f'Added tick blocker: {name}')
+        return event
+
+    def bind_tick_blocker(self, name: str, blocker: threading.Event, *, clear_on_tick: bool = True) -> threading.Event:
+        """绑定 TICK 阻塞器
+
+        Args:
+            name (str): 阻塞器名称
+            blocker (threading.Event): 阻塞器事件
+            clear_on_tick (bool, optional): 是否在 TICK 完成后清除阻塞器. 默认为 True.
+
+        Returns:
+            threading.Event: 返回阻塞器事件
+        """
+        self._tick_blockers[name] = (blocker, clear_on_tick)
+        self.logger.debug(f'Bind tick blocker: {name}')
+        return blocker
 
     def tick(self):
         begin = time.perf_counter()
