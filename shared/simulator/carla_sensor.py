@@ -93,7 +93,7 @@ class CarlaSensor(CarlaActor):
         """
         if isinstance(data, carla.Image):
             return Image.from_carla(data)
-        if isinstance(data, carla.LidarMeasurement):
+        if isinstance(data, carla.LidarMeasurement | carla.SemanticLidarMeasurement):
             return PointCloud.from_carla(data)
         if isinstance(data, carla.CollisionEvent):
             return Collision.from_carla(data)

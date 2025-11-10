@@ -107,26 +107,42 @@ class PointCloud(SimulatorOutput):
         return converted
 
     @classmethod
-    def from_carla(cls, carla_input: carla.LidarMeasurement) -> Self:
-        # 将 data.raw_data 转换为 Nx4 (x, y, z, intensity)
-        points_per_channel = [carla_input.get_point_count(i) for i in range(carla_input.channels)]
-        count_point = sum(points_per_channel)
-        pc = np.frombuffer(carla_input.raw_data, dtype=np.float32)
-        pc = pc.reshape(count_point, 4)
-        pc = pc.copy()
+    def from_carla(cls, carla_input: carla.LidarMeasurement | carla.SemanticLidarMeasurement) -> Self:
+        if isinstance(carla_input, carla.LidarMeasurement):
+            points_per_channel = [carla_input.get_point_count(i) for i in range(carla_input.channels)]
+            count_point = sum(points_per_channel)
+            raw = np.frombuffer(carla_input.raw_data, dtype=np.float32).reshape(count_point, 4).copy()
 
-        # 将 Channel 编码成 Nx5 (x, y, z, intensity, channel)
-        channel_col = np.repeat(np.arange(carla_input.channels), points_per_channel)
-        channel_col = channel_col.astype(np.float32).reshape(-1, 1)
-        pc = np.hstack((pc, channel_col))
+            channel_col = np.repeat(np.arange(carla_input.channels), points_per_channel).astype(np.float32).reshape(-1, 1)
+            point_cloud = np.hstack((raw, channel_col))
 
-        instance = cls(
-            sim_frame=carla_input.frame,
-            sim_timestamp=carla_input.timestamp,
-            point_cloud=pc,
-            format=cls.Format.XYZ_Intensity_Channel,
-        )
-        return instance
+            return cls(
+                sim_frame=carla_input.frame,
+                sim_timestamp=carla_input.timestamp,
+                point_cloud=point_cloud,
+                format=cls.Format.XYZ_Intensity_Channel,
+            )
+
+        if isinstance(carla_input, carla.SemanticLidarMeasurement):
+            points_per_channel = [carla_input.get_point_count(i) for i in range(carla_input.channels)]
+            count_point = sum(points_per_channel)
+            raw = np.frombuffer(carla_input.raw_data, dtype=np.float32).reshape(count_point, 6).copy()
+
+            channel_col = np.repeat(np.arange(carla_input.channels), points_per_channel).astype(np.float32).reshape(-1, 1)
+            xyz = raw[:, :3]
+            cos_inc_angle = raw[:, 3:4]
+            object_id = raw[:, 4:5]
+            semantic_tag = raw[:, 5:6]
+            point_cloud = np.hstack((xyz, channel_col, cos_inc_angle, object_id, semantic_tag))
+
+            return cls(
+                sim_frame=carla_input.frame,
+                sim_timestamp=carla_input.timestamp,
+                point_cloud=point_cloud,
+                format=cls.Format.XYZ_Channel_Agnle_Id_SemTag,
+            )
+
+        raise TypeError(f'Unsupported CARLA input type: {type(carla_input)}')
 
     def to_ros2(self, frame_id: str = 'lidar', timestamp_source: TimestampSource = TimestampSource.OS) -> "PointCloud2":
         from sensor_msgs.msg import PointCloud2, PointField
