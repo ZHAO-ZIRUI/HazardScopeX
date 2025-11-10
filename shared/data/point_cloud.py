@@ -1,8 +1,10 @@
 import carla
+import copy
 import numpy as np
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing_extensions import Self
+from io import StringIO
 
 from shared.data import SimulatorOutput, TimestampSource
 
@@ -42,7 +44,68 @@ class PointCloud(SimulatorOutput):
     def count(self) -> int:
         """点云数量"""
         return len(self._raw)
-    
+
+    def reformat(self, target_format: Format) -> Self:
+        """将点云数据转换为目标格式
+
+        Args:
+            target_format (Format): 目标格式
+
+        Returns:
+            PointCloud: 转换后的点云数据
+        """
+        source_format = self.format
+        if target_format == source_format:
+            return self
+        if self._raw.ndim != 2 or self._raw.shape[1] < 3:
+            raise ValueError('Invalid point cloud data, at least 3 columns are required')
+
+        dtype = self._raw.dtype
+        count = self.count
+        xyz = self._raw[:, :3]
+
+        if target_format == self.Format.XYZ:
+            target_raw = xyz.copy()
+        elif target_format == self.Format.XYZ_Intensity:
+            if source_format in (self.Format.XYZ_Intensity, self.Format.XYZ_Intensity_Channel):
+                intensity = self._raw[:, 3:4]
+            else:
+                intensity = np.ones((count, 1), dtype=dtype)
+            target_raw = np.hstack((xyz, intensity))
+        elif target_format == self.Format.XYZ_Intensity_Channel:
+            if source_format == self.Format.XYZ_Intensity_Channel:
+                intensity = self._raw[:, 3:4]
+                channel = self._raw[:, 4:5]
+            elif source_format == self.Format.XYZ_Intensity:
+                intensity = self._raw[:, 3:4]
+                channel = np.zeros((count, 1), dtype=dtype)
+            elif source_format == self.Format.XYZ_Channel_Agnle_Id_SemTag:
+                intensity = np.ones((count, 1), dtype=dtype)
+                channel = self._raw[:, 3:4]
+            else:
+                intensity = np.ones((count, 1), dtype=dtype)
+                channel = np.zeros((count, 1), dtype=dtype)
+            target_raw = np.hstack((xyz, intensity, channel))
+        elif target_format == self.Format.XYZ_Channel_Agnle_Id_SemTag:
+            if source_format == self.Format.XYZ_Channel_Agnle_Id_SemTag:
+                target_raw = self._raw[:, :7]
+            else:
+                if source_format == self.Format.XYZ_Intensity_Channel:
+                    channel = self._raw[:, 4:5]
+                else:
+                    channel = np.zeros((count, 1), dtype=dtype)
+                cos_inc_angle = np.zeros((count, 1), dtype=dtype)
+                object_id = np.zeros((count, 1), dtype=dtype)
+                semantic_tag = np.zeros((count, 1), dtype=dtype)
+                target_raw = np.hstack((xyz, channel, cos_inc_angle, object_id, semantic_tag))
+        else:
+            raise ValueError(f'Unsupported format conversion: {source_format} -> {target_format}')
+
+        converted = copy.deepcopy(self)
+        converted._format = target_format
+        converted._raw = np.ascontiguousarray(target_raw)
+        return converted
+
     @classmethod
     def from_carla(cls, carla_input: carla.LidarMeasurement) -> Self:
         # 将 data.raw_data 转换为 Nx4 (x, y, z, intensity)
@@ -75,6 +138,10 @@ class PointCloud(SimulatorOutput):
         stamp.sec = int(timestamp)
         stamp.nanosec = int((timestamp - stamp.sec) * 1e9)
 
+        formatted = self.reformat(self.Format.XYZ_Intensity)
+        ros_points = formatted._raw.astype(np.float32).copy()
+        ros_points[:, 1] = -ros_points[:, 1]    # CARLA左手系 -> ROS右手系，Y轴取反
+
         # 定义 PointField
         fields = [
             PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
@@ -83,24 +150,12 @@ class PointCloud(SimulatorOutput):
             PointField(name='intensity', offset=12, datatype=PointField.FLOAT32, count=1),
         ]
 
-        # 转换数据类型并处理坐标系转换（CARLA左手系 -> ROS右手系，Y轴取反）
-        points = self._raw.astype(np.float32)
-        xyz = points[:, :3].copy()
-        xyz[:, 1] = -xyz[:, 1]
-
-        if self._format in (self.Format.XYZ_Intensity, self.Format.XYZ_Intensity_Channel):
-            intensity = points[:, 3]
-        else:
-            intensity = np.ones((self.count,), dtype=np.float32)
-
-        ros_points = np.column_stack((xyz, intensity))
-
         # 组装 ROS2 消息
         msg = PointCloud2()
         msg.header.stamp = stamp
         msg.header.frame_id = frame_id
         msg.height = 1
-        msg.width = self.count
+        msg.width = formatted.count
         msg.fields = fields
         msg.is_bigendian = False
         msg.point_step = 16  # 4 floats * 4 bytes
@@ -116,57 +171,81 @@ class PointCloud(SimulatorOutput):
 
     def to_file(self, file_path: str) -> Self:
         if file_path.endswith('.pcd'):
-            self._dump_to_pcd(file_path)
+            content = self._dump_to_pcd()
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
         elif file_path.endswith('.ply'):
-            self._dump_to_ply(file_path)
+            content = self._dump_to_ply()
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(content)
         elif file_path.endswith('.npz'):
             np.savez(file_path, points=self._raw)
         else:
             raise ValueError(f'Unsupported file extension: {file_path}')
         return self
 
-    def _dump_to_pcd(self, file_path: str) -> None:
+    def _dump_to_pcd(self) -> str:
         if self._raw.ndim != 2 or self._raw.shape[1] < 3:
             raise ValueError('PCD export requires at least XYZ columns')
 
-        fields = ['x', 'y', 'z']
-        if self._raw.shape[1] >= 4:
-            fields.append('intensity')
-        header = (
-            '# .PCD v0.7 - Point Cloud Data file format\n'
-            'VERSION 0.7\n'
-            f"FIELDS {' '.join(fields)}\n"
-            f"SIZE {' '.join(['4'] * len(fields))}\n"
-            f"TYPE {' '.join(['F'] * len(fields))}\n"
-            f"COUNT {' '.join(['1'] * len(fields))}\n"
-            f'WIDTH {self.count}\n'
-            'HEIGHT 1\n'
-            'VIEWPOINT 0 0 0 1 0 0 0\n'
-            f'POINTS {self.count}\n'
-            'DATA ascii\n'
-        )
-        points = self._raw[:, :len(fields)].astype(np.float32)
-        with open(file_path, 'w', encoding='utf-8') as file_obj:
-            file_obj.write(header)
-            np.savetxt(file_obj, points, fmt='%.8f')
+        format_fields = {
+            self.Format.XYZ: (self.Format.XYZ, ['x', 'y', 'z']),
+            self.Format.XYZ_Intensity: (self.Format.XYZ_Intensity, ['x', 'y', 'z', 'intensity']),
+            self.Format.XYZ_Intensity_Channel: (self.Format.XYZ_Intensity_Channel, ['x', 'y', 'z', 'intensity', 'channel']),
+            self.Format.XYZ_Channel_Agnle_Id_SemTag: (
+                self.Format.XYZ_Channel_Agnle_Id_SemTag,
+                ['x', 'y', 'z', 'channel', 'cos_inc_angle', 'object_id', 'object_semantic_tag'],
+            ),
+        }
 
-    def _dump_to_ply(self, file_path: str) -> None:
+        target_format, fields = format_fields[self.format]
+        formatted = self.reformat(target_format)
+        points = formatted._raw.astype(np.float32)
+
+        header_lines = [
+            '# .PCD v0.7 - Point Cloud Data file format',
+            'VERSION 0.7',
+            f"FIELDS {' '.join(fields)}",
+            f"SIZE {' '.join(['4'] * len(fields))}",
+            f"TYPE {' '.join(['F'] * len(fields))}",
+            f"COUNT {' '.join(['1'] * len(fields))}",
+            f'WIDTH {formatted.count}',
+            'HEIGHT 1',
+            'VIEWPOINT 0 0 0 1 0 0 0',
+            f'POINTS {formatted.count}',
+            'DATA ascii',
+        ]
+
+        buffer = StringIO()
+        np.savetxt(buffer, points, fmt='%.8f')
+        return '\n'.join(header_lines) + '\n' + buffer.getvalue()
+
+    def _dump_to_ply(self) -> str:
         if self._raw.ndim != 2 or self._raw.shape[1] < 3:
             raise ValueError('PLY export requires at least XYZ columns')
+
+        format_fields = {
+            self.Format.XYZ: (self.Format.XYZ, ['x', 'y', 'z']),
+            self.Format.XYZ_Intensity: (self.Format.XYZ_Intensity, ['x', 'y', 'z', 'intensity']),
+            self.Format.XYZ_Intensity_Channel: (self.Format.XYZ_Intensity_Channel, ['x', 'y', 'z', 'intensity', 'channel']),
+            self.Format.XYZ_Channel_Agnle_Id_SemTag: (
+                self.Format.XYZ_Channel_Agnle_Id_SemTag,
+                ['x', 'y', 'z', 'channel', 'cos_inc_angle', 'object_id', 'object_semantic_tag'],
+            ),
+        }
+
+        target_format, fields = format_fields[self.format]
+        formatted = self.reformat(target_format)
+        points = formatted._raw.astype(np.float32)
 
         header_lines = [
             'ply',
             'format ascii 1.0',
-            f'element vertex {self.count}',
-            'property float x',
-            'property float y',
-            'property float z',
+            f'element vertex {formatted.count}',
         ]
-        if self._raw.shape[1] >= 4:
-            header_lines.append('property float intensity')
-        header_lines.append('end_header\n')
-        header = '\n'.join(header_lines)
-        points = self._raw[:, : (4 if self._raw.shape[1] >= 4 else 3)].astype(np.float32)
-        with open(file_path, 'w', encoding='utf-8') as file_obj:
-            file_obj.write(header)
-            np.savetxt(file_obj, points, fmt='%.8f')
+        header_lines.extend([f'property float {field}' for field in fields])
+        header_lines.append('end_header')
+
+        buffer = StringIO()
+        np.savetxt(buffer, points, fmt='%.8f')
+        return '\n'.join(header_lines) + '\n' + buffer.getvalue()
