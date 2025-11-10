@@ -81,12 +81,19 @@ class PointCloud(SimulatorOutput):
             PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
             PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
             PointField(name='intensity', offset=12, datatype=PointField.FLOAT32, count=1),
-            PointField(name='channel', offset=16, datatype=PointField.FLOAT32, count=1),
         ]
 
         # 转换数据类型并处理坐标系转换（CARLA左手系 -> ROS右手系，Y轴取反）
         points = self._raw.astype(np.float32)
-        points[:, 1] = -points[:, 1]
+        xyz = points[:, :3].copy()
+        xyz[:, 1] = -xyz[:, 1]
+
+        if self._format in (self.Format.XYZ_Intensity, self.Format.XYZ_Intensity_Channel):
+            intensity = points[:, 3]
+        else:
+            intensity = np.ones((self.count,), dtype=np.float32)
+
+        ros_points = np.column_stack((xyz, intensity))
 
         # 组装 ROS2 消息
         msg = PointCloud2()
@@ -96,10 +103,10 @@ class PointCloud(SimulatorOutput):
         msg.width = self.count
         msg.fields = fields
         msg.is_bigendian = False
-        msg.point_step = 20  # 5 floats * 4 bytes
+        msg.point_step = 16  # 4 floats * 4 bytes
         msg.row_step = msg.point_step * msg.width
         msg.is_dense = False
-        msg.data = points.tobytes()
+        msg.data = ros_points.astype(np.float32).tobytes()
         
         return msg
 
