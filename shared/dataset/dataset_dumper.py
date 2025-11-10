@@ -78,7 +78,7 @@ class DatasetDumper:
         return self._tick_blocker
 
     def _post_init(self) -> Self:
-        self._context.bind_tick_blocker(self.DATASET_CLASS, self._tick_blocker, clear_on_tick=True)
+        self._context.bind_tick_blocker(self.DATASET_CLASS, self._tick_blocker)
         self._context.hook_on_tick.append(self._update_frame_counter)
         self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
         
