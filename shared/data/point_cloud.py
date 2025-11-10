@@ -116,16 +116,16 @@ class PointCloud(SimulatorOutput):
 
     def to_file(self, file_path: str) -> Self:
         if file_path.endswith('.pcd'):
-            self._save_as_pcd(file_path)
+            self._dump_to_pcd(file_path)
         elif file_path.endswith('.ply'):
-            self._save_as_ply(file_path)
+            self._dump_to_ply(file_path)
         elif file_path.endswith('.npz'):
             np.savez(file_path, points=self._raw)
         else:
             raise ValueError(f'Unsupported file extension: {file_path}')
         return self
 
-    def _save_as_pcd(self, file_path: str) -> None:
+    def _dump_to_pcd(self, file_path: str) -> None:
         if self._raw.ndim != 2 or self._raw.shape[1] < 3:
             raise ValueError('PCD export requires at least XYZ columns')
 
@@ -150,7 +150,7 @@ class PointCloud(SimulatorOutput):
             file_obj.write(header)
             np.savetxt(file_obj, points, fmt='%.8f')
 
-    def _save_as_ply(self, file_path: str) -> None:
+    def _dump_to_ply(self, file_path: str) -> None:
         if self._raw.ndim != 2 or self._raw.shape[1] < 3:
             raise ValueError('PLY export requires at least XYZ columns')
 
