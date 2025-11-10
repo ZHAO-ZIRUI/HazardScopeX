@@ -170,11 +170,11 @@ class DatasetDumper:
     
         # 绑定传感器数据接收钩子
         sensor.hook_sensor_data_ready.append(
-            lambda data: self._store_sensor_data(data, folder_path, naming_policy)
+            lambda data: self._cache_sensor_data(data, folder_path, naming_policy)
         )
         return self
 
-    def _store_sensor_data(self, data: BaseData, folder_path: str, naming_policy: NamingPolicy) -> Self:
+    def _cache_sensor_data(self, data: BaseData, folder_path: str, naming_policy: NamingPolicy) -> Self:
         """存储传感器数据到内存缓存
         
         Args:
