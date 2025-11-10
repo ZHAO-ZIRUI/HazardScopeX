@@ -190,9 +190,6 @@ class DatasetDumper:
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         file_path = os.path.join(folder_path, f"{counter_str}.{naming_policy.extension}")
         file_path = os.path.abspath(file_path)
-        if os.path.exists(file_path):
-            raise FileExistsError(f"File already exists: {file_path}")
-
         self._dataset[file_path] = data
         return None
 
