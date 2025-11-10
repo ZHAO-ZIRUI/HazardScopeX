@@ -50,6 +50,11 @@ context:
     spawn_stable_threshold: 0.0001
     # Actor 生成后稳定超时时间
     spawn_stable_timeout: 3
+    # 对于图像传感器的颜色转换器, 可选: Raw, LogarithmicDepth, Depth, CityScapesPalette
+    # https://carla.readthedocs.io/en/latest/python_api/#carlacolorconverter
+    img_cc_depth: LogarithmicDepth
+    img_cc_instance_segmentation: CityScapesPalette
+    img_cc_semantic_segmentation: CityScapesPalette
 
   # IO 管理器配置, 包括 ROS2 和 SharedMemory(SHM)
   io:
