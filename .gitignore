@@ -12,3 +12,7 @@ recorders/*
 !recorders/.gitkeep
 !recorders/demo.carla
 !recorders/demo.carla.yaml
+
+# Ignore dataset files
+export/*
+!export/.gitkeep
