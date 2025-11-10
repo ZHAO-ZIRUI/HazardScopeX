@@ -153,6 +153,8 @@ class DatasetDumper:
         Returns:
             Self: 返回自身
         """
+        self.logger.info(f'Bind sensor output: {sensor.name}')
+
         # 确定默认命名策略
         if naming_policy is None:
             if sensor.bp.id.lower().startswith('sensor.camera.'):
