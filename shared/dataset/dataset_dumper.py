@@ -46,7 +46,7 @@ class DatasetDumper:
             safe_memory_usage_threshold (float, optional): 安全内存使用阈值, 当内存使用率超过该阈值时, 将自动导出数据集到磁盘. 默认为 SAFE_MEMORY_USAGE_THRESHOLD.
             create_folder (bool, optional): 是否创建数据集文件夹, 如果为 False, 则需要确保数据集文件夹存在. 默认为 True.
         """
-        self.logger = Logging().get_logger(self.DATASET_CLASS)
+        self.logger = Logging().get_logger('DatasetDumper')
         
         self._context = context
         self._safe_memory_usage_threshold = safe_memory_usage_threshold
