@@ -237,7 +237,26 @@ class CarlaActorManager:
         if not bp.id.lower().startswith('sensor.'):
             raise ValueError(f"Blueprint '{bp.id}' is not a sensor blueprint")
         
-        return self.create_actor(bp, name=name, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaSensor, **attributes)
+        actor = self.create_actor(bp, name=name, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaSensor, **attributes)
+        
+        # 设置传感器颜色转换器
+        if bp.id == CarlaBlueprints.SENSOR_CAMERA_INSTANCE_SEGMENTATION.value:
+            actor.img_color_converter = self._resolve_img_color_converter(
+                self._context.config.get("context/actors/img_cc_instance_segmentation", 
+                default="CityScapesPalette")
+            )
+        elif bp.id == CarlaBlueprints.SENSOR_CAMERA_SEMANTIC_SEGMENTATION.value:
+            actor.img_color_converter = self._resolve_img_color_converter(
+                self._context.config.get("context/actors/img_cc_semantic_segmentation", 
+                default="CityScapesPalette")
+            )
+        elif bp.id == CarlaBlueprints.SENSOR_CAMERA_DEPTH.value:
+            actor.img_color_converter = self._resolve_img_color_converter(
+                self._context.config.get("context/actors/img_cc_depth", 
+                default="Depth")
+            )
+
+        return actor
 
     def find_by_local_id(self, id: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
         """根据 ID 查找 Actor
@@ -414,6 +433,23 @@ class CarlaActorManager:
             tf = tf.to_carla()
         actor.tf_init = tf
         return self
+
+    def _resolve_img_color_converter(self, name: str) -> carla.ColorConverter:
+        """根据名称解析图像颜色转换器
+        
+        Args:
+            name (str): 名称
+        """
+        if name.upper() == "RAW":
+            return carla.ColorConverter.Raw
+        elif name.upper() == "LOGARITHMICDEPTH":
+            return carla.ColorConverter.LogarithmicDepth
+        elif name.upper() == "DEPTH":
+            return carla.ColorConverter.Depth
+        elif name.upper() == "CITYSCAPESPALETTE":
+            return carla.ColorConverter.CityScapesPalette
+        else:
+            raise ValueError(f"Invalid image color converter name: {name}")
 
     def wait_stable(self, *actors: CarlaActor):
         """等待指定 Actor 稳定

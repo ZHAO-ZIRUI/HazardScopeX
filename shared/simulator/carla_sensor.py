@@ -23,6 +23,8 @@ class CarlaSensor(CarlaActor):
         self._data: SimulatorOutput | None = None
         self._is_sensor_data_received = False
 
+        self.img_color_converter = carla.ColorConverter.Raw    # ONLY FOR CAMERA SENSOR
+
         # 传感器事件钩子
         self._hook_sensor_data_recv: List[Callable[[SimulatorOutput], None]] = []
         self._hook_sensor_data_ready: List[Callable[[SimulatorOutput], None]] = []
@@ -92,10 +94,7 @@ class CarlaSensor(CarlaActor):
             SimulatorOutput: 框架中的统一仿真器输出数据
         """
         if isinstance(data, carla.Image):
-            if self.bp.id == CarlaBlueprints.SENSOR_CAMERA_INSTANCE_SEGMENTATION.value or self.bp.id == CarlaBlueprints.SENSOR_CAMERA_SEMANTIC_SEGMENTATION.value:
-                data.convert(carla.ColorConverter.CityScapesPalette)
-            elif self.bp.id == CarlaBlueprints.SENSOR_CAMERA_DEPTH.value:
-                data.convert(carla.ColorConverter.Depth)
+            data.convert(self.img_color_converter)
             return Image.from_carla(data)
         if isinstance(data, carla.LidarMeasurement | carla.SemanticLidarMeasurement):
             return PointCloud.from_carla(data)
