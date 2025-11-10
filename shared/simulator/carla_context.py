@@ -28,6 +28,7 @@ class CarlaContext:
         port: int,
         timeout: float,
         *,
+        config: Config = Config({}),
         exe_path: str = '',
         use_external_server: bool = False,
         sync_mode_fps: float = 20,
@@ -49,6 +50,7 @@ class CarlaContext:
         self._host = host
         self._port = port
         self._timeout = timeout
+        self._config = config
         self._exe_path = exe_path
         self._use_external_server = use_external_server
         self._sync_mode_fps = sync_mode_fps
@@ -153,6 +155,11 @@ class CarlaContext:
                 recorder_path=recorder_path,
             )
         return self._recorder
+
+    @property
+    def config(self) -> Config:
+        """CARLA 上下文配置"""
+        return self._config
 
     @property
     def blueprints(self) -> type[CarlaBlueprints]:
@@ -439,6 +446,7 @@ class CarlaContext:
             host=config.get("context/server/host"),
             port=config.get("context/server/port"),
             timeout=config.get("context/server/timeout"),
+            config=config,
             exe_path=config.get("context/server/exe_path"),
             use_external_server=config.get("context/server/use_external_server", default=False),
             sync_mode_fps=config.get("context/server/sync_mode_fps", default=20),
