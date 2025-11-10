@@ -71,6 +71,7 @@ class DatasetDumper:
     def _post_init(self) -> Self:
         self._context.bind_tick_blocker(self.DATASET_CLASS, self._tick_blocker, clear_on_tick=True)
         self._context.hook_on_tick.append(self._update_frame_counter)
+        self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
         
         # 确定路径
         base_folder = os.path.join(self._context.project_root, self._folder_path)
@@ -186,4 +187,11 @@ class DatasetDumper:
 
     def _update_frame_counter(self, _) -> Self:
         self._frame_counter += 1
+        return self
+
+    def _flash_on_memory_usage_high(self) -> Self:
+        """当内存使用率过高时, 将数据导出到磁盘"""
+        if not self._is_memory_usage_safe():
+            self.logger.warning(f'Memory usage is too high: {self._get_memory_usage():.2f}%, flushing dataset to disk immediately')
+            self.flush()
         return self
