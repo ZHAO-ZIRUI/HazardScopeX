@@ -139,3 +139,8 @@ class BaseData(ABC):
     def from_ros2(cls, ros2_msg: Any) -> Self | None:
         """从 ROS2 消息中创建数据"""
         raise NotImplementedError
+
+    @abstractmethod
+    def to_file(self, file_path: str) -> Self:
+        """将数据保存到文件"""
+        raise NotImplementedError
