@@ -41,7 +41,7 @@ context:
       - 0
 
     # 服务端启动时的等待时间
-    server_start_wait_time: 2
+    server_start_wait_time: 5
     server_start_timeout: 10
 
   # Actor 管理器配置
