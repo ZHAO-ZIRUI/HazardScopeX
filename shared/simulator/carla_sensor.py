@@ -2,7 +2,7 @@ import carla
 from typing import Callable, List
 from typing_extensions import Self
 
-from shared.simulator import CarlaActor
+from shared.simulator import CarlaActor, CarlaBlueprints
 from shared.data import *
 
 
