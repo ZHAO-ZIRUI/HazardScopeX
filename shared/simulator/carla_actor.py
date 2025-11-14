@@ -1,5 +1,6 @@
 import carla
 import logging
+import threading
 from functools import wraps
 from typing import Any
 from typing_extensions import Self
@@ -62,6 +63,9 @@ class CarlaActor:
         # carla.Actor 实例
         self._actor = actor
 
+        # TICK 阻塞器
+        self._tick_blocker: threading.Event = threading.Event()
+
         self.logger.info(f"Created with blueprint '{self._bp.id}'")
 
     def serialize(self) -> str:
@@ -105,6 +109,11 @@ class CarlaActor:
     def tf_init(self) -> carla.Transform | None:
         """初始变换"""
         return self._tf_init
+
+    @property
+    def tick_blocker(self) -> threading.Event:
+        """TICK 阻塞器"""
+        return self._tick_blocker
 
     @property
     @require_actor_alive

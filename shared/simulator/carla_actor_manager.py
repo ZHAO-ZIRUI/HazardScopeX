@@ -167,6 +167,9 @@ class CarlaActorManager:
         # 注册到注册表
         self.add(actor)
 
+        # 注册 Tick Blocker
+        self._context.bind_tick_blocker(actor.id_local + '_' + actor.name, actor.tick_blocker)
+
         return actor
 
     def create_vehicle(
