@@ -77,7 +77,7 @@ class DatasetDumper:
         
         self._context.hook_on_tick.remove(self._update_frame_counter)
         self._context.hook_on_tick.remove(self._flash_on_memory_usage_high)
-        self.flush()
+        self.flush(final_flush=True)
         self._context.remove_tick_blocker(self.DATASET_CLASS)
         return
 
@@ -130,7 +130,7 @@ class DatasetDumper:
         """
         return self._get_memory_usage() < self._safe_memory_usage_threshold
 
-    def flush(self) -> Self:
+    def flush(self, *, final_flush: bool = False) -> Self:
         """将内存中的数据导出到磁盘"""
         self.tick_blocker.set()
         self.logger.info(f'Flushing dataset to disk ... ({len(self._dataset)} files)')
@@ -145,8 +145,9 @@ class DatasetDumper:
             percentage = count / total * 100
             Logging().interval(2, self.logger.info, f'Flushed {percentage:.2f}%: {count}/{total} files', log_token)
 
-        for hook in self._hook_after_main_flush:
-            hook()
+        if final_flush:
+            for hook in self._hook_after_main_flush:
+                hook()
         
         Logging().cancel_interval(log_token)
         self._dataset.clear()
@@ -155,8 +156,9 @@ class DatasetDumper:
 
         self.logger.info(f'Flushed dataset to disk completed')
 
-        for hook in self._hook_after_all_flush:
-            hook()
+        if final_flush:
+            for hook in self._hook_after_all_flush:
+                hook()
 
         return self
 
