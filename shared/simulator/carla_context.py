@@ -244,6 +244,13 @@ class CarlaContext:
         if not self._use_external_server:
             self.server_start()
         self.wait_server_available()
+
+        # 设置同步模式
+        settings = self.world.get_settings()
+        settings.synchronous_mode = True
+        settings.fixed_delta_seconds = 1/self._sync_mode_fps
+        self.world.apply_settings(settings)
+
         self.start_dead_detector_thread()
 
     def shutdown(self):
