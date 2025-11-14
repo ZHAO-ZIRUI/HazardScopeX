@@ -65,6 +65,14 @@ class CarlaSensor(CarlaActor):
     def data(self) -> SimulatorOutput | None:
         return self._data
 
+    @property
+    def is_camera(self) -> bool:
+        return self._bp.id.lower().startswith('sensor.camera.')
+
+    @property
+    def is_lidar(self) -> bool:
+        return self._bp.id.lower().startswith('sensor.lidar.')
+
     def spawn(self, world: carla.World, ignore_spawn_failure: bool = False) -> Self:
         super().spawn(world, ignore_spawn_failure)
         self.start_listen()
