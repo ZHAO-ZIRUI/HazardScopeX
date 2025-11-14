@@ -88,6 +88,8 @@ class DatasetDumper:
         self._context.hook_on_tick.append(self._update_frame_counter)
         self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
         
+        self.hook_after_all_flush.append(self._log_result)
+        
         # 确定路径
         base_folder = os.path.join(self._context.project_root, self._folder_path)
         base_folder = os.path.abspath(base_folder)
@@ -190,6 +192,41 @@ class DatasetDumper:
             lambda data: self._cache_sensor_data(data, folder_path, naming_policy)
         )
         return self
+
+    def _log_result(self) -> None:
+        """记录导出结果"""
+        # 检查主文件夹是否存在
+        if not os.path.exists(self._folder_path):
+            self.logger.error(f'Dataset export result check: False')
+            self.logger.error(f'Main folder does not exist: "{self._folder_path}"')
+            return
+        
+        # 获取所有子文件夹
+        subfolders = []
+        for item in os.listdir(self._folder_path):
+            item_path = os.path.join(self._folder_path, item)
+            if os.path.isdir(item_path):
+                subfolders.append(item_path)
+        
+        # 统计每个子文件夹中的文件数量
+        file_counts = {}
+        for subfolder in subfolders:
+            folder_name = os.path.basename(subfolder)
+            files = [f for f in os.listdir(subfolder) if os.path.isfile(os.path.join(subfolder, f))]
+            file_counts[folder_name] = len(files)
+        
+        # 检查文件数量是否一致
+        counts = list(file_counts.values())
+        is_consistent = len(set(counts)) == 1
+        
+        # 打印结果
+        if is_consistent:
+            self.logger.info(f'Dataset export result check: True')
+        else:
+            self.logger.error(f'Dataset export result check: False')
+        
+        for folder_name, count in file_counts.items():
+            self.logger.debug(f'Folder "{folder_name}": {count} file(s)')
 
     def _cache_sensor_data(self, data: BaseData, folder_path: str, naming_policy: NamingPolicy) -> None:
         """存储传感器数据到内存缓存

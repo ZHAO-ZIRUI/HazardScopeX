@@ -428,3 +428,53 @@ class SemanticKittiDumper(DatasetDumper):
         
         self.logger.debug(f'Calib file is created: {self._file_calib}')
         return self
+
+    def _log_result(self) -> None:
+        """记录导出结果"""
+        # 检查主文件夹是否存在
+        if not os.path.exists(self._folder_path):
+            self.logger.error(f'Dataset export result check: False')
+            self.logger.error(f'Main folder does not exist: "{self._folder_path}"')
+            return
+        
+        # 获取所有子文件夹
+        subfolders = []
+        for item in os.listdir(self._folder_path):
+            item_path = os.path.join(self._folder_path, item)
+            if os.path.isdir(item_path):
+                subfolders.append(item_path)
+        
+        # 统计每个子文件夹中的文件数量
+        file_counts = {}
+        for subfolder in subfolders:
+            folder_name = os.path.basename(subfolder)
+            files = [f for f in os.listdir(subfolder) if os.path.isfile(os.path.join(subfolder, f))]
+            file_counts[folder_name] = len(files)
+
+        # 统计 pose 和 time 的有效行数量
+        pose_lines = 0
+        time_lines = 0
+        with open(self._file_pose, 'r') as f:
+            for line in f:
+                if line.strip():
+                    pose_lines += 1
+        with open(self._file_timestamp, 'r') as f:
+            for line in f:
+                if line.strip():
+                    time_lines += 1
+        
+        # 检查文件数量是否一致
+        counts = list(file_counts.values())
+        is_consistent = len(set(counts)) == 1
+        
+        # 打印结果
+        if is_consistent:
+            self.logger.info(f'Dataset export result check: True')
+        else:
+            self.logger.error(f'Dataset export result check: False')
+            
+        for folder_name, count in file_counts.items():
+            self.logger.debug(f'Folder "{folder_name}": {count} file(s)')
+        self.logger.debug(f'Pose file lines: {pose_lines}')
+        self.logger.debug(f'Time file lines: {time_lines}')
+        return self
