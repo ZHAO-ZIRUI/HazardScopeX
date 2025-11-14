@@ -1,4 +1,6 @@
 import carla
+import numpy as np
+from functools import wraps
 from typing import Callable, List
 from typing_extensions import Self
 
@@ -28,6 +30,28 @@ class CarlaSensor(CarlaActor):
         # 传感器事件钩子
         self._hook_sensor_data_recv: List[Callable[[SimulatorOutput], None]] = []
         self._hook_sensor_data_ready: List[Callable[[SimulatorOutput], None]] = []
+
+    @staticmethod
+    def camera_only(func):
+        """检查传感器类型是否为相机的装饰器"""
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not self._bp.id.lower().startswith('sensor.camera.'):
+                self.logger.critical(f"Program Logic Error: Method '{func.__name__}' only works on camera sensor, but current sensor is '{self._bp.id}'")
+                raise SystemExit(319)
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    @staticmethod
+    def lidar_only(func):
+        """检查传感器类型是否为激光雷达的装饰器"""
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if not self._bp.id.lower().startswith('sensor.lidar.'):
+                self.logger.critical(f"Program Logic Error: Method '{func.__name__}' only works on lidar sensor, but current sensor is '{self._bp.id}'")
+                raise SystemExit(319)
+            return func(self, *args, **kwargs)
+        return wrapper
 
     @property
     def actor(self) -> carla.Sensor:
