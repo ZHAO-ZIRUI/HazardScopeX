@@ -56,7 +56,7 @@ class DatasetDumper:
 
         self._tick_blocker = threading.Event()
         self._dataset: Dict[str, BaseData] = {}
-        self._frame_counter = 1
+        self._frame_counter = 0
 
         self._hook_after_main_flush: List[Callable[[], Self]] = []
         self._hook_after_all_flush: List[Callable[[], None]] = []
@@ -154,7 +154,7 @@ class DatasetDumper:
         Logging().cancel_interval(log_token)
         self._dataset.clear()
         if final_flush:
-            self._frame_counter = 1
+            self._frame_counter = 0
         
         self.tick_blocker.clear()
 
