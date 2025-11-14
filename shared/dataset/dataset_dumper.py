@@ -66,6 +66,7 @@ class DatasetDumper:
         self._post_init()
 
     def __enter__(self) -> Self:
+        self.logger.info(f'Start dumping dataset')
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
