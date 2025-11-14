@@ -1222,13 +1222,13 @@ class NuScenesDumper(DatasetDumper):
         8: 28,      # traffic sign -> static.manmade
         9: 30,      # vegetation -> static.vegetation
         10: 27,     # terrain -> flat.terrain
-        11: 0,      # sky 映射到 noise，因为 nuScenes 中未定义 sky 类别
+        11: 0,      # sky -> noise
         12: 2,      # pedestrian -> human.pedestrian.adult
-        13: 2,      # rider 映射到 human.pedestrian.adult，这是近似映射
+        13: 2,      # rider -> human.pedestrian.adult
         14: 17,     # car -> vehicle.car
         15: 23,     # truck -> vehicle.truck
         16: 16,     # bus -> vehicle.bus.rigid
-        17: 0,      # train 映射到 noise，因为 nuScenes 中无火车类别
+        17: 0,      # train -> noise
         18: 21,     # motorcycle -> vehicle.motorcycle
         19: 14,     # bicycle -> vehicle.bicycle
         20: 29,     # static -> static.other
