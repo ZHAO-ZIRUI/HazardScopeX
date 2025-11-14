@@ -72,7 +72,7 @@ class CarlaRecorder:
     def start_record(self, *, path_or_file_name: str = None):
         if self._work_mode != self.WorkMode.NONE:
             self.logger.critical(f'Program Logic Error: Recorder is already in {self._work_mode.name} mode')
-            raise SystemExit(1)
+            raise SystemExit(419)
         
         self._work_mode = self.WorkMode.RECORD
 
@@ -90,7 +90,7 @@ class CarlaRecorder:
 
             if os.path.exists(file_path):
                 self.logger.critical(f'Recorder file already exists: {file_path}')
-                raise SystemExit(1)
+                raise SystemExit(419)
 
         self._cache_file_path = file_path
         self._cache_total_frames = 0
@@ -113,7 +113,7 @@ class CarlaRecorder:
     def stop_record(self):
         if self._work_mode != self.WorkMode.RECORD:
             self.logger.critical(f'Program Logic Error: Recorder is not in RECORD mode')
-            raise SystemExit(1)
+            raise SystemExit(419)
         
         self._work_mode = self.WorkMode.NONE
 
@@ -132,7 +132,7 @@ class CarlaRecorder:
     def start_replay(self, path_or_file_name: str):
         if self._work_mode != self.WorkMode.NONE:
             self.logger.critical(f'Program Logic Error: Recorder is already in {self._work_mode.name} mode')
-            raise SystemExit(1)
+            raise SystemExit(419)
         
         self._work_mode = self.WorkMode.REPLAY
 
@@ -154,7 +154,7 @@ class CarlaRecorder:
         # 确定文件是否存在
         if not os.path.exists(self._cache_file_path):
             self.logger.critical(f'Recorder file does not exist: {self._cache_file_path}')
-            raise SystemExit(1)
+            raise SystemExit(419)
 
         # 确定总回放帧数
         self._cache_total_frames = self._get_replay_file_frame_count(self._cache_file_path)
@@ -200,7 +200,7 @@ class CarlaRecorder:
     def stop_replay(self):
         if self._work_mode != self.WorkMode.REPLAY:
             self.logger.critical(f'Program Logic Error: Recorder is not in REPLAY mode')
-            raise SystemExit(1)
+            raise SystemExit(419)
         
         self._work_mode = self.WorkMode.NONE
         self._context.client.stop_replayer(True)
@@ -209,7 +209,7 @@ class CarlaRecorder:
     def spin_replay(self, *, fps: float = 20, log_interval: float = 3.0):
         if self._work_mode != self.WorkMode.REPLAY:
             self.logger.critical(f'Program Logic Error: Recorder is not in REPLAY mode')
-            raise SystemExit(1)
+            raise SystemExit(419)
 
         if fps != self._context.fps:
             self.logger.warning(f'FPS is overridden, original: {self._context.fps}, new: {fps}')

@@ -233,7 +233,7 @@ class CarlaContext:
                     continue
                 time.sleep(1/self._sync_mode_fps)
         except KeyboardInterrupt:
-            raise SystemExit(1)
+            raise SystemExit(100)
         self.world.tick()
 
         # 执行钩子
@@ -300,7 +300,7 @@ class CarlaContext:
         while frame == 0:
             if time.perf_counter() - timer > self._server_start_timeout:
                 self.logger.critical('CARLA server is not available until timeout, please check the if existing a server process')
-                exit(1)
+                raise SystemExit(211)
             try:
                 world = client.get_world()
                 world.tick()
@@ -443,7 +443,7 @@ class CarlaContext:
                 except Exception as e:
                     self.logger.critical(f'CARLA server is DEAD, detected by detector thread: {type(e).__name__}')
                     self._event_server_dead.set()
-                    exit(1)
+                    raise SystemExit(212)
         finally:
             del detector_client
             self.logger.debug('Thread dead detector stopped')
