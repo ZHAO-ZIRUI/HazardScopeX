@@ -148,7 +148,7 @@ class SemanticKittiDumper(DatasetDumper):
 
         return self
 
-    def bind_sensor_output(self, sensor: CarlaSensor, folder_path: str, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
+    def bind_sensor_output(self, sensor: CarlaSensor, folder_path: str = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
         """绑定传感器数据输出到内存缓存, 并追踪非主相机以外的其他相机传感器
         
         Args:

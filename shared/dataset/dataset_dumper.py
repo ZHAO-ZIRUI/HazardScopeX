@@ -151,12 +151,12 @@ class DatasetDumper:
 
         return self
 
-    def bind_sensor_output(self, sensor: CarlaSensor, folder_path: str, naming_policy: NamingPolicy = None) -> Self:
+    def bind_sensor_output(self, sensor: CarlaSensor, folder_path: str = None, naming_policy: NamingPolicy = None) -> Self:
         """绑定传感器数据输出到内存缓存
 
         Args:
             sensor (CarlaSensor): 传感器
-            folder_path (str): 文件夹路径
+            folder_path (str, optional): 文件夹路径. 默认为 None, 将根据传感器名称自动确定.
             naming_policy (NamingPolicy, optional): 命名策略. 默认为 None, 将根据传感器类型自动确定.
 
         Raises:
@@ -178,6 +178,8 @@ class DatasetDumper:
                 raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
         
         # 建立子文件夹
+        if folder_path is None:
+            folder_path = sensor.name
         folder_path = os.path.join(self._folder_path, folder_path)
         folder_path = os.path.abspath(folder_path)
         os.makedirs(folder_path, exist_ok=True)
