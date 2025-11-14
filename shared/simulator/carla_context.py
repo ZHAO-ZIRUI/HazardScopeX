@@ -71,7 +71,7 @@ class CarlaContext:
         self._thread_dead_detector: None | threading.Thread = None
         self._event_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
-        self._tick_blockers: Dict[str, threading.Event] = {}
+        self._tick_blockers: Dict[str, Tuple[threading.Event, bool]] = {}   # bool: 是否在 tick() 后自动设置
 
         # 管理器
         self._actors: None | CarlaActorManager = None
@@ -177,31 +177,33 @@ class CarlaContext:
         """
         return self._tick_blockers
 
-    def add_tick_blocker(self, name: str) -> threading.Event:
+    def add_tick_blocker(self, name: str, *, auto_set: bool = False) -> threading.Event:
         """添加 TICK 阻塞器
 
         Args:
             name (str): 阻塞器名称
+            auto_set (bool): 是否在 tick() 后自动设置
 
         Returns:
             threading.Event: 返回阻塞器事件
         """
         event = threading.Event()
-        self._tick_blockers[name] = event
+        self._tick_blockers[name] = (event, auto_set)
         self.logger.debug(f'Added tick blocker: {name}')
         return event
 
-    def bind_tick_blocker(self, name: str, blocker: threading.Event) -> threading.Event:
+    def bind_tick_blocker(self, name: str, blocker: threading.Event, *, auto_set: bool = False) -> threading.Event:
         """绑定 TICK 阻塞器
 
         Args:
             name (str): 阻塞器名称
             blocker (threading.Event): 阻塞器事件
+            auto_set (bool): 是否在 tick() 后自动设置
 
         Returns:
             threading.Event: 返回阻塞器事件
         """
-        self._tick_blockers[name] = blocker
+        self._tick_blockers[name] = (blocker, auto_set)
         self.logger.debug(f'Bind tick blocker: {name}')
         return blocker
 
@@ -221,12 +223,12 @@ class CarlaContext:
         begin = time.perf_counter()
         try:
             while True:
-                all_passed = all(not blocker.is_set() for blocker in self._tick_blockers.values())
+                all_passed = all(not blocker.is_set() for blocker, _ in self._tick_blockers.values())
                 if all_passed:
                     break
                 if time.perf_counter() - begin > self._tick_blocker_timeout:
                     blocker_status = 'Blocker Status (passed): '
-                    for name, blocker in self._tick_blockers.items():
+                    for name, (blocker, auto_set) in self._tick_blockers.items():
                         blocker_status += f"'{name}': {not blocker.is_set()}, "
                     Logging().interval(1, self.logger.warning, f'Tick blocker timeout after {self._tick_blocker_timeout} seconds', 'tick_blocker_timeout')
                     Logging().interval(1, self.logger.warning, blocker_status, 'tick_blocker_status')
@@ -235,6 +237,11 @@ class CarlaContext:
         except KeyboardInterrupt:
             raise SystemExit(100)
         self.world.tick()
+
+        # 自动设置阻塞器
+        for name, (blocker, auto_set) in self._tick_blockers.items():
+            if auto_set:
+                blocker.set()
 
         # 执行钩子
         for hook in self._hook_on_tick:

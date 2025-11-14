@@ -168,7 +168,11 @@ class CarlaActorManager:
         self.add(actor)
 
         # 注册 Tick Blocker
-        self._context.bind_tick_blocker(actor.id_local + '_' + actor.name, actor.tick_blocker)
+        if target == CarlaSensor:
+            auto_set = True
+        else:
+            auto_set = False
+        self._context.bind_tick_blocker(actor.id_local + '_' + actor.name, actor.tick_blocker, auto_set=auto_set)
 
         return actor
 
