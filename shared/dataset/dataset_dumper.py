@@ -60,6 +60,7 @@ class DatasetDumper:
 
         self._hook_after_main_flush: List[Callable[[], Self]] = []
         self._hook_after_all_flush: List[Callable[[], None]] = []
+        self._sensor_hooks: Dict[CarlaSensor, Callable] = {}
 
         self.logger.info(f'Initialized {self.DATASET_CLASS} exporter')
         self._post_init()
@@ -68,9 +69,15 @@ class DatasetDumper:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.flush()
+        # 移除传感器钩子
+        for sensor, hook in self._sensor_hooks.items():
+            if hook in sensor.hook_sensor_data_ready:
+                sensor.hook_sensor_data_ready.remove(hook)
+        self._sensor_hooks.clear()
+        
         self._context.hook_on_tick.remove(self._update_frame_counter)
         self._context.hook_on_tick.remove(self._flash_on_memory_usage_high)
+        self.flush()
         self._context.remove_tick_blocker(self.DATASET_CLASS)
         return
 
@@ -188,9 +195,11 @@ class DatasetDumper:
         self.logger.debug(f'Created data set sub folder: {folder_path}')
     
         # 绑定传感器数据接收钩子
-        sensor.hook_sensor_data_ready.append(
-            lambda data: self._cache_sensor_data(data, folder_path, naming_policy)
-        )
+        def hook_func(data: BaseData) -> None:
+            self._cache_sensor_data(data, folder_path, naming_policy)
+        
+        sensor.hook_sensor_data_ready.append(hook_func)
+        self._sensor_hooks[sensor] = hook_func
         return self
 
     def _log_result(self) -> None:
