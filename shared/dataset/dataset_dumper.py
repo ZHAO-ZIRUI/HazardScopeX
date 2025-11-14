@@ -79,6 +79,7 @@ class DatasetDumper:
         
         self._context.hook_on_tick.remove(self._update_frame_counter)
         self._context.hook_on_tick.remove(self._flash_on_memory_usage_high)
+        self._context.hook_on_tick.remove(self._tick_log)
         self.flush(final_flush=True)
         self._context.remove_tick_blocker(self.DATASET_CLASS)
         return
@@ -96,7 +97,7 @@ class DatasetDumper:
         self._context.bind_tick_blocker(self.DATASET_CLASS, self._tick_blocker)
         self._context.hook_on_tick.append(self._update_frame_counter)
         self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
-        
+        self._context.hook_on_tick.append(self._tick_log)
         self.hook_after_all_flush.append(self._log_result)
         
         # 确定路径
@@ -269,6 +270,9 @@ class DatasetDumper:
     def _update_frame_counter(self, _) -> Self:
         self._frame_counter += 1
         return self
+
+    def _tick_log(self, _) -> Self:
+        Logging().interval(3, self.logger.info, f'Frame counter: {self._frame_counter}, memory usage: {self._get_memory_usage() * 100:.0f}% / {self._safe_memory_usage_threshold * 100:.0f}%', 'frame_counter_log')
 
     def _flash_on_memory_usage_high(self, _) -> Self:
         """当内存使用率过高时, 将数据导出到磁盘"""
