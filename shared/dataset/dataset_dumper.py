@@ -128,7 +128,7 @@ class DatasetDumper:
         log_token = 'flush_dataset'
 
         for file_path, data in self._dataset.items():
-            self._flush_sensor_data(data, file_path)
+            self._flush_data(data, file_path)
             count += 1
             percentage = count / total * 100
             Logging().interval(2, self.logger.info, f'Flushed {percentage:.2f}%: {count}/{total} files', log_token)
@@ -204,7 +204,7 @@ class DatasetDumper:
             self.flush()
         return self
 
-    def _flush_sensor_data(self, data: BaseData, file_path: str) -> Self:
+    def _flush_data(self, data: BaseData, file_path: str) -> Self:
         """将传感器数据导出到磁盘
         
         Args:
