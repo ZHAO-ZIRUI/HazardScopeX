@@ -136,6 +136,9 @@ class CarlaSensor(CarlaActor):
             self.logger.info(f"Sensor data received: type={type(data)}, reformatted={type(self._data)}")
             self._is_sensor_data_received = True
 
+        # 设置 TICK 阻塞器
+        self.tick_blocker.set()
+
         # 执行数据接收后的钩子, 用于传感器后处理或注入
         for hook in self._hook_sensor_data_recv:
             hook_return = hook(self._data)
@@ -147,6 +150,9 @@ class CarlaSensor(CarlaActor):
             hook_return = hook(self._data)
             if hook_return is not None:
                 self._data = hook_return
+        
+        # 清除 TICK 阻塞器
+        self.tick_blocker.clear()
 
 
     def _reformat_sensor_data(self, data: carla.SensorData) -> SimulatorOutput:
