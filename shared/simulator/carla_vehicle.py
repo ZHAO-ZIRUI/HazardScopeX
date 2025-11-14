@@ -41,3 +41,18 @@ class CarlaVehicle(CarlaActor):
             self.control_mode = self.ControlMode.NONE
             self.actor.set_autopilot(False)
         return self
+
+    def destroy(self) -> Self:
+        if self._actor is None:
+            return self
+        
+        # 如果 autopilot 启用，先禁用以避免 CARLA 内部清理错误
+        if self._control_mode == self.ControlMode.CARLA_AUTOPILOT:
+            try:
+                if self._actor.is_alive:
+                    self._actor.set_autopilot(False)
+                    self._control_mode = self.ControlMode.NONE
+            except RuntimeError as e:
+                self.logger.warning(f"Failed to disable autopilot before destroy: {e}")
+        
+        return super().destroy()
