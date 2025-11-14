@@ -152,14 +152,14 @@ class CarlaActorManager:
             CarlaActor: 创建的 CarlaActor 实例
         """
         # 解析蓝图
-        bp = self._resolve_blueprint(bp)
+        bp = self.resolve_blueprint(bp)
         
         # 创建一个目标 CarlaActor 或其子类实例, 仅用作容器
         actor = target(bp, name=name)
 
         # 解析属性与变换
-        self._resolve_attributes(actor, attributes, ignore_failure=ignore_attribute_failure)
-        self._resolve_transform(actor, tf)
+        self.resolve_attributes(actor, attributes, ignore_failure=ignore_attribute_failure)
+        self.resolve_transform(actor, tf)
 
         # 附着目标
         actor.parent = parent
@@ -198,7 +198,7 @@ class CarlaActorManager:
             CarlaVehicle: 创建的 CarlaVehicle 实例
         """
         # 检查 BP 是否合规
-        bp = self._resolve_blueprint(bp)
+        bp = self.resolve_blueprint(bp)
         if not bp.id.lower().startswith('vehicle.'):
             raise ValueError(f"Blueprint '{bp.id}' is not a vehicle blueprint")
         
@@ -233,7 +233,7 @@ class CarlaActorManager:
             CarlaSensor: 创建的 CarlaSensor 实例
         """
         # 检查 BP 是否合规
-        bp = self._resolve_blueprint(bp)
+        bp = self.resolve_blueprint(bp)
         if not bp.id.lower().startswith('sensor.'):
             raise ValueError(f"Blueprint '{bp.id}' is not a sensor blueprint")
         
@@ -241,17 +241,17 @@ class CarlaActorManager:
         
         # 设置传感器颜色转换器
         if bp.id == CarlaBlueprints.SENSOR_CAMERA_INSTANCE_SEGMENTATION.value:
-            actor.img_color_converter = self._resolve_img_color_converter(
+            actor.img_color_converter = self.resolve_img_color_converter(
                 self._context.config.get("context/actors/img_cc_instance_segmentation", 
                 default="CityScapesPalette")
             )
         elif bp.id == CarlaBlueprints.SENSOR_CAMERA_SEMANTIC_SEGMENTATION.value:
-            actor.img_color_converter = self._resolve_img_color_converter(
+            actor.img_color_converter = self.resolve_img_color_converter(
                 self._context.config.get("context/actors/img_cc_semantic_segmentation", 
                 default="CityScapesPalette")
             )
         elif bp.id == CarlaBlueprints.SENSOR_CAMERA_DEPTH.value:
-            actor.img_color_converter = self._resolve_img_color_converter(
+            actor.img_color_converter = self.resolve_img_color_converter(
                 self._context.config.get("context/actors/img_cc_depth", 
                 default="Depth")
             )
@@ -285,7 +285,7 @@ class CarlaActorManager:
         # 查找 CARLA 世界
         actor = self._context.world.get_actor(id)
         if actor is not None:
-            bp = self._resolve_blueprint(actor.type_id)
+            bp = self.resolve_blueprint(actor.type_id)
 
             try:
                 name = actor.attributes['role_name']
@@ -330,7 +330,7 @@ class CarlaActorManager:
             if role_name != name:
                 continue
 
-            bp = self._resolve_blueprint(actor.type_id)
+            bp = self.resolve_blueprint(actor.type_id)
             if isinstance(actor, carla.Vehicle):
                 local_actor = CarlaVehicle(bp, name=name, actor=actor)
                 self.add(local_actor)
@@ -347,7 +347,7 @@ class CarlaActorManager:
         self.logger.warning(f"Actor with name '{name}' not found")
         return None
 
-    def _resolve_blueprint(
+    def resolve_blueprint(
         self,
         blueprint: str | carla.ActorBlueprint | CarlaBlueprints,
     ) -> carla.ActorBlueprint:
@@ -376,7 +376,7 @@ class CarlaActorManager:
             self.logger.debug(f"Blueprint '{blueprint}' found")
             return blueprint
 
-    def _resolve_attributes(
+    def resolve_attributes(
         self,
         actor: CarlaActor,
         attributes: Dict[str, Any],
@@ -415,7 +415,7 @@ class CarlaActorManager:
                     raise e
         return self
 
-    def _resolve_transform(
+    def resolve_transform(
         self,
         actor: CarlaActor,
         tf: carla.Transform | CarlaTransform | None = None,
@@ -434,7 +434,7 @@ class CarlaActorManager:
         actor.tf_init = tf
         return self
 
-    def _resolve_img_color_converter(self, name: str) -> carla.ColorConverter:
+    def resolve_img_color_converter(self, name: str) -> carla.ColorConverter:
         """根据名称解析图像颜色转换器
         
         Args:
