@@ -135,13 +135,15 @@ class DatasetDumper:
     def flush(self, *, final_flush: bool = False) -> Self:
         """将内存中的数据导出到磁盘"""
         self.tick_blocker.set()
-        self.logger.info(f'Flushing dataset to disk ... ({len(self._dataset)} files)')
+        # 复制数据集快照，避免在 flush 过程中新数据添加导致迭代器问题
+        dataset_snapshot = dict(self._dataset)
+        self.logger.info(f'Flushing dataset to disk ... ({len(dataset_snapshot)} files)')
 
-        total = len(self._dataset)
+        total = len(dataset_snapshot)
         count = 0
         log_token = 'flush_dataset'
 
-        for file_path, data in self._dataset.items():
+        for file_path, data in dataset_snapshot.items():
             self._flush_data(data, file_path)
             count += 1
             percentage = count / total * 100
@@ -152,13 +154,18 @@ class DatasetDumper:
                 hook()
         
         Logging().cancel_interval(log_token)
-        self._dataset.clear()
+        self.logger.info(f'Flushed dataset to disk completed')
+
+        # 只清除快照中已处理的数据，避免清除 flush 过程中可能新增的数据
+        for file_path in dataset_snapshot.keys():
+            if file_path in self._dataset:
+                del self._dataset[file_path]
         if final_flush:
             self._frame_counter = 0
+        else:
+            self.logger.info(f'Memory usage is safe, continue')
         
-        self.tick_blocker.clear()
-
-        self.logger.info(f'Flushed dataset to disk completed')
+        self.tick_blocker.clear()        
 
         if final_flush:
             for hook in self._hook_after_all_flush:
@@ -266,7 +273,8 @@ class DatasetDumper:
     def _flash_on_memory_usage_high(self, _) -> Self:
         """当内存使用率过高时, 将数据导出到磁盘"""
         if not self._is_memory_usage_safe():
-            self.logger.warning(f'Memory usage is too high: {self._get_memory_usage():.2f}%, flushing dataset to disk immediately')
+            memory_percent = self._get_memory_usage() * 100
+            self.logger.warning(f'Memory usage is too high: {memory_percent:.2f}%, flushing dataset to disk immediately')
             self.flush()
         return self
 

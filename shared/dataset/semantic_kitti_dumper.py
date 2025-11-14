@@ -205,7 +205,7 @@ class SemanticKittiDumper(DatasetDumper):
         if isinstance(data, StringIO):
             if file_path.endswith(self.FILE_TIMESTAMP) or file_path.endswith(self.FILE_POSE):
                 content = data.getvalue()
-                with open(file_path, 'w') as f:
+                with open(file_path, 'a') as f:
                     f.write(content)
                 data.close()
                 return self
