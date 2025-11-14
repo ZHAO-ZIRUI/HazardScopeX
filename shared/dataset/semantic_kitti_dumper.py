@@ -464,7 +464,7 @@ class SemanticKittiDumper(DatasetDumper):
                     time_lines += 1
         
         # 检查文件数量是否一致
-        counts = list(file_counts.values())
+        counts = list(file_counts.values()) + [pose_lines, time_lines]
         is_consistent = len(set(counts)) == 1
         
         # 打印结果
