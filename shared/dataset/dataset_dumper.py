@@ -3,7 +3,7 @@ import threading
 import os
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List, Callable
 from typing_extensions import Self
 
 from shared.utils import Logging
@@ -60,6 +60,9 @@ class DatasetDumper:
 
         self.logger.info(f'Initialized {self.DATASET_CLASS} exporter')
         self._post_init()
+
+        self._hook_after_main_flush: List[Callable[[], Self]] = []
+        self._hook_after_all_flush: List[Callable[[], None]] = []
 
     def __enter__(self) -> Self:
         return self
@@ -132,6 +135,9 @@ class DatasetDumper:
             count += 1
             percentage = count / total * 100
             Logging().interval(2, self.logger.info, f'Flushed {percentage:.2f}%: {count}/{total} files', log_token)
+
+        for hook in self._hook_after_main_flush:
+            hook()
         
         Logging().cancel_interval(log_token)
         self._dataset.clear()
@@ -139,6 +145,10 @@ class DatasetDumper:
         self.tick_blocker.clear()
 
         self.logger.info(f'Flushed dataset to disk completed')
+
+        for hook in self._hook_after_all_flush:
+            hook()
+
         return self
 
     def bind_sensor_output(self, sensor: CarlaSensor, folder_path: str, naming_policy: NamingPolicy = None) -> Self:
@@ -216,3 +226,13 @@ class DatasetDumper:
         """
         data.to_file(file_path)
         return self
+
+    @property
+    def hook_after_main_flush(self) -> List[Callable[[], None]]:
+        """在主数据 (self._dataset) 导出完成后执行的钩子"""
+        return self._hook_after_main_flush
+
+    @property
+    def hook_after_all_flush(self) -> List[Callable[[], None]]:
+        """在所有数据导出完成后执行的钩子"""
+        return self._hook_after_all_flush
