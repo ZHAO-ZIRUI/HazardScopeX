@@ -239,6 +239,9 @@ class SemanticKittiDumper(DatasetDumper):
 
         # 缓存时间戳
         timestamp = snapshot.timestamp.elapsed_seconds - self._timestamp_offset
+
+        if self._file_timestamp not in self._dataset.keys():
+            self._dataset[self._file_timestamp] = StringIO()
         self._dataset[self._file_timestamp].write(f'{timestamp:.6e}\n')
         
         return self
@@ -284,6 +287,8 @@ class SemanticKittiDumper(DatasetDumper):
         pose_matrix_str = ' '.join([f'{value:.6e}' for value in pose_matrix_flat])
         
         # 缓存到位姿文件
+        if self._file_pose not in self._dataset.keys():
+            self._dataset[self._file_pose] = StringIO()
         self._dataset[self._file_pose].write(f'{pose_matrix_str}\n')
         
         return self

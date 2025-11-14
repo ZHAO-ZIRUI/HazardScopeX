@@ -151,7 +151,9 @@ class DatasetDumper:
         
         Logging().cancel_interval(log_token)
         self._dataset.clear()
-        self._frame_counter = 1
+        if final_flush:
+            self._frame_counter = 1
+        
         self.tick_blocker.clear()
 
         self.logger.info(f'Flushed dataset to disk completed')
