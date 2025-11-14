@@ -87,6 +87,39 @@ class CarlaSensor(CarlaActor):
         self.actor.listen(lambda data: self._listen_callback(data))
         return self
 
+    @camera_only
+    def get_camera_intrinsics_matrix(self) -> np.ndarray:
+        """获取相机内参矩阵
+
+        从蓝图属性中读取图像尺寸和视场角(FOV), 计算并返回3x3的相机内参矩阵K。
+        内参矩阵格式为:
+            K = [[fx,  0, cx],
+                 [ 0, fy, cy],
+                 [ 0,  0,  1]]
+        其中:
+            - fx = fy = focal_length (焦距, 像素单位)
+            - cx = image_width / 2.0 (主点x坐标)
+            - cy = image_height / 2.0 (主点y坐标)
+
+        Returns:
+            np.ndarray: 3x3的相机内参矩阵, shape 为 (3, 3), dtype 为 float64
+        """
+        # 从蓝图属性获取相机参数
+        image_width = self._bp.get_attribute('image_size_x').as_int()
+        image_height = self._bp.get_attribute('image_size_y').as_int()
+        fov = self._bp.get_attribute('fov').as_float()
+        
+        # 计算焦距: focal = width / (2 * tan(fov / 2))
+        focal_length = image_width / (2.0 * np.tan(fov * np.pi / 360.0))
+        
+        # 构建内参矩阵
+        K = np.identity(3, dtype=np.float64)
+        K[0, 0] = K[1, 1] = focal_length
+        K[0, 2] = image_width / 2.0
+        K[1, 2] = image_height / 2.0
+        
+        return K
+
     def _listen_callback(self, data: carla.SensorData):
         self._data = self._reformat_sensor_data(data)
 
