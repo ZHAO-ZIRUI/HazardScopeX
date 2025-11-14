@@ -58,11 +58,11 @@ class DatasetDumper:
         self._dataset: Dict[str, BaseData] = {}
         self._frame_counter = 0
 
-        self.logger.info(f'Initialized {self.DATASET_CLASS} exporter')
-        self._post_init()
-
         self._hook_after_main_flush: List[Callable[[], Self]] = []
         self._hook_after_all_flush: List[Callable[[], None]] = []
+
+        self.logger.info(f'Initialized {self.DATASET_CLASS} exporter')
+        self._post_init()
 
     def __enter__(self) -> Self:
         return self
