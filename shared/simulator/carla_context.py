@@ -225,9 +225,9 @@ class CarlaContext:
                 if all_passed:
                     break
                 if time.perf_counter() - begin > self._tick_blocker_timeout:
-                    blocker_status = 'Blocker Status: '
+                    blocker_status = 'Blocker Status (passed): '
                     for name, blocker in self._tick_blockers.items():
-                        blocker_status += f"'{name}': {blocker.is_set()}, "
+                        blocker_status += f"'{name}': {not blocker.is_set()}, "
                     Logging().interval(1, self.logger.warning, f'Tick blocker timeout after {self._tick_blocker_timeout} seconds', 'tick_blocker_timeout')
                     Logging().interval(1, self.logger.warning, blocker_status, 'tick_blocker_status')
                     continue
