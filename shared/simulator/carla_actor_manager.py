@@ -108,7 +108,7 @@ class CarlaActorManager:
             actor.spawn(self._context.world, ignore_spawn_failure=ignore_spawn_failure)
         
         # 防止 attch 到空目标或者销毁错误
-        self._context.world.tick()
+        self._context.tick()
         return self
 
     def destroy_all(self) -> Self:
@@ -116,7 +116,7 @@ class CarlaActorManager:
         for actor in self._actors.values():
             actor.destroy()
         try:
-            self._context.world.tick()
+            self._context.tick()
         except RuntimeError as e:
             self.logger.error(f'Failed to tick world after destroying actors: {e}')
         return self
@@ -475,7 +475,7 @@ class CarlaActorManager:
         timer = time.perf_counter()
         
         # 第一次必须进行 tick, 让 actors 有机会移动
-        self._context.world.tick()
+        self._context.tick()
         time.sleep(1/self._sync_mode_fps)
         
         while True:
@@ -512,5 +512,5 @@ class CarlaActorManager:
                 break
             
             # 进行 tick 操作
-            self._context.world.tick()
+            self._context.tick()
             time.sleep(1/self._sync_mode_fps)
