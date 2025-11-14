@@ -26,19 +26,19 @@ class KittiVehiclePrefab:
     """
 
     CAM_FRONT_NAME = 'CAM_FRONT'
-    CAM_FRONT_TF = CarlaTransform(x=0.06, y=0.0, z=1.75, yaw=0.0)
+    CAM_FRONT_TF = CarlaTransform(x=0.06, y=0.0, z=1.85, yaw=0.0)
 
     CAM_LEFT_NAME = 'CAM_LEFT'
-    CAM_LEFT_TF = CarlaTransform(x=0.06, y=-0.27, z=1.75, yaw=-90.0)
+    CAM_LEFT_TF = CarlaTransform(x=0.06, y=-0.27, z=1.85, yaw=-90.0)
 
     CAM_RIGHT_NAME = 'CAM_RIGHT'
-    CAM_RIGHT_TF = CarlaTransform(x=0.06, y=0.27, z=1.75, yaw=90.0)
+    CAM_RIGHT_TF = CarlaTransform(x=0.06, y=0.27, z=1.85, yaw=90.0)
 
     CAM_BACK_NAME = 'CAM_BACK'
-    CAM_BACK_TF = CarlaTransform(x=-0.06, y=0.0, z=1.75, yaw=180.0)
+    CAM_BACK_TF = CarlaTransform(x=-0.06, y=0.0, z=1.85, yaw=180.0)
 
     LIDAR_NAME = 'LIDAR_MAIN'
-    LIDAR_TF = CarlaTransform(x=0.0, y=0.0, z=1.83)
+    LIDAR_TF = CarlaTransform(x=0.0, y=0.0, z=1.93)
 
     def __init__(self, context: 'CarlaContext', tf: CarlaTransform | carla.Transform):
         self._context = context
