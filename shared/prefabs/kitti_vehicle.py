@@ -1,5 +1,6 @@
 import carla
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Any
+from typing_extensions import Unpack
 
 from shared.simulator import CarlaTransform, CarlaSensor, CarlaVehicle, CarlaBlueprints
 
@@ -7,7 +8,7 @@ if TYPE_CHECKING:
     from shared.simulator import CarlaContext
 
 
-class KittiVehiclePrefab:
+class KittiVehicle(CarlaVehicle):
     """
     与 KITTI 数据集一致的仿真车辆
 
@@ -40,11 +41,20 @@ class KittiVehiclePrefab:
     LIDAR_NAME = 'LIDAR_MAIN'
     LIDAR_TF = CarlaTransform(x=0.0, y=0.0, z=1.93)
 
-    def __init__(self, context: 'CarlaContext', tf: CarlaTransform | carla.Transform):
+    def __init__(
+        self,
+        context: 'CarlaContext',
+        tf: CarlaTransform | carla.Transform,
+        bp: carla.ActorBlueprint | str | CarlaBlueprints = CarlaBlueprints.VEHICLE_TESLA_MODEL3,
+        name: str = '',
+        **attributes: Unpack[Dict[str, Any]],
+    ):
         self._context = context
-
-        self._tf: CarlaTransform | carla.Transform = tf
-        self.vehicle: CarlaVehicle | None = None
+        resolved_bp = self._context.actors.resolve_blueprint(bp)
+        super().__init__(bp=resolved_bp, name=name)
+        self._context.actors.resolve_transform(self, tf)
+        self._context.actors.resolve_attributes(self, attributes)
+        self._context.actors.add(self)
 
         self.cam_front_rgb: CarlaSensor | None = None
         self.cam_front_depth: CarlaSensor | None = None
@@ -67,79 +77,69 @@ class KittiVehiclePrefab:
         return self.lidar
 
     def _post_init(self):
-
-        if isinstance(self._tf, carla.Transform):
-            vehicle_tf = self._tf
-        else:
-            vehicle_tf = self._tf.to_carla()
-
-        self.vehicle = self._context.actors.create_vehicle(
-            bp=CarlaBlueprints.VEHICLE_TESLA_MODEL3,
-            tf=vehicle_tf,
-        )
-
+        # self就是vehicle，不需要再创建
         self.cam_front_rgb = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_FRONT_NAME + '_RGB',
             tf=self.CAM_FRONT_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_left_rgb = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_LEFT_NAME + '_RGB',
             tf=self.CAM_LEFT_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_right_rgb = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_RIGHT_NAME + '_RGB',
             tf=self.CAM_RIGHT_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_back_rgb = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_BACK_NAME + '_RGB',
             tf=self.CAM_BACK_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_front_depth = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_DEPTH,
             name=self.CAM_FRONT_NAME + '_DEPTH',
             tf=self.CAM_FRONT_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_left_depth = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_DEPTH,
             name=self.CAM_LEFT_NAME + '_DEPTH',
             tf=self.CAM_LEFT_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_right_depth = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_DEPTH,
             name=self.CAM_RIGHT_NAME + '_DEPTH',
             tf=self.CAM_RIGHT_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.cam_back_depth = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_DEPTH,
             name=self.CAM_BACK_NAME + '_DEPTH',
             tf=self.CAM_BACK_TF,
-            parent=self.vehicle,
+            parent=self,
         )
 
         self.lidar = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST_SEMANTIC,
             name=self.LIDAR_NAME,
             tf=self.LIDAR_TF,
-            parent=self.vehicle,
-            rotation_frequency = self._context.fps,
+            parent=self,
+            rotation_frequency=self._context.fps,
             points_per_second=1000000,
             channels=64,
             range=100,

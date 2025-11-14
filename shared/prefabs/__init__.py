@@ -1,6 +1,6 @@
-from .kitti_vehicle import KittiVehiclePrefab
+from .kitti_vehicle import KittiVehicle
 
 
 __all__ = [
-    "KittiVehiclePrefab",
+    "KittiVehicle",
 ]
