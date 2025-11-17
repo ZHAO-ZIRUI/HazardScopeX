@@ -83,6 +83,7 @@ class CarlaContext:
 
         # 钩子
         self._hook_on_tick: List[Callable[[carla.WorldSnapshot], None]] = []
+        self._hook_before_tick: List[Callable[[], None]] = []
         
         # 执行初始化后处理
         self._post_init()
@@ -223,6 +224,9 @@ class CarlaContext:
         return self
 
     def tick(self):
+        for hook in self._hook_before_tick:
+            hook()
+
         begin = time.perf_counter()
         try:
             while True:
@@ -469,6 +473,10 @@ class CarlaContext:
     @property
     def hook_on_tick(self) -> List[Callable[[carla.WorldSnapshot], None]]:
         return self._hook_on_tick
+
+    @property
+    def hook_before_tick(self) -> List[Callable[[], None]]:
+        return self._hook_before_tick
 
     @classmethod
     def from_config(cls, config: Config) -> Self:
