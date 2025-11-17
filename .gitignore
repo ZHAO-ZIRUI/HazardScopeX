@@ -1,2 +1,21 @@
 # Ignore IDE files
 .idea/
+
+# Ignore Python Virtual Environment
+.venv/
+
+# Ignore Python Cache
+__pycache__/
+
+# Ignore user config
+config.yaml
+
+# Ignore recorder files
+recorders/*
+!recorders/.gitkeep
+!recorders/demo.carla
+!recorders/demo.carla.yaml
+
+# Ignore dataset files
+export/*
+!export/.gitkeep
