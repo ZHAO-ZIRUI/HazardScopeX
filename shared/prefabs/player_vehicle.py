@@ -44,40 +44,40 @@ class PlayerVehicle(CarlaVehicle):
             self._context.actors.resolve_attributes(self, attributes)
             self._context.actors.add(self)
 
-            self.cam_main: CarlaSensor | None = None
-            self.cam_game: CarlaSensor | None = None
-            self.lidar_main: CarlaSensor | None = None
+            self._cam_main: CarlaSensor | None = None
+            self._cam_game: CarlaSensor | None = None
+            self._lidar_main: CarlaSensor | None = None
 
             self._post_init()
     
     @property
     def cam_main(self) -> CarlaSensor:
-        return self.cam_main
+        return self._cam_main
 
     @property
     def lidar_main(self) -> CarlaSensor:
-        return self.lidar_main
+        return self._lidar_main
     
     @property
     def cam_game(self) -> CarlaSensor:
-        return self.cam_game
+        return self._cam_game
 
     def _post_init(self):
-        self.cam_main = self._context.actors.create_sensor(
+        self._cam_main = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_MAIN_NAME,
             tf=self.CAM_MAIN_TF,
             parent=self,
         )
 
-        self.cam_game = self._context.actors.create_sensor(
+        self._cam_game = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_GAME_NAME,
             tf=self.CAM_GAME_TF,
             parent=self,
         )
 
-        self.lidar_main = self._context.actors.create_sensor(
+        self._lidar_main = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST,
             name=self.LIDAR_MAIN_NAME,
             tf=self.LIDAR_MAIN_TF,
