@@ -7,6 +7,10 @@ from .factor_road_flodding import FactorRoadFlodding
 from .factor_weather_dust_storm import FactorWeatherDustStorm
 from .factor_weather_medium_fog import FactorWeatherMediumFog
 from .factor_weather_heavy_fog import FactorWeatherHeavyFog
+from .factor_road_iceing import FactorRoadIceing
+from .factor_weather_soft_rain import FactorWeatherSoftRain
+from .factor_weather_sudden_rain import FactorWeatherSuddenRain
+
 
 __all__ = [
     "FactorEnvNoon",
@@ -18,4 +22,7 @@ __all__ = [
     "FactorWeatherDustStorm",
     "FactorWeatherMediumFog",
     "FactorWeatherHeavyFog",
+    "FactorRoadIceing",
+    "FactorWeatherSoftRain",
+    "FactorWeatherSuddenRain",
 ]
