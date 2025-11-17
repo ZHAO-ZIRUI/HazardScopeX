@@ -151,8 +151,7 @@ class CarlaActor:
         return
 
     @property
-    @require_actor_alive
-    def actor(self) -> carla.Actor:
+    def actor(self) -> carla.Actor | None:
         """carla.Actor 实例"""
         return self._actor
 
