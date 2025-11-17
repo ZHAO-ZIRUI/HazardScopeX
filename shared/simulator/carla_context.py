@@ -73,6 +73,9 @@ class CarlaContext:
         self._event_shutdown: threading.Event = threading.Event()
         self._tick_blockers: Dict[str, Tuple[threading.Event, bool]] = {}   # bool: 是否在 tick() 后自动设置
 
+        # FLAGS
+        self.flag_ignore_dead_detector = False
+
         # 管理器
         self._actors: None | CarlaActorManager = None
         self._io: None | CarlaIOManager = None
@@ -452,7 +455,8 @@ class CarlaContext:
         try:
             while not self._event_server_dead.is_set() and not self._event_shutdown.is_set():
                 try:
-                    detector_client.get_server_version()
+                    if not self.flag_ignore_dead_detector:
+                        detector_client.get_server_version()
                     time.sleep(check_timeout)
                 except Exception as e:
                     self.logger.critical(f'CARLA server is DEAD, detected by detector thread: {type(e).__name__}')
