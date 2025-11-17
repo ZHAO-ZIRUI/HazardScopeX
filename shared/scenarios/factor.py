@@ -27,7 +27,7 @@ class Factor(ABC):
     def tick(self) -> None:
         """在每个 tick 中执行因子逻辑
         """
-        self.logger.debug(f'Tick completed')
+        return
 
     def teardown(self) -> None:
         """因子要件的销毁逻辑
