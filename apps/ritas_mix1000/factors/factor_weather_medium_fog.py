@@ -4,8 +4,8 @@ from shared.simulator import *
 from shared.data import PointCloud
 
 
-class FactorWeatherFog(Factor):
-    NAME = 'F_WeatherFog'
+class FactorWeatherMediumFog(Factor):
+    NAME = 'F_WeatherMediumFog'
 
     def __init__(self, context: CarlaContext, lidar: CarlaSensor):
         super().__init__(context)

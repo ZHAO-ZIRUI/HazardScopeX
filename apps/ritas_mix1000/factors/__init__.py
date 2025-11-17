@@ -5,7 +5,7 @@ from .factor_weather_heavy_rain import FactorWeatherHeavyRain
 from .factor_weather_cloudiness import FactorWeatherCloudiness
 from .factor_road_flodding import FactorRoadFlodding
 from .factor_weather_dust_storm import FactorWeatherDustStorm
-from .factor_weather_fog import FactorWeatherFog
+from .factor_weather_medium_fog import FactorWeatherMediumFog
 from .factor_weather_heavy_fog import FactorWeatherHeavyFog
 
 __all__ = [
@@ -16,6 +16,6 @@ __all__ = [
     "FactorWeatherCloudiness",
     "FactorRoadFlodding",
     "FactorWeatherDustStorm",
-    "FactorWeatherFog",
+    "FactorWeatherMediumFog",
     "FactorWeatherHeavyFog",
 ]
