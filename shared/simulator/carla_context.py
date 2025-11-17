@@ -223,6 +223,16 @@ class CarlaContext:
         self._tick_blockers.pop(name)
         return self
 
+    def change_map(self, map_name: str) -> None:
+        """切换地图"""
+        self.logger.info(f'Changing map to {map_name} ...')
+        self.flag_ignore_dead_detector = True
+        self.client.load_world(map_name)
+        self.world.tick()
+        self.flag_ignore_dead_detector = False
+        self.logger.info(f'Map changed to {map_name}')
+        return
+
     def tick(self):
         for hook in self._hook_before_tick:
             hook()
