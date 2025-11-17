@@ -17,7 +17,7 @@ context:
   server:
     host: 127.0.0.1 # 除非使用外部服务器, 否则不要修改该值
     port: 2000
-    timeout: 1
+    timeout: 10
 
     # 服务端同步模式的速度, 单位: FPS
     # 该同步模式的设置方式与以往不同, 在服务端启动时指定, 且不需再由 world.settings 指定
