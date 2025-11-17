@@ -10,7 +10,7 @@ class FactorWeatherHeavyRain(Factor):
 
     def setup(self) -> None:
         weather = self._context.world.get_weather()
-        weather.precipitation = 100
+        weather.precipitation = 70
         weather.precipitation_deposits = 10
         weather.wetness = 10
         self._context.world.set_weather(weather)
