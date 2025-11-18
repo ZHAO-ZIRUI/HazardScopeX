@@ -19,3 +19,7 @@ recorders/*
 # Ignore dataset files
 export/*
 !export/.gitkeep
+
+# Ignore temporary files
+temp/*
+!temp/.gitkeep
