@@ -202,6 +202,7 @@ if __name__ == "__main__":
     # 解析命令行参数
     parser = argparse.ArgumentParser(description='Draw CARLA road network with spawn points')
     parser.add_argument('--output', type=str, required=True, help='Output file path for the image')
+    parser.add_argument('--map', type=str, help='Map name to load (e.g., Town01, Town04)')
     args = parser.parse_args()
     
     # 基础组件初始化
@@ -209,6 +210,10 @@ if __name__ == "__main__":
     logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
 
     with CarlaContext.from_config(config) as context:        # 创建 CARLA 上下文
+        # 如果指定了地图，则切换地图
+        if args.map:
+            context.change_map(args.map)
+        
         draw_roadnet_with_spawn_points(context, args.output)
     
     logger.info('Goodbye!')
