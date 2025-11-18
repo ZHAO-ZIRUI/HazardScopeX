@@ -37,6 +37,9 @@ from .factor_case_long_cargo_many import FactorCaseLongCargoMany
 from .factor_case_pedstrian_dart_out import FactorCasePedestrianDartOut
 from .factor_case_vehicle_dart_out import FactorCaseVehicleDartOut
 from .factor_case_wrong_way_bike import FactorCaseWrongWayBike
+from .factor_case_highway_miss_exit import FactorCaseHighwayMissExit
+from .factor_case_highway_wrong_way import FactorCaseHighwayWrongWay
+from .factor_case_ramp_wrong_way import FactorCaseRampWrongWay
 
 
 __all__ = [
@@ -79,4 +82,7 @@ __all__ = [
     "FactorCasePedestrianDartOut",
     "FactorCaseVehicleDartOut",
     "FactorCaseWrongWayBike",
+    "FactorCaseHighwayMissExit",
+    "FactorCaseHighwayWrongWay",
+    "FactorCaseRampWrongWay",
 ]
