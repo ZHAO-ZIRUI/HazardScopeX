@@ -179,6 +179,9 @@ def draw_roadnet_with_spawn_points(context: CarlaContext, output_path: str):
         
         logger.info(f'View range: X=[{min_x - margin:.1f}, {max_x + margin:.1f}], Y=[{min_y - margin:.1f}, {max_y + margin:.1f}]')
     
+    # 反转Y轴
+    ax.invert_yaxis()
+    
     # 设置标题和标签
     ax.set_title('CARLA Road Network with Spawn Points', fontsize=16, fontweight='bold')
     ax.set_xlabel('X (meters)', fontsize=12)
