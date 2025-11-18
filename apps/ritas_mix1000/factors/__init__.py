@@ -23,6 +23,8 @@ from .factor_camera_jelly import FactorCameraJelly
 from .factor_camera_tera import FactorCameraTera
 from .factor_lidar_block import FactorLidarBlock
 from .factor_lidar_runtime_block import FactorLidarRuntimeBlock
+from .factor_traffic_large_vehicles import FactorTrafficLargeVehicles
+from .factor_traffic_two_wheels import FactorTrafficTwoWheels
 
 
 __all__ = [
@@ -51,4 +53,6 @@ __all__ = [
     "FactorCameraTera",
     "FactorLidarBlock",
     "FactorLidarRuntimeBlock",
+    "FactorTrafficLargeVehicles",
+    "FactorTrafficTwoWheels",
 ]
