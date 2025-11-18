@@ -160,6 +160,7 @@ class CarlaBlueprints(Enum):
     VEHICLE_TOYOTA_PRIUS = 'vehicle.toyota.prius'
     VEHICLE_VOLKSWAGEN_T2 = 'vehicle.volkswagen.t2'
     VEHICLE_VOLKSWAGEN_T2_2021 = 'vehicle.volkswagen.t2_2021'
+    VEHICLE_MITSUBISH_FUSOROSA = 'vehicle.mitsubishi.fusorosa'
     
     # 摩托车/自行车
     VEHICLE_VESPA_ZX125 = 'vehicle.vespa.zx125'
@@ -220,3 +221,27 @@ class CarlaBlueprints(Enum):
     WALKER_PEDESTRIAN_0047 = 'walker.pedestrian.0047'
     WALKER_PEDESTRIAN_0048 = 'walker.pedestrian.0048'
     WALKER_PEDESTRIAN_0049 = 'walker.pedestrian.0049'
+
+    @classmethod
+    def LARGE_VEHICLES(cls) -> list[str]:
+        return [
+            cls.VEHICLE_CARLAMOTORS_EUROPEAN_HGV.value,
+            cls.VEHICLE_MERCEDES_SPRINTER.value,
+            cls.VEHICLE_VOLKSWAGEN_T2.value,
+            cls.VEHICLE_TESLA_CYBERTRUCK.value,
+            cls.VEHICLE_MITSUBISH_FUSOROSA.value,
+            cls.VEHICLE_CARLAMOTORS_FIRETRUCK.value,
+        ]
+
+    @classmethod
+    def TWO_WHEELS(cls) -> list[str]:
+        return [
+            cls.VEHICLE_VESPA_ZX125.value,
+            cls.VEHICLE_YAMAHA_YZF.value,
+            cls.VEHICLE_HARLEY_DAVIDSON_LOW_RIDER.value,
+            cls.VEHICLE_KAWASAKI_NINJA.value,
+            cls.VEHICLE_GAZELLE_OMAFIETS.value,
+            cls.VEHICLE_DIAMONDBACK_CENTURY.value,
+            cls.VEHICLE_BH_CROSSBIKE.value,
+            cls.VEHICLE_DIAMONDBACK_CENTURY.value,
+        ]
