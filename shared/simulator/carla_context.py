@@ -171,6 +171,10 @@ class CarlaContext:
         return CarlaBlueprints
 
     @property
+    def map_name(self) -> str:
+        return self.world.get_map().name
+
+    @property
     def tick_blockers(self) -> Dict[str, threading.Event]:
         """TICK 阻塞器, 用于阻塞 TICK 过程, 直到所有阻塞器都通过
 
