@@ -2,7 +2,9 @@ import carla
 from typing_extensions import Self
 from enum import Enum
 
-from shared.simulator import CarlaActor
+from .carla_actor import CarlaActor
+from .carla_vehicle_wheel_info import VehicleWheelFactory
+
 
 
 class CarlaVehicle(CarlaActor):
@@ -22,6 +24,9 @@ class CarlaVehicle(CarlaActor):
     ):
         super().__init__(bp=bp, name=name, actor=actor)
         self._control_mode = self.ControlMode.NONE
+        
+       
+
 
     @property
     def control_mode(self) -> ControlMode:
@@ -41,6 +46,27 @@ class CarlaVehicle(CarlaActor):
             self.control_mode = self.ControlMode.NONE
             self.actor.set_autopilot(False)
         return self
+    @property
+    def get_vehicle_wheels(self) -> list[carla.Location,carla.Location]:
+        '''
+        获取车辆车轮以计算后轮中心点
+        '''
+        vehicle_name = self.actor.type_id
+        print("the self.vehicle_name is: ",vehicle_name)
+        vehicle_wheels_info = VehicleWheelFactory[vehicle_name]
+        print("the vehicle_wheels_info.REAR_OVERHANG is: ",vehicle_wheels_info.REAR_OVERHANG.value)
+        return []
+        # wheels = self.actor.get_physics_control().wheels # 前左、前右、后左、后右
+        # try:
+        #     if len(wheels) >= 2 :
+        #         wheels_sorted = sorted(wheels, key=lambda w: w.location.x)
+        #         rear_left_local = wheels_sorted[0].location
+        #         rear_right_local = wheels_sorted[1].location
+
+        # except RuntimeError as e:
+        #     self.logger.error(f"Failed to disable autopilot before destroy: {e}")
+
+
 
     def destroy(self) -> Self:
         if self._actor is None:

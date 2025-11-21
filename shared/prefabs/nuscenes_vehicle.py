@@ -58,10 +58,12 @@ class NuScenesVehicle(CarlaVehicle):
         self._context = context
         resolved_bp = self._context.actors.resolve_blueprint(bp)
         super().__init__(bp=resolved_bp, name=name)
+        
         self._context.actors.resolve_transform(self, tf)
         self._context.actors.resolve_attributes(self, attributes)
         self._context.actors.add(self)
 
+        self.vehicle_transform = tf
         self.cam_front: CarlaSensor | None = None
         self.cam_front_left: CarlaSensor | None = None
         self.cam_front_right: CarlaSensor | None = None

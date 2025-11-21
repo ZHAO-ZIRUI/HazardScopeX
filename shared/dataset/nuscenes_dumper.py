@@ -537,9 +537,31 @@ class NuScenesDB:
         self._conn.commit()
         return token
 
+    # def add_visibility(self, *,
+    #                    token: str = None,
+    #                    description: str,
+    #                    level: str) -> str:
+    #     """增加一条 visibility 记录
+
+    #     Args:
+    #         description (str): 可见性描述, 如: 'visible'.
+    #         level (str): 可见性等级, 如: 'low'.
+
+    #     Returns:
+    #         str: 插入数据库的 token
+    #     """
+    #     token = token or self.get_nuscenes_token()
+        
+    #     self._cursor.execute('''
+    #         INSERT INTO visibility (token, description, level) VALUES (?, ?, ?)
+    #     ''', (token, description, level))
+        
+    #     self._conn.commit()
+    #     return token
+    
     def add_visibility(self, *,
-                       token: str = None,
                        description: str,
+                       token: str = None,
                        level: str) -> str:
         """增加一条 visibility 记录
 
@@ -550,15 +572,15 @@ class NuScenesDB:
         Returns:
             str: 插入数据库的 token
         """
-        token = token or self.get_nuscenes_token()
+        # token = token or self.get_nuscenes_token()
         
         self._cursor.execute('''
-            INSERT INTO visibility (token, description, level) VALUES (?, ?, ?)
-        ''', (token, description, level))
+            INSERT INTO visibility (description,token, level) VALUES (?, ?, ?)
+        ''', (description,token,level))
         
         self._conn.commit()
         return token
-    
+
     def add_attribute(self, *,
                       name: str,
                       description: str = 'NOT_SET') -> str:
@@ -1153,41 +1175,78 @@ class NuScenesDumper(DatasetDumper):
     STEER_ANGLE_MAX = 6.3  # 转向角最大值（度）
 
     # nuScenes 标准类别定义 (index, name, description)
-    NUSCENES_CATEGORIES = [
-        (0, "noise", "Points that are not labeled or cannot be labeled."),
-        (1, "animal", "All animals (excluding humans)."),
-        (2, "human.pedestrian.adult", "An adult human pedestrian."),
-        (3, "human.pedestrian.child", "A child human pedestrian."),
-        (4, "human.pedestrian.construction_worker", "A construction worker."),
-        (5, "human.pedestrian.personal_mobility", "A personal mobility device (e.g., scooter, wheelchair)."),
-        (6, "human.pedestrian.police_officer", "A police officer."),
-        (7, "human.pedestrian.stroller", "A stroller."),
-        (8, "human.pedestrian.wheelchair", "A wheelchair."),
-        (9, "movable_object.barrier", "A barrier (e.g., traffic cones, construction barriers)."),
-        (10, "movable_object.debris", "Debris or movable objects."),
-        (11, "movable_object.pushable_pullable", "Objects that can be pushed or pulled."),
-        (12, "movable_object.traffic_cone", "Traffic cones."),
-        (13, "static_object.bicycle_rack", "Bicycle racks."),
-        (14, "vehicle.bicycle", "A bicycle."),
-        (15, "vehicle.bus.bendy", "A bendy bus."),
-        (16, "vehicle.bus.rigid", "A rigid bus."),
-        (17, "vehicle.car", "A car."),
-        (18, "vehicle.construction", "Construction vehicles."),
-        (19, "vehicle.emergency.ambulance", "An ambulance."),
-        (20, "vehicle.emergency.police", "A police vehicle."),
-        (21, "vehicle.motorcycle", "A motorcycle."),
-        (22, "vehicle.trailer", "A trailer."),
-        (23, "vehicle.truck", "A truck."),
-        (24, "flat.driveable_surface", "Driveable surfaces (roads, parking areas)."),
-        (25, "flat.other", "Other flat surfaces."),
-        (26, "flat.sidewalk", "Sidewalks."),
-        (27, "flat.terrain", "Terrain (grass, soil, sand, gravel)."),
-        (28, "static.manmade", "Man-made structures (buildings, walls, poles, etc.)."),
-        (29, "static.other", "Other static objects."),
-        (30, "static.vegetation", "Vegetation (trees, bushes, plants)."),
-        (31, "vehicle.ego", "The ego vehicle."),
-    ]
+    # NUSCENES_CATEGORIES = [
+    #     (0, "noise", "Points that are not labeled or cannot be labeled."),
+    #     (1, "animal", "All animals (excluding humans)."),
+    #     (2, "human.pedestrian.adult", "An adult human pedestrian."),
+    #     (3, "human.pedestrian.child", "A child human pedestrian."),
+    #     (4, "human.pedestrian.construction_worker", "A construction worker."),
+    #     (5, "human.pedestrian.personal_mobility", "A personal mobility device (e.g., scooter, wheelchair)."),
+    #     (6, "human.pedestrian.police_officer", "A police officer."),
+    #     (7, "human.pedestrian.stroller", "A stroller."),
+    #     (8, "human.pedestrian.wheelchair", "A wheelchair."),
+    #     (9, "movable_object.barrier", "A barrier (e.g., traffic cones, construction barriers)."),
+    #     (10, "movable_object.debris", "Debris or movable objects."),
+    #     (11, "movable_object.pushable_pullable", "Objects that can be pushed or pulled."),
+    #     (12, "movable_object.traffic_cone", "Traffic cones."),
+    #     (13, "static_object.bicycle_rack", "Bicycle racks."),
+    #     (14, "vehicle.bicycle", "A bicycle."),
+    #     (15, "vehicle.bus.bendy", "A bendy bus."),
+    #     (16, "vehicle.bus.rigid", "A rigid bus."),
+    #     (17, "vehicle.car", "A car."),
+    #     (18, "vehicle.construction", "Construction vehicles."),
+    #     (19, "vehicle.emergency.ambulance", "An ambulance."),
+    #     (20, "vehicle.emergency.police", "A police vehicle."),
+    #     (21, "vehicle.motorcycle", "A motorcycle."),
+    #     (22, "vehicle.trailer", "A trailer."),
+    #     (23, "vehicle.truck", "A truck."),
+    #     (24, "flat.driveable_surface", "Driveable surfaces (roads, parking areas)."),
+    #     (25, "flat.other", "Other flat surfaces."),
+    #     (26, "flat.sidewalk", "Sidewalks."),
+    #     (27, "flat.terrain", "Terrain (grass, soil, sand, gravel)."),
+    #     (28, "static.manmade", "Man-made structures (buildings, walls, poles, etc.)."),
+    #     (29, "static.other", "Other static objects."),
+    #     (30, "static.vegetation", "Vegetation (trees, bushes, plants)."),
+    #     (31, "vehicle.ego", "The ego vehicle."),
+    # ]
     
+    NUSCENES_OBJECT_CATEGORIES = [
+        (0, "animal", "All animals, e.g. cats, rats, dogs, deer, birds."),
+        (1, "human.pedestrian.adult", "Adult subcategory."),
+        (2, "human.pedestrian.child", "Child subcategory."),
+        (3, "human.pedestrian.construction_worker", "Construction worker"),
+        (4, "human.pedestrian.personal_mobility", "A small electric or self-propelled vehicle, e.g. skateboard, segway, or scooters, on which the person typically travels in a upright position. Driver and (if applicable) rider should be included in the bounding box along with the vehicle."),
+        (5, "human.pedestrian.police_officer", "Police officer."),
+        (6, "human.pedestrian.stroller", "Strollers. If a person is in the stroller, include in the annotation."),
+        (7, "human.pedestrian.wheelchair", "Wheelchairs. If a person is in the wheelchair, include in the annotation."),
+        (8, "movable_object.barrier", "Temporary road barrier placed in the scene in order to redirect traffic. Commonly used at construction sites. This includes concrete barrier, metal barrier and water barrier. No fences."),
+        (9, "movable_object.debris", "Movable object that is left on the driveable surface that is too large to be driven over safely, e.g tree branch, full trash bag etc."),
+        (10, "movable_object.pushable_pullable", "Objects that a pedestrian may push or pull. For example dolleys, wheel barrows, garbage-bins, or shopping carts."),
+        (11, "movable_object.trafficcone", "All types of traffic cone."),
+        (12, "static_object.bicycle_rack", "Area or device intended to park or secure the bicycles in a row. It includes all the bikes parked in it and any empty slots that are intended for parking bikes."),
+        (13, "vehicle.bicycle", "Human or electric powered 2-wheeled vehicle designed to travel at lower speeds either on road surface, sidewalks or bike paths."),
+        (14, "vehicle.bus.bendy", "Bendy bus subcategory. Annotate each section of the bendy bus individually."),
+        (15, "vehicle.bus.rigid", "Rigid bus subcategory."),
+        (16, "vehicle.car", "Vehicle designed primarily for personal use, e.g. sedans, hatch-backs, wagons, vans, mini-vans, SUVs and jeeps. If the vehicle is designed to carry more than 10 people use vehicle.bus. If it is primarily designed to haul cargo use vehicle.truck."),
+        (17, "vehicle.construction", "Vehicles primarily designed for construction. Typically very slow moving or stationary. Cranes and extremities of construction vehicles are only included in annotations if they interfere with traffic. Trucks used to haul rocks or building materials are considered vehicle.truck rather than construction vehicles."),
+        (18, "vehicle.emergency.ambulance", "All types of ambulances."),
+        (19, "vehicle.emergency.police", "All types of police vehicles including police bicycles and motorcycles."),
+        (20, "vehicle.motorcycle", "Gasoline or electric powered 2-wheeled vehicle designed to move rapidly (at the speed of standard cars) on the road surface. This category includes all motorcycles, vespas and scooters."),
+        (21, "vehicle.trailer", "Any vehicle trailer, both for trucks, cars and bikes."),
+        (22, "vehicle.truck", "Vehicles primarily designed to haul cargo including pick-ups, lorrys, trucks and semi-tractors. Trailers hauled after a semi-tractor should be labeled as vehicle.trailer"),
+    ]
+    NUSCENES__LIDARSEG_CATEGORIES = [
+        (23, "flat.driveable_surface", "Driveable surfaces (roads, parking areas)."),
+        (24, "flat.other", "Other flat surfaces."),
+        (25, "flat.sidewalk", "Sidewalks."),
+        (26, "flat.terrain", "Terrain (grass, soil, sand, gravel)."),
+        (27, "static.manmade", "Man-made structures (buildings, walls, poles, etc.)."),
+        (28, "static.other", "Other static objects."),
+        (29, "static.vegetation", "Vegetation (trees, bushes, plants)."),
+        (30, "vehicle.ego", "The ego vehicle."),
+        (31, "noise", "Points that are not labeled or cannot be labeled."),
+    ]
+
     # nuScenes 标准属性定义 (name, description)
     NUSCENES_ATTRIBUTES = [
         ("vehicle.moving", "Vehicle is moving."),
@@ -1201,48 +1260,90 @@ class NuScenesDumper(DatasetDumper):
         ("default", "Default attribute."),
     ]
     
-    # nuScenes 标准可见性定义 (description, level)
+    # nuScenes 标准可见性定义 ('description', 'token','level')
     NUSCENES_VISIBILITIES = [
-        ("fully_visible", "full"),
-        ("mostly_visible", "most"),
-        ("partly_visible", "part"),
-        ("barely_visible", "bare"),
-        ("not_visible", "none"),
-    ]
+        ("visibility of whole object is between 0 and 40%",    "1",  "v0-40"),
+        ("visibility of whole object is between 40 and 60%",   "2", "v40-60"),
+        ("visibility of whole object is between 60 and 80%",   "3", "v60-80"),
+        ("visibility of whole object is between 80 and 100%",  "4",    "v80-100"),
+    ]    
+
+    # nuScenes 标准可见性定义 ('description', 'level')
+    # NUSCENES_VISIBILITIES = [
+    #     ("fully_visible", "full"),
+    #     ("mostly_visible", "most"),
+    #     ("partly_visible", "part"),
+    #     ("barely_visible", "bare"),
+    #     ("not_visible", "none"),
+    # ]
     
     # CARLA 语义标签到 nuScenes 类别的映射
     CARLA_NUSCENES_MAPPING = {
-        1: 24,      # road -> flat.driveable_surface
-        2: 26,      # sidewalk -> flat.sidewalk
-        3: 28,      # building -> static.manmade
-        4: 28,      # wall -> static.manmade
-        5: 9,       # fence -> movable_object.barrier
-        6: 28,      # pole -> static.manmade
-        7: 28,      # traffic light -> static.manmade
-        8: 28,      # traffic sign -> static.manmade
-        9: 30,      # vegetation -> static.vegetation
-        10: 27,     # terrain -> flat.terrain
-        11: 0,      # sky -> noise
-        12: 2,      # pedestrian -> human.pedestrian.adult
-        13: 2,      # rider -> human.pedestrian.adult
-        14: 17,     # car -> vehicle.car
-        15: 23,     # truck -> vehicle.truck
-        16: 16,     # bus -> vehicle.bus.rigid
-        17: 0,      # train -> noise
-        18: 21,     # motorcycle -> vehicle.motorcycle
-        19: 14,     # bicycle -> vehicle.bicycle
-        20: 29,     # static -> static.other
-        21: 10,     # dynamic -> movable_object.debris
-        22: 29,     # other -> static.other
-        23: 25,     # water -> flat.other
-        24: 24,     # road line -> flat.driveable_surface
-        25: 25,     # ground -> flat.other
-        26: 28,     # bridge -> static.manmade
-        27: 25,     # rail -> flat.other
-        28: 9,      # guard rail -> movable_object.barrier
-        29: 24,     # lane-marking -> flat.driveable_surface
-        30: 25,     # parking -> flat.other
+        1: 23,      # road -> flat.driveable_surface
+        2: 25,      # sidewalk -> flat.sidewalk
+        3: 27,      # building -> static.manmade
+        4: 27,      # wall -> static.manmade
+        5: 8,       # fence -> movable_object.barrier
+        6: 27,      # pole -> static.manmade
+        7: 27,      # traffic light -> static.manmade
+        8: 27,      # traffic sign -> static.manmade
+        9: 29,      # vegetation -> static.vegetation
+        10: 26,     # terrain -> flat.terrain
+        11: 31,      # sky -> noise
+        12: 1,      # pedestrian -> human.pedestrian.adult
+        13: 1,      # rider -> human.pedestrian.adult
+        14: 16,     # car -> vehicle.car
+        15: 22,     # truck -> vehicle.truck
+        16: 15,     # bus -> vehicle.bus.rigid
+        17: 31,      # train -> noise
+        18: 20,     # motorcycle -> vehicle.motorcycle
+        19: 13,     # bicycle -> vehicle.bicycle
+        20: 28,     # static -> static.other
+        21: 9,     # dynamic -> movable_object.debris
+        22: 28,     # other -> static.other
+        23: 24,     # water -> flat.other
+        24: 23,     # road line -> flat.driveable_surface
+        25: 24,     # ground -> flat.other
+        26: 27,     # bridge -> static.manmade
+        27: 24,     # rail -> flat.other
+        28: 8,      # guard rail -> movable_object.barrier
+        29: 23,     # lane-marking -> flat.driveable_surface
+        30: 24,     # parking -> flat.other
     }
+
+    # # CARLA 语义标签到 nuScenes 类别的映射
+    # CARLA_NUSCENES_MAPPING = {
+    #     1: 24,      # road -> flat.driveable_surface
+    #     2: 26,      # sidewalk -> flat.sidewalk
+    #     3: 28,      # building -> static.manmade
+    #     4: 28,      # wall -> static.manmade
+    #     5: 9,       # fence -> movable_object.barrier
+    #     6: 28,      # pole -> static.manmade
+    #     7: 28,      # traffic light -> static.manmade
+    #     8: 28,      # traffic sign -> static.manmade
+    #     9: 30,      # vegetation -> static.vegetation
+    #     10: 27,     # terrain -> flat.terrain
+    #     11: 0,      # sky -> noise
+    #     12: 2,      # pedestrian -> human.pedestrian.adult
+    #     13: 2,      # rider -> human.pedestrian.adult
+    #     14: 17,     # car -> vehicle.car
+    #     15: 23,     # truck -> vehicle.truck
+    #     16: 16,     # bus -> vehicle.bus.rigid
+    #     17: 0,      # train -> noise
+    #     18: 21,     # motorcycle -> vehicle.motorcycle
+    #     19: 14,     # bicycle -> vehicle.bicycle
+    #     20: 29,     # static -> static.other
+    #     21: 10,     # dynamic -> movable_object.debris
+    #     22: 29,     # other -> static.other
+    #     23: 25,     # water -> flat.other
+    #     24: 24,     # road line -> flat.driveable_surface
+    #     25: 25,     # ground -> flat.other
+    #     26: 28,     # bridge -> static.manmade
+    #     27: 25,     # rail -> flat.other
+    #     28: 9,      # guard rail -> movable_object.barrier
+    #     29: 24,     # lane-marking -> flat.driveable_surface
+    #     30: 25,     # parking -> flat.other
+    # }
 
     def __init__(
         self,
@@ -1276,6 +1377,11 @@ class NuScenesDumper(DatasetDumper):
         self._map_category = map_category
         self._map_filename = map_filename
         self._carla_vehicle = carla_vehicle  # CarlaVehicle 实例，用于获取 CAN bus 数据
+        # 获取车辆后轮中心的位置，以对应nuscenes数据集中ego和传感器的外参矩阵计算
+        # self._carla_vehicle_transform = self._carla_vehicle.tf_now
+        self._carla_vehicle_wheels = self._carla_vehicle.get_vehicle_wheels
+
+        
         
         super().__init__(
             context=context,
@@ -1284,6 +1390,7 @@ class NuScenesDumper(DatasetDumper):
             safe_memory_usage_threshold=safe_memory_usage_threshold,
             create_folder=create_folder,
         )
+        
         self._sensor_tokens: dict[CarlaSensor, str] = {}
         self._calibrated_sensor_tokens: dict[CarlaSensor, str] = {}
         self._sensor_folders: dict[CarlaSensor, str] = {}
@@ -1358,10 +1465,12 @@ class NuScenesDumper(DatasetDumper):
         return self
     
     def _setup_db_category(self) -> None:
-        """初始化 category 表，填充 nuScenes 标准类别定义"""
-        for index, name, description in self.NUSCENES_CATEGORIES:
+        """初始化 category 表，填充 nuScenes 标准类别定义 """
+        # for index, name, description in self.NUSCENES_CATEGORIES:
+        #     self._db.add_category(index=index, name=name, description=description)
+        for index, name, description in self.NUSCENES_OBJECT_CATEGORIES:
             self._db.add_category(index=index, name=name, description=description)
-        self.logger.debug(f'Initialized {len(self.NUSCENES_CATEGORIES)} categories')
+        self.logger.debug(f'Initialized {len(self.NUSCENES_OBJECT_CATEGORIES)} categories')
     
     def _setup_db_attribute(self) -> None:
         """初始化 attribute 表，填充 nuScenes 标准属性定义"""
@@ -1379,11 +1488,27 @@ class NuScenesDumper(DatasetDumper):
             if result:
                 self._default_attribute_token = result[0]
     
+    # def _setup_db_visibility(self) -> None:
+    #     """初始化 visibility 表，填充 nuScenes 标准可见性定义"""
+    #     for description, level in self.NUSCENES_VISIBILITIES:
+    #         token = self._db.add_visibility(description=description, level=level)
+    #         if description == "fully_visible":
+    #             self._default_visibility_token = token
+    #     self.logger.debug(f'Initialized {len(self.NUSCENES_VISIBILITIES)} visibility levels')
+        
+    #     # 保存默认 visibility token
+    #     if self._default_visibility_token is None:
+    #         # 如果 fully_visible 不存在，使用第一个
+    #         self._db._cursor.execute('SELECT token FROM visibility LIMIT 1')
+    #         result = self._db._cursor.fetchone()
+    #         if result:
+    #             self._default_visibility_token = result[0]
+
     def _setup_db_visibility(self) -> None:
         """初始化 visibility 表，填充 nuScenes 标准可见性定义"""
-        for description, level in self.NUSCENES_VISIBILITIES:
-            token = self._db.add_visibility(description=description, level=level)
-            if description == "fully_visible":
+        for description, token,level in self.NUSCENES_VISIBILITIES:
+            token = self._db.add_visibility(description=description, token=token, level=level)
+            if token == "4":
                 self._default_visibility_token = token
         self.logger.debug(f'Initialized {len(self.NUSCENES_VISIBILITIES)} visibility levels')
         
@@ -1429,11 +1554,13 @@ class NuScenesDumper(DatasetDumper):
         self._sensor_tokens[sensor] = sensor_token
         self.logger.debug(f'Sensor token created for {sensor.name}: {sensor_token}')
         
-        sensor_tf = sensor.tf_now
+
+        
+        sensor_tf = sensor.tf_now # the position in the world 
         sensor_matrix = np.array(sensor_tf.get_matrix())
         translation = sensor_matrix[:3, 3].tolist()
         rotation_matrix = sensor_matrix[:3, :3]
-        rotation_quaternion = self._rotation_matrix_to_quaternion(rotation_matrix)
+        rotation_quaternion = self._rotation_matrix_to_quaternion(rotation_matrix) # need sensor to ego frame,need to be modified
         rotation = rotation_quaternion.tolist()
         
         camera_intrinsic = []
