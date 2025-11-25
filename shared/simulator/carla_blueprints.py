@@ -245,3 +245,12 @@ class CarlaBlueprints(Enum):
             cls.VEHICLE_BH_CROSSBIKE.value,
             cls.VEHICLE_DIAMONDBACK_CENTURY.value,
         ]
+
+    @classmethod
+    def NORMAL_TRAFFIC(cls) -> list[str]:
+        """返回所有以 VEHICLE_ 开头的车辆蓝图"""
+        return [
+            member.value
+            for name, member in cls.__members__.items()
+            if name.startswith('VEHICLE_')
+        ]
