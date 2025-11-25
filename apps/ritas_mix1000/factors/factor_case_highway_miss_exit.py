@@ -77,6 +77,7 @@ class FactorCaseHighwayMissExit(Factor):
 
         # 使用 Traffic Manager 控制车辆直行
         tm = self._context.traffic_manager
+        # tm.set_route(self._ego.actor, ['Straight'] * 9999)
         target_speed_kmh = 90.0
         target_speed_ms = target_speed_kmh / 3.6
         for vehicle in self._vehicles:
@@ -90,6 +91,8 @@ class FactorCaseHighwayMissExit(Factor):
     def tick(self) -> None:
         self._current_ticks += 1
         
+        self._context.traffic_manager.set_route(self._ego.actor, ['Straight'] * 9999)
+
         if self._act is None or self._act.actor is None or not self._act.actor.is_alive:
             return super().tick()
         

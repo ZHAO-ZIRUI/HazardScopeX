@@ -31,6 +31,7 @@ class FactorRoadIceing(Factor):
         weather.wetness = 100
         weather.precipitation_deposits = 100
         self._context.world.set_weather(weather)
+        self._vehicle.set_carla_autopilot(enable=True)
         return super().setup()
 
     def tick(self) -> None:

@@ -3,8 +3,8 @@ from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorTrafficLargeVehicles(Factor):
-    NAME = 'F_TrafficLargeVehicles'
+class FactorTrafficCrossRoad(Factor):
+    NAME = 'F_TrafficCrossRoad'
 
     def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, *, radius: float = 200.0):
         super().__init__(context)
@@ -24,12 +24,18 @@ class FactorTrafficLargeVehicles(Factor):
             if distance < self._radius:
                 nearby_spawn_points.append(tf)
         
+        # 随机打乱 spawn points，以便随机分配车辆类型
+        random.shuffle(nearby_spawn_points)
+        
         # 在附近的 spawn points 生成车辆
         for i, tf in enumerate(nearby_spawn_points):
+            bp = random.choice(CarlaBlueprints.NORMAL_TRAFFIC())
+            name_prefix = 'AGENT_NORMAL'
+            
             agent = self._context.actors.create_vehicle(
-                bp=random.choice(CarlaBlueprints.LARGE_VEHICLES()),
+                bp=bp,
                 tf=tf,
-                name=f'AGENT_LARGE_{i:03d}',
+                name=f'{name_prefix}_{i:03d}',
             )
             agent.spawn(self._context.world, ignore_spawn_failure=True)
             self._agents.append(agent)

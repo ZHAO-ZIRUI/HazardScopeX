@@ -40,6 +40,7 @@ from .factor_case_wrong_way_bike import FactorCaseWrongWayBike
 from .factor_case_highway_miss_exit import FactorCaseHighwayMissExit
 from .factor_case_highway_wrong_way import FactorCaseHighwayWrongWay
 from .factor_case_ramp_wrong_way import FactorCaseRampWrongWay
+from .factor_traffic_cross_road import FactorTrafficCrossRoad
 
 
 __all__ = [
@@ -85,4 +86,5 @@ __all__ = [
     "FactorCaseHighwayMissExit",
     "FactorCaseHighwayWrongWay",
     "FactorCaseRampWrongWay",
+    "FactorTrafficCrossRoad",
 ]

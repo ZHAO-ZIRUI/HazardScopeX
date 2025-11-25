@@ -6,7 +6,7 @@ from shared.simulator import *
 class FactorTrafficTwoWheels(Factor):
     NAME = 'F_TrafficTwoWheels'
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, *, radius: float = 200.0, other_ratio: float = 0.2):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, *, radius: float = 100.0, other_ratio: float = 0.2):
         super().__init__(context)
         self._radius = radius
         self._other_ratio = other_ratio  # Tesla Model 3 的比例（0.0-1.0）
@@ -54,10 +54,13 @@ class FactorTrafficTwoWheels(Factor):
             self._agents.append(agent)
 
         self._context.tick()
+        self._context.actors.wait_stable()
 
         for agent in self._agents:
             if agent.actor is not None:
                 agent.set_carla_autopilot(enable=True)
+
+        self._vehicle.set_carla_autopilot(enable=True)
 
         return super().setup()
 
