@@ -467,6 +467,9 @@ class CarlaActorManager:
         # 当 actors 为空时，使用注册表中的所有 actors
         if not actors:
             actors = tuple(self._actors.values())
+
+        # 过滤掉没有绑定实际 actor 的 actors
+        actors = [actor for actor in actors if actor.actor is not None]
         
         # 记录每个 actor 的上次变换和稳定状态
         last_transforms: Dict[str, carla.Transform] = {}
