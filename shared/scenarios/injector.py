@@ -28,7 +28,7 @@ class Injector:
     def _post_init(self) -> Self:
         self._context.bind_tick_blocker(self.TICK_BLOCKER_TOKEN, self._tick_blocker)
         self.logger.info(f'Initialized with {len(self._factors)} factors')
-        self.logger.debug(f'Factors: {", ".join([factor.NAME for factor in self._factors])}')
+        self.logger.debug(f'Factors: {", ".join([factor.NAME for factor in self._factors if factor is not None])}')
         return self
 
     def __enter__(self) -> Self:
@@ -40,7 +40,9 @@ class Injector:
         return
 
     def setup(self) -> None:
-        for factor in sorted(self._factors, key=lambda x: x.PRIORITY, reverse=True):
+        for factor in sorted([f for f in self._factors if f is not None], key=lambda x: x.PRIORITY, reverse=True):
+            if factor is None:
+                continue
             if factor.PRIORITY:
                 self._context.flag_ignore_dead_detector = True
             factor.setup()
@@ -54,12 +56,16 @@ class Injector:
         self._tick_blocker.set()
         
         for factor in self._factors:
+            if factor is None:
+                continue
             factor.tick()
         
         self._tick_blocker.clear()
 
     def teardown(self) -> None:
         for factor in self._factors:
+            if factor is None:
+                continue
             factor.teardown()
         self.logger.info(f'All factors teardown completed')
         return self
