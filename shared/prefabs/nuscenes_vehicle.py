@@ -26,6 +26,9 @@ class NuScenesVehicle(CarlaVehicle):
     注意: nuScenes 的相机命名约定是从车辆前方看，左侧是 FRONT_LEFT，右侧是 FRONT_RIGHT
     """
 
+    CAM_GAME_NAME = 'CAM_GAME'
+    CAM_GAME_TF = CarlaTransform(x=-5.5, y=0.0, z=2.5, pitch=-15.0)
+
     CAM_FRONT_NAME = 'CAM_FRONT'
     CAM_FRONT_TF = CarlaTransform(x=1.50, y=0.00, z=2.00, yaw=0.0)
 
@@ -62,6 +65,7 @@ class NuScenesVehicle(CarlaVehicle):
         self._context.actors.resolve_attributes(self, attributes)
         self._context.actors.add(self)
 
+        self.cam_game: CarlaSensor | None = None
         self.cam_front: CarlaSensor | None = None
         self.cam_front_left: CarlaSensor | None = None
         self.cam_front_right: CarlaSensor | None = None
@@ -82,6 +86,13 @@ class NuScenesVehicle(CarlaVehicle):
 
     def _post_init(self):
         # self就是vehicle，不需要再创建
+        self.cam_game = self._context.actors.create_sensor(
+            bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
+            name=self.CAM_GAME_NAME,
+            tf=self.CAM_GAME_TF,
+            parent=self,
+        )
+
         self.cam_front = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
             name=self.CAM_FRONT_NAME,
