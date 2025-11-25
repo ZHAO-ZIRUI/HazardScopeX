@@ -116,7 +116,7 @@ class CarlaActor:
         return self._tick_blocker
 
     @property
-    @require_actor_alive
+    # @require_actor_alive
     def tf_now(self) -> carla.Transform:
         """当前变换"""
         return self._actor.get_transform()
@@ -189,7 +189,7 @@ class CarlaActor:
                 raise e
         return self
 
-    @warn_actor_not_alive
+    # @warn_actor_not_alive
     def destroy(self) -> Self:
         """销毁 Actor 实例"""
         if self._actor is None:
