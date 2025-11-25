@@ -23,13 +23,12 @@ if __name__ == "__main__":
         context.io.create_ros2_hp(ros_topic_name='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
         context.io.create_ros2_hp(ros_topic_name='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar_main)
 
-        # f1 = FactorEnvNoon(context)
-        f1 = FactorCaseRampWrongWay(context, vehicle)
+        
+        f1 = FactorCaseHighwayMissExit(context, vehicle)
+
         factors = [f1]
         
         with Injector(context, *factors) as injector:       # 执行注入
-
-            # vehicle.set_carla_autopilot(enable=True)
             context.spin()
 
     logger.info('Goodbye!')
