@@ -1,27 +1,30 @@
 import yaml
 import json
+import uuid
 from types import NoneType
-from typing import Dict, Any
+from typing import Any, TypeVar
 from typing_extensions import Self
 
 
-class Config:
+class ExternalConfigReader:
     """
-    配置文件读取类
+    外部配置文件读取类, 用于读取外部配置文件
     """
+    T = TypeVar('T', int, float, str, bool, NoneType)
 
-    ALLOWED_TYPES = (int, float, str, bool, NoneType)
+    RAISE_EXCEPTION = str(uuid.uuid4())  # 用于在找不到配置项时抛出异常的唯一标识符
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: dict):
         self._config = config
 
-    def get(self, route: str, target_type: type = NoneType, *, default=None) -> Any:
-        """以路由地柜方式找到深层字典中的值, 并进行类型转换. 
+    def get(self, route: str, default: T | None = RAISE_EXCEPTION) -> T:
+        """以路由递归方式找到深层字典中的值, 并进行类型转换. 
+
+        注意: default 的类型会影响类型转换, 例如 default 为 int, 则返回值也会被转换为 int.
     
         Args:
             route (str): 路由, 以 / 分隔, 如: /foo/bar
-            default (_type_, optional): 默认值.
-            target_type (type, optional): 类型转换类型.
+            default (T | None, optional): 默认值. 如果为 RAISE_EXCEPTION, 则当找不到配置项时抛出异常.
 
         Returns:
             Any: 根据类型转换类型, 返回对应的值.
@@ -43,16 +46,19 @@ class Config:
                 current = current[key]
             else:
                 # 未找到配置项，返回默认值
-                return default
+                if default == self.RAISE_EXCEPTION:
+                    msg = f"Config item not found with no default value: {route}"
+                    raise KeyError(f"Config item not found: {route}")
+                else:
+                    return default
 
-        # 找到了配置项，进行类型转换
-        return self._type_convert(current, target_type)
-
+        # 找到配置项
+        if default == self.RAISE_EXCEPTION:
+            return current
+        else:
+            return self._type_convert(current, type(default))
         
     def _type_convert(self, value: Any, target_type: type) -> Any:
-        if target_type not in self.ALLOWED_TYPES:
-            raise TypeError(f"Invalid target type: {target_type}")
-
         # None, 不进行任何转换
         if target_type == NoneType:
             return value
