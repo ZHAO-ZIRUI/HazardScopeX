@@ -47,7 +47,9 @@ class Logging:
         return logging.getLogger(name)
 
     @classmethod
-    def from_config(cls, config: Config) -> Self:
+    def load(cls, config: ExternalConfigReader | Path) -> Self:
+        if isinstance(config, Path):
+            config = ExternalConfigReader.load(config)
         level: str = config.get("logging/level")
         
         # 将 level 转换为 logging 的级别
