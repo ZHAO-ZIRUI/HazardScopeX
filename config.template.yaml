@@ -2,10 +2,8 @@
 # YOU SHOULD COPY THIS FILE AND RENAME IT TO config.yaml
 # 该文件是配置文件的模板, 你应当复制该文件并重命名为 config.yaml, 并编辑该文件以满足你的需求
 
-# VARIABLES
-# <PROJECT_ROOT> 表示项目根目录
 
-# 日志配置
+# 日志
 logging:
   # 日志级别
   # 可选: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -17,32 +15,40 @@ context:
   server:
     host: 127.0.0.1 # 除非使用外部服务器, 否则不要修改该值
     port: 2000
-    timeout: 10
-
-    # 服务端同步模式的速度, 单位: FPS
-    # 该同步模式的设置方式与以往不同, 在服务端启动时指定, 且不需再由 world.settings 指定
-    sync_mode_fps: 20
     
-    # 是否使用外部服务器,
-    # 如果为 true, 则 CarlaContext 不再管理 CARLA 服务端的生命周期, 且以下配置将会失效
-    use_external_server: false
+    # 运行时配置
+    runtime:
+      # 服务端同步模式的速度, 单位: FPS
+      # 该同步模式的设置方式与以往不同, 在服务端启动时指定, 且不需再由 world.settings 指定
+      sync_mode_fps: 20
+      # 服务端超时时间
+      # 建议该值设置为略大于服务端重新加载地图所需要的时间, 与计算机的性能有关
+      timeout_seconds: 10
 
-    # 注意: 本工程使用了 CARLA 的 MULTI_GPU 功能
-    # 参考: https://carla.readthedocs.io/en/latest/adv_multigpu/
-    
-    # 服务端的可执行文件路径
-    # 在 Windows 下, 该路径需要以 .exe 结尾
-    # 在 Linux 下, 该路径需要以 .sh 结尾
-    exe_path: ""
+    # 自管理模式, 该模式下 CarlaContext 将自动管理 CARLA 服务端的生命周期
+    self_managed:
+      # 是否启用自管理模式
+      enabled: false
+      # 服务端的可执行文件路径
+      # 在 Windows 下, 该路径需要以 .exe 结尾
+      # 在 Linux 下, 该路径需要以 .sh 结尾
+      exe_path: ""
+      # 服务端启动时的等待时间
+      bringup_init_wait_seconds: 5
+      # 服务端启动时的超时时间
+      bringup_timeout_seconds: 10
+      # 服务端启动时, 如果发现存在残留进程, 程序会进行 KILL 操作, 该值用于控制等待时间
+      bringup_after_kill_wait_seconds: 2
 
-    # 使用多 GPU 功能
-    use_multi_gpu: false
-    gpus:
-      - 0
-
-    # 服务端启动时的等待时间
-    server_start_wait_time: 5
-    server_start_timeout: 10
+    # 多 GPU 功能, 参考: https://carla.readthedocs.io/en/latest/adv_multigpu/
+    # 启用多 GPU 功能时, 需要将 self_managed.enabled 设置为 true
+    multi_gpu:
+      enabled: false
+      # 使用的 GPU 编号, 通过 nvidia-smi 命令查看
+      gpu_ids:
+        - 0
+      # 端口偏移量, 用于避免端口冲突, 建议保持默认值
+      port_offset: 2
 
   # Actor 管理器配置
   actors:
