@@ -1,11 +1,12 @@
 import logging
 import time
 import carla
+from pathlib import Path
 from typing import Callable, Dict
 from rich.logging import RichHandler
 from typing_extensions import Self
 
-from shared.utils import Config
+from shared.configs import ExternalConfigReader
 
 
 class Logging:
@@ -28,10 +29,10 @@ class Logging:
         # 单例模式下，确保只初始化一次
         if not Logging._initialized:
             self.level = level
-            self._post_init()
+            self.__post_init__()
             Logging._initialized = True
 
-    def _post_init(self):
+    def __post_init__(self):
         self._init_basic_config()
         self.get_logger('Logging').info('Initialized')
 
