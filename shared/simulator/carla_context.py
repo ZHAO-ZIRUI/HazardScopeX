@@ -359,9 +359,10 @@ class CarlaContext:
     def wait_ticks(self, ticks: int) -> Self:
         """等待指定帧数"""
         self.logger.info(f'Waiting {ticks} ticks ...')
-        begin = time.perf_counter()
-        while time.perf_counter() - begin < ticks:
+        tick_counter = 0
+        while tick_counter < ticks:
             self.tick()
+            tick_counter += 1
             time.sleep(1/self._sync_mode_fps)
         self.logger.info(f'Waiting finished')
         return self
