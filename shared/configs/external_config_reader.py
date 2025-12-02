@@ -30,16 +30,21 @@ class ExternalConfigReader:
             Any: 根据类型转换类型, 返回对应的值.
         """
         if not route:
+            if default == self.RAISE_EXCEPTION:
+                msg = f"Config item not found: empty route"
+                self.logger.error(msg)
+                raise KeyError(msg)
             return default
 
         # 清理 route 头尾可能存在的 /
-        if route.startswith('/'):
-            route = route[1:]
-        if route.endswith('/'):
-            route = route[:-1]
+        normalized_route = route
+        if normalized_route.startswith('/'):
+            normalized_route = normalized_route[1:]
+        if normalized_route.endswith('/'):
+            normalized_route = normalized_route[:-1]
 
         # 执行递归查找
-        keys = route.split('/')
+        keys = normalized_route.split('/')
         current = self._config
         for key in keys:
             if isinstance(current, dict) and key in current:
@@ -47,7 +52,6 @@ class ExternalConfigReader:
             else:
                 # 未找到配置项，返回默认值
                 if default == self.RAISE_EXCEPTION:
-                    msg = f"Config item not found with no default value: {route}"
                     raise KeyError(f"Config item not found: {route}")
                 else:
                     return default
@@ -107,12 +111,12 @@ class ExternalConfigReader:
 
     @classmethod
     def from_yaml(cls, file_path: str) -> Self:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             config = yaml.load(file, Loader=yaml.FullLoader)
         return cls(config)
 
     @classmethod
     def from_json(cls, file_path: str) -> Self:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             config = json.load(file)
         return cls(config)
