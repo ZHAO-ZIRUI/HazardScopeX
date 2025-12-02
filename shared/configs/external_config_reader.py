@@ -1,6 +1,7 @@
 import yaml
 import json
 import uuid
+from pathlib import Path
 from types import NoneType
 from typing import Any, TypeVar
 from typing_extensions import Self
@@ -108,13 +109,21 @@ class ExternalConfigReader:
         return str(value)
 
     @classmethod
-    def from_yaml(cls, file_path: str) -> Self:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            config = yaml.load(file, Loader=yaml.FullLoader)
-        return cls(config)
+    def load(cls, file_path: Path) -> Self:
+        """从文件加载配置
+        
+        Args:
+            file_path (Path): 配置文件路径，支持 .yaml 和 .json 格式
 
-    @classmethod
-    def from_json(cls, file_path: str) -> Self:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            config = json.load(file)
+        Returns:
+            Self: ExternalConfigReader 实例
+        """
+        if file_path.suffix == '.yaml':
+            with file_path.open('r', encoding='utf-8') as file:
+                config = yaml.load(file, Loader=yaml.FullLoader)
+        elif file_path.suffix == '.json':
+            with file_path.open('r', encoding='utf-8') as file:
+                config = json.load(file)
+        else:
+            raise ValueError(f"Unsupported config file format: {file_path.suffix}")
         return cls(config)

@@ -3,6 +3,7 @@ import tempfile
 import os
 import yaml
 import json
+from pathlib import Path
 from types import NoneType
 
 from shared.configs.external_config_reader import ExternalConfigReader
@@ -207,8 +208,8 @@ class TestExternalConfigReader(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.reader._type_convert([1, 2, 3], float)
 
-    def test_from_yaml(self):
-        """测试从 YAML 文件创建实例"""
+    def test_load_from_yaml(self):
+        """测试从 YAML 文件加载配置"""
         test_data = {
             'key1': 'value1',
             'key2': {
@@ -218,17 +219,17 @@ class TestExternalConfigReader(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             yaml.dump(test_data, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            reader = ExternalConfigReader.from_yaml(temp_path)
+            reader = ExternalConfigReader.load(temp_path)
             self.assertEqual(reader.get('key1'), 'value1')
             self.assertEqual(reader.get('key2/nested'), 42)
         finally:
             os.unlink(temp_path)
 
-    def test_from_json(self):
-        """测试从 JSON 文件创建实例"""
+    def test_load_from_json(self):
+        """测试从 JSON 文件加载配置"""
         test_data = {
             'key1': 'value1',
             'key2': {
@@ -238,12 +239,25 @@ class TestExternalConfigReader(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(test_data, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
-            reader = ExternalConfigReader.from_json(temp_path)
+            reader = ExternalConfigReader.load(temp_path)
             self.assertEqual(reader.get('key1'), 'value1')
             self.assertEqual(reader.get('key2/nested'), 42)
+        finally:
+            os.unlink(temp_path)
+
+    def test_load_unsupported_format(self):
+        """测试不支持的文件格式抛出异常"""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+            f.write('test content')
+            temp_path = Path(f.name)
+
+        try:
+            with self.assertRaises(ValueError) as context:
+                ExternalConfigReader.load(temp_path)
+            self.assertIn('Unsupported config file format', str(context.exception))
         finally:
             os.unlink(temp_path)
 

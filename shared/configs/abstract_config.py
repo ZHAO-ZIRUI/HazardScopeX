@@ -1,4 +1,5 @@
 from abc import ABC
+from pathlib import Path
 from typing_extensions import Self
 from dataclasses import dataclass, fields
 
@@ -14,11 +15,11 @@ class AbstractConfig(ABC):
     """
 
     @classmethod
-    def load(cls, path_or_reader: str | ExternalConfigReader) -> Self:
+    def load(cls, path_or_reader: Path | ExternalConfigReader) -> Self:
         """加载配置
         
         Args:
-            path_or_reader (str | ExternalConfigReader): 配置路径或 ExternalConfigReader 实例
+            path_or_reader (Path | ExternalConfigReader): 配置路径或 ExternalConfigReader 实例
 
         Returns:
             Self: 配置实例
@@ -27,30 +28,17 @@ class AbstractConfig(ABC):
         instance = cls()
         
         # 解析配置源
-        if isinstance(path_or_reader, str) and path_or_reader.endswith('.yaml'):
-            reader = ExternalConfigReader.from_yaml(path_or_reader)
-        elif isinstance(path_or_reader, str) and path_or_reader.endswith('.json'):
-            reader = ExternalConfigReader.from_json(path_or_reader)
+        if isinstance(path_or_reader, Path):
+            reader = ExternalConfigReader.load(path_or_reader)
         elif isinstance(path_or_reader, ExternalConfigReader):
             reader = path_or_reader
         else:
             raise ValueError(f"Invalid config path or reader: {path_or_reader}")
         
         # 根据配置覆盖默认值
-        instance._override_from_reader(reader)
-        return instance
-
-    def _override_from_reader(self, reader: ExternalConfigReader) -> Self:
-        """从 ExternalConfigReader 更新实例字段
-        
-        Args:
-            reader (ExternalConfigReader): ExternalConfigReader 实例
-
-        Returns:
-            Self: 配置实例
-        """
-        for field in fields(self):
+        for field in fields(instance):
             if field.metadata.get('route') is not None:
                 route = field.metadata['route']
-                setattr(self, field.name, reader.get(route, default=field.default))
-        return self
+                setattr(instance, field.name, reader.get(route, default=field.default))
+        
+        return instance

@@ -4,6 +4,7 @@ import os
 import yaml
 import json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from shared.configs.abstract_config import AbstractConfig
 from shared.configs.external_config_reader import ExternalConfigReader
@@ -43,7 +44,7 @@ class TestAbstractConfig(unittest.TestCase):
         """测试从 YAML 文件加载配置"""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             yaml.dump(self.test_config_dict, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
             config = SampleConfig.load(temp_path)
@@ -60,7 +61,7 @@ class TestAbstractConfig(unittest.TestCase):
         """测试从 JSON 文件加载配置"""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(self.test_config_dict, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
             config = SampleConfig.load(temp_path)
@@ -118,32 +119,25 @@ class TestAbstractConfig(unittest.TestCase):
     def test_load_invalid_path_raises_error(self):
         """测试无效路径抛出异常"""
         with self.assertRaises(ValueError) as context:
-            SampleConfig.load('invalid.txt')
-        self.assertIn('Invalid config path or reader', str(context.exception))
+            SampleConfig.load(Path('invalid.txt'))
+        self.assertIn('Unsupported config file format', str(context.exception))
 
         with self.assertRaises(ValueError) as context:
-            SampleConfig.load(123)  # 非字符串非 reader
+            SampleConfig.load(123)  # 非 Path 非 reader
         self.assertIn('Invalid config path or reader', str(context.exception))
 
     def test_load_nonexistent_file_raises_error(self):
         """测试不存在的文件抛出异常"""
         with self.assertRaises(FileNotFoundError):
-            SampleConfig.load('nonexistent.yaml')
+            SampleConfig.load(Path('nonexistent.yaml'))
 
         with self.assertRaises(FileNotFoundError):
-            SampleConfig.load('nonexistent.json')
+            SampleConfig.load(Path('nonexistent.json'))
 
-    def test_override_from_reader(self):
-        """测试 _override_from_reader 方法"""
-        config = SampleConfig()
+    def test_load_overrides_default_values(self):
+        """测试 load 方法覆盖默认值"""
         reader = ExternalConfigReader(self.test_config_dict)
-        
-        # 验证初始默认值
-        self.assertEqual(config.str_field, 'default_str')
-        self.assertEqual(config.int_field, 100)
-        
-        # 执行覆盖
-        config._override_from_reader(reader)
+        config = SampleConfig.load(reader)
         
         # 验证覆盖后的值
         self.assertEqual(config.str_field, 'loaded_str')
@@ -153,9 +147,8 @@ class TestAbstractConfig(unittest.TestCase):
         self.assertEqual(config.nested_field, 'nested_loaded')
         self.assertEqual(config.no_route_field, 'no_route')  # 没有 route，不受影响
 
-    def test_override_from_reader_with_missing_fields(self):
-        """测试 _override_from_reader 处理缺失字段"""
-        config = SampleConfig()
+    def test_load_with_missing_fields_uses_defaults(self):
+        """测试 load 方法处理缺失字段时使用默认值"""
         partial_config = {
             'test': {
                 'str': 'new_str'
@@ -163,20 +156,17 @@ class TestAbstractConfig(unittest.TestCase):
             }
         }
         reader = ExternalConfigReader(partial_config)
-        
-        config._override_from_reader(reader)
+        config = SampleConfig.load(reader)
         
         self.assertEqual(config.str_field, 'new_str')
         self.assertEqual(config.int_field, 100)  # 使用默认值
         self.assertEqual(config.float_field, 3.14)  # 使用默认值
         self.assertEqual(config.bool_field, True)  # 使用默认值
 
-    def test_override_from_reader_with_none_route(self):
-        """测试 _override_from_reader 处理 route 为 None 的字段"""
-        config = SampleConfig()
+    def test_load_with_none_route_field(self):
+        """测试 load 方法处理 route 为 None 的字段"""
         reader = ExternalConfigReader(self.test_config_dict)
-        
-        config._override_from_reader(reader)
+        config = SampleConfig.load(reader)
         
         # no_route_field 的 metadata 中没有 route 或 route 为 None，应该保持默认值
         self.assertEqual(config.no_route_field, 'no_route')
@@ -205,7 +195,7 @@ class TestAbstractConfig(unittest.TestCase):
         empty_config = {}
         with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
             yaml.dump(empty_config, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
             config = SampleConfig.load(temp_path)
@@ -222,7 +212,7 @@ class TestAbstractConfig(unittest.TestCase):
         empty_config = {}
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
             json.dump(empty_config, f)
-            temp_path = f.name
+            temp_path = Path(f.name)
 
         try:
             config = SampleConfig.load(temp_path)
@@ -234,14 +224,6 @@ class TestAbstractConfig(unittest.TestCase):
         finally:
             os.unlink(temp_path)
 
-    def test_override_from_reader_returns_self(self):
-        """测试 _override_from_reader 返回自身"""
-        config = SampleConfig()
-        reader = ExternalConfigReader(self.test_config_dict)
-        
-        result = config._override_from_reader(reader)
-        
-        self.assertIs(result, config)
 
     def test_load_with_complex_nested_structure(self):
         """测试加载复杂的嵌套结构"""
