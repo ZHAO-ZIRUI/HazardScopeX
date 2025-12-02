@@ -6,6 +6,7 @@
 
 # Ignore Python Cache
 __pycache__/
+.pytest_cache/
 
 # Ignore user config
 config.yaml
