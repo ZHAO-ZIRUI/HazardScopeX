@@ -24,3 +24,7 @@ export/*
 # Ignore tmp files
 tmp/*
 !tmp/.gitkeep
+
+# Ignore coverage test files
+.coverage
+coverage.xml
