@@ -31,9 +31,7 @@ class ExternalConfigReader:
         """
         if not route:
             if default == self.RAISE_EXCEPTION:
-                msg = f"Config item not found: empty route"
-                self.logger.error(msg)
-                raise KeyError(msg)
+                raise KeyError("Config item not found: empty route")
             return default
 
         # 清理 route 头尾可能存在的 /
