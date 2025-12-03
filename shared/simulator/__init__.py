@@ -7,8 +7,10 @@ from .carla_actor_manager import CarlaActorManager
 from .carla_io_manager import CarlaIOManager
 from .carla_recorder import CarlaRecorder
 from .carla_context import CarlaContext
+from .carla_tick_blocker import CarlaTickBlocker
 
 __all__ = [
+    "CarlaTickBlocker",
     "CarlaContext",
     "CarlaActor",
     "CarlaVehicle",
