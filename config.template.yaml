@@ -23,7 +23,11 @@ context:
       sync_mode_fps: 20
       # 服务端超时时间
       # 建议该值设置为略大于服务端重新加载地图所需要的时间, 与计算机的性能有关
-      timeout_seconds: 10
+      timeout_seconds: 2.0
+      # 重操作超时时间
+      heavy_operation_timeout_seconds: 60.0
+      # TickBlocker 超时时间
+      blocker_timeout_seconds: 1.0
 
     # 自管理模式, 该模式下 CarlaContext 将自动管理 CARLA 服务端的生命周期
     self_managed:

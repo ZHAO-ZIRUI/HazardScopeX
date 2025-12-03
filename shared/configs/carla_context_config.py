@@ -26,3 +26,5 @@ class CarlaContextConfig(AbstractConfig):
     # 运行时配置
     runtime_sync_mode_fps: float = field(default=20.0, metadata={'route': 'context/server/runtime/sync_mode_fps'})
     runtime_timeout_seconds: float = field(default=10.0, metadata={'route': 'context/server/runtime/timeout_seconds'})
+    runtime_heavy_operation_timeout_seconds: float = field(default=60.0, metadata={'route': 'context/server/runtime/heavy_operation_timeout_seconds'})
+    runtime_blocker_timeout_seconds: float = field(default=1.0, metadata={'route': 'context/server/runtime/blocker_timeout_seconds'})
