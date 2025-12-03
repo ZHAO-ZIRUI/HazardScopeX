@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 
 class CarlaBlueprints(Enum):
@@ -232,3 +233,71 @@ class CarlaBlueprints(Enum):
     WALKER_PEDESTRIAN_0050 = 'walker.pedestrian.0050'
     WALKER_PEDESTRIAN_0051 = 'walker.pedestrian.0051'
     WALKER_PEDESTRIAN_0052 = 'walker.pedestrian.0052'
+
+    def walkers(self) -> list[str]:
+        """获取所有行人蓝图"""
+        return [walker.value for walker in self.__members__.values() if walker.value.startswith('walker.pedestrian.')]
+    
+    def vehicles(self, filter: Literal[None, 'car', 'large', 'emergency', '2wheel'] = None) -> list[str]:
+        """获取所有车辆蓝图
+        
+        Args:
+            filter (Literal[None, 'car', 'large', 'emergency', '2wheel']): 过滤条件
+                None: 不进行过滤
+                'car': 仅获取小型家用车, 含轿车和SUV和小型货车
+                'large': 仅获取大型车辆
+                'emergency': 仅获取应急车辆
+                '2wheel': 仅获取两轮车
+        
+        Returns:
+            list[str]: 符合条件的车辆蓝图列表
+        """
+        all_vehicles = [vehicle.value for vehicle in self.__members__.values() if vehicle.value.startswith('vehicle.')]
+        
+        if filter is None:
+            return all_vehicles
+        
+        # 两轮车: 摩托车、踏板车、自行车
+        two_wheel_vehicles = {
+            'vehicle.vespa.zx125',
+            'vehicle.yamaha.yzf',
+            'vehicle.harley-davidson.low_rider',
+            'vehicle.kawasaki.ninja',
+            'vehicle.gazelle.omafiets',
+            'vehicle.diamondback.century',
+            'vehicle.bh.crossbike',
+        }
+        
+        # 应急车辆: 消防车、救护车、警车
+        emergency_vehicles = {
+            'vehicle.carlamotors.firetruck',
+            'vehicle.ford.ambulance',
+            'vehicle.dodge.charger_police_2020',
+        }
+        
+        # 大型车辆: 重型货车、大型货车、面包车、皮卡、公交车、大型应急车辆
+        large_vehicles = {
+            'vehicle.carlamotors.european_hgv',
+            'vehicle.volkswagen.t2',
+            'vehicle.mitsubishi.fusorosa',
+            'vehicle.mercedes.sprinter',
+            'vehicle.tesla.cybertruck',
+            'vehicle.carlamotors.firetruck',
+            'vehicle.ford.ambulance',
+        }
+        
+        if filter == '2wheel':
+            return [v for v in all_vehicles if v in two_wheel_vehicles]
+        elif filter == 'emergency':
+            return [v for v in all_vehicles if v in emergency_vehicles]
+        elif filter == 'large':
+            return [v for v in all_vehicles if v in large_vehicles]
+        elif filter == 'car':
+            # 小型家用车: 排除两轮车、应急车辆、大型车辆, 但保留皮卡和小型货车
+            excluded = two_wheel_vehicles | emergency_vehicles | large_vehicles
+            cars = [v for v in all_vehicles if v not in excluded]
+            # 保留皮卡和小型货车
+            cars.extend(['vehicle.mercedes.sprinter', 'vehicle.tesla.cybertruck'])
+            return cars
+        
+        return all_vehicles
