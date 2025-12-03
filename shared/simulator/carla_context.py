@@ -16,7 +16,7 @@ from contextlib import contextmanager
 
 from shared.configs import CarlaContextConfig, ExternalConfigReader
 from shared.utils import Logging
-from shared.simulator import CarlaTickBlocker
+from shared.simulator import CarlaTickBlocker, CarlaMaps
 
 class CarlaContext:
     """
@@ -309,8 +309,12 @@ class CarlaContext:
             time.sleep(1/self._config.runtime_sync_mode_fps)
         self.logger.debug(f'Waiting finished: {ticks} ticks')
 
-    def change_map(self, map_name: str):
+    def change_map(self, map: str | CarlaMaps):
         with self.heavy_operation():
+            if isinstance(map, CarlaMaps):
+                map_name = map.value
+            else:
+                map_name = map
             self.client.load_world(map_name)
             self.world.tick()  # 这里使用 carla.world.tick()
             self.logger.info(f'Map changed to {map_name}, fullname: "{self.world.get_map().name}"')
