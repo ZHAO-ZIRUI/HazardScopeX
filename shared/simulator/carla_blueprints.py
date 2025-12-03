@@ -4,7 +4,7 @@ from enum import Enum
 class CarlaBlueprints(Enum):
     """CARLA 蓝图枚举类
     
-    包含所有CARLA蓝图库中的蓝图标识符
+    包含所有CARLA蓝图库中的蓝图标识符, 目前以 CARLA 0.9.16 版本为准
     参考: https://carla.readthedocs.io/en/latest/bp_library/
     """
     
@@ -12,6 +12,7 @@ class CarlaBlueprints(Enum):
     CONTROLLER_AI_WALKER = 'controller.ai.walker'
     
     # 传感器 - 相机
+    SENSOR_CAMERA_COSMOS_VISUALIZATION = 'sensor.camera.cosmos_visualization'
     SENSOR_CAMERA_DEPTH = 'sensor.camera.depth'
     SENSOR_CAMERA_DVS = 'sensor.camera.dvs'
     SENSOR_CAMERA_INSTANCE_SEGMENTATION = 'sensor.camera.instance_segmentation'
@@ -32,10 +33,15 @@ class CarlaBlueprints(Enum):
     SENSOR_OTHER_OBSTACLE = 'sensor.other.obstacle'
     SENSOR_OTHER_RADAR = 'sensor.other.radar'
     SENSOR_OTHER_RSS = 'sensor.other.rss'
+    SENSOR_OTHER_V2X = 'sensor.other.v2x'
+    SENSOR_OTHER_V2X_CUSTOM = 'sensor.other.v2x_custom'
     
     # 静态物体
     STATIC_PROP_ADVERTISEMENT = 'static.prop.advertisement'
+    STATIC_PROP_APOROSATREE = 'static.prop.aporosatree'
     STATIC_PROP_ATM = 'static.prop.atm'
+    STATIC_PROP_BARBEQUE = 'static.prop.barbeque'
+    STATIC_PROP_BARREL = 'static.prop.barrel'
     STATIC_PROP_BIN = 'static.prop.bin'
     STATIC_PROP_BOX01 = 'static.prop.box01'
     STATIC_PROP_BOX02 = 'static.prop.box02'
@@ -46,20 +52,24 @@ class CarlaBlueprints(Enum):
     STATIC_PROP_BROKENTILE03 = 'static.prop.brokentile03'
     STATIC_PROP_BROKENTILE04 = 'static.prop.brokentile04'
     STATIC_PROP_BUSSTOP = 'static.prop.busstop'
+    STATIC_PROP_BUSSTOPLB = 'static.prop.busstoplb'
     STATIC_PROP_CALIBRATOR = 'static.prop.calibrator'
     STATIC_PROP_CHAINBARRIER = 'static.prop.chainbarrier'
-    STATIC_PROP_CHAINBARRIERGATE = 'static.prop.chainbarriergate'
+    STATIC_PROP_CHAINBARRIEREND = 'static.prop.chainbarrierend'
     STATIC_PROP_CLOTHCONTAINER = 'static.prop.clothcontainer'
     STATIC_PROP_CLOTHESLINE = 'static.prop.clothesline'
     STATIC_PROP_COLACAN = 'static.prop.colacan'
     STATIC_PROP_CONSTRUCTIONCONE = 'static.prop.constructioncone'
     STATIC_PROP_CONTAINER = 'static.prop.container'
+    STATIC_PROP_COCONUTPALM = 'static.prop.coconutpalm'
     STATIC_PROP_CREASEDBOX01 = 'static.prop.creasedbox01'
     STATIC_PROP_CREASEDBOX02 = 'static.prop.creasedbox02'
     STATIC_PROP_CREASEDBOX03 = 'static.prop.creasedbox03'
+    STATIC_PROP_CYPRESSTREE = 'static.prop.cypresstree'
     STATIC_PROP_DIRTDEBRIS01 = 'static.prop.dirtdebris01'
     STATIC_PROP_DIRTDEBRIS02 = 'static.prop.dirtdebris02'
     STATIC_PROP_DIRTDEBRIS03 = 'static.prop.dirtdebris03'
+    STATIC_PROP_DOGHOUSE = 'static.prop.doghouse'
     STATIC_PROP_FOODCART = 'static.prop.foodcart'
     STATIC_PROP_FOUNTAIN = 'static.prop.fountain'
     STATIC_PROP_GARBAGE01 = 'static.prop.garbage01'
@@ -70,26 +80,17 @@ class CarlaBlueprints(Enum):
     STATIC_PROP_GARBAGE06 = 'static.prop.garbage06'
     STATIC_PROP_GARDENLAMP = 'static.prop.gardenlamp'
     STATIC_PROP_GLASSCONTAINER = 'static.prop.glasscontainer'
+    STATIC_PROP_HAYBALELB = 'static.prop.haybalelb'
     STATIC_PROP_GNOME = 'static.prop.gnome'
     STATIC_PROP_GUITARCASE = 'static.prop.guitarcase'
     STATIC_PROP_IRONPLANK = 'static.prop.ironplank'
     STATIC_PROP_KIOSK_01 = 'static.prop.kiosk_01'
     STATIC_PROP_MAILBOX = 'static.prop.mailbox'
     STATIC_PROP_MAPTABLE = 'static.prop.maptable'
-    STATIC_PROP_MESH_01 = 'static.prop.mesh_01'
-    STATIC_PROP_MESH_02 = 'static.prop.mesh_02'
-    STATIC_PROP_MESH_03 = 'static.prop.mesh_03'
-    STATIC_PROP_MESH_04 = 'static.prop.mesh_04'
-    STATIC_PROP_MESH_05 = 'static.prop.mesh_05'
-    STATIC_PROP_MESH_06 = 'static.prop.mesh_06'
-    STATIC_PROP_MESH_07 = 'static.prop.mesh_07'
-    STATIC_PROP_MESH_08 = 'static.prop.mesh_08'
-    STATIC_PROP_MESH_09 = 'static.prop.mesh_09'
-    STATIC_PROP_MESH_10 = 'static.prop.mesh_10'
-    STATIC_PROP_MESH_11 = 'static.prop.mesh_11'
-    STATIC_PROP_MESH_12 = 'static.prop.mesh_12'
+    STATIC_PROP_MESH = 'static.prop.mesh'
     STATIC_PROP_MOTORHELMET = 'static.prop.motorhelmet'
     STATIC_PROP_PERGOLA = 'static.prop.pergola'
+    STATIC_PROP_PLASTICBAG = 'static.prop.plasticbag'
     STATIC_PROP_PLANTPOT01 = 'static.prop.plantpot01'
     STATIC_PROP_PLANTPOT02 = 'static.prop.plantpot02'
     STATIC_PROP_PLANTPOT03 = 'static.prop.plantpot03'
@@ -106,6 +107,9 @@ class CarlaBlueprints(Enum):
     STATIC_PROP_SLIDE = 'static.prop.slide'
     STATIC_PROP_STREETBARRIER = 'static.prop.streetbarrier'
     STATIC_PROP_STREETFOUNTAIN = 'static.prop.streetfountain'
+    STATIC_PROP_STREETSIGN = 'static.prop.streetsign'
+    STATIC_PROP_STREETSIGN01 = 'static.prop.streetsign01'
+    STATIC_PROP_STREETSIGN04 = 'static.prop.streetsign04'
     STATIC_PROP_SWING = 'static.prop.swing'
     STATIC_PROP_SWINGCOUCH = 'static.prop.swingcouch'
     STATIC_PROP_TABLE = 'static.prop.table'
@@ -124,6 +128,7 @@ class CarlaBlueprints(Enum):
     STATIC_PROP_WARNINGACCIDENT = 'static.prop.warningaccident'
     STATIC_PROP_WARNINGCONSTRUCTION = 'static.prop.warningconstruction'
     STATIC_PROP_WATERINGCAN = 'static.prop.wateringcan'
+    STATIC_PROP_BIKE_HELMET = 'static.prop.bike helmet'
     STATIC_TRIGGER_FRICTION = 'static.trigger.friction'
     
     # 车辆
@@ -150,6 +155,7 @@ class CarlaBlueprints(Enum):
     VEHICLE_MERCEDES_SPRINTER = 'vehicle.mercedes.sprinter'
     VEHICLE_MICRO_MICROLINO = 'vehicle.micro.microlino'
     VEHICLE_MINI_COOPER_S = 'vehicle.mini.cooper_s'
+    VEHICLE_MITSUBISHI_FUSOROSA = 'vehicle.mitsubishi.fusorosa'
     VEHICLE_MINI_COOPER_S_2021 = 'vehicle.mini.cooper_s_2021'
     VEHICLE_NISSAN_MICRA = 'vehicle.nissan.micra'
     VEHICLE_NISSAN_PATROL = 'vehicle.nissan.patrol'
@@ -169,6 +175,9 @@ class CarlaBlueprints(Enum):
     VEHICLE_GAZELLE_OMAFIETS = 'vehicle.gazelle.omafiets'
     VEHICLE_DIAMONDBACK_CENTURY = 'vehicle.diamondback.century'
     VEHICLE_BH_CROSSBIKE = 'vehicle.bh.crossbike'
+    
+    # 工具类
+    UTIL_ACTOR_EMPTY = 'util.actor.empty'
     
     # 行人
     WALKER_PEDESTRIAN_0001 = 'walker.pedestrian.0001'
@@ -220,3 +229,6 @@ class CarlaBlueprints(Enum):
     WALKER_PEDESTRIAN_0047 = 'walker.pedestrian.0047'
     WALKER_PEDESTRIAN_0048 = 'walker.pedestrian.0048'
     WALKER_PEDESTRIAN_0049 = 'walker.pedestrian.0049'
+    WALKER_PEDESTRIAN_0050 = 'walker.pedestrian.0050'
+    WALKER_PEDESTRIAN_0051 = 'walker.pedestrian.0051'
+    WALKER_PEDESTRIAN_0052 = 'walker.pedestrian.0052'
