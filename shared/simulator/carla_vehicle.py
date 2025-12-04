@@ -48,10 +48,12 @@ class CarlaVehicle(CarlaActor):
 
     @property
     def actor(self) -> carla.Vehicle:
+        """carla.Vehicle 实例, 只读"""
         return super().actor
 
     @property
     def control_mode(self) -> ControlMode:
+        """车辆的控制模式标志"""
         return self._control_mode
 
     @control_mode.setter
