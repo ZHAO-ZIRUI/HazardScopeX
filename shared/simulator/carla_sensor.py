@@ -30,6 +30,7 @@ class CarlaSensor(CarlaActor):
         ignore_attribute_failure: bool = False,
         ignore_spawn_failure: bool = False,
         is_managed_actor: bool = True,
+        image_color_converter: carla.ColorConverter | None = None,  # ONLY FOR CAMERA SENSOR
         **attributes: Unpack[dict[str, Any]],
     ):
         super().__init__(
@@ -46,7 +47,7 @@ class CarlaSensor(CarlaActor):
         self._data: SimulatorOutput | None = None
         self._is_sensor_data_received = False
 
-        self.img_color_converter = carla.ColorConverter.Raw    # ONLY FOR CAMERA SENSOR
+        self._img_color_converter = self._resolve_image_color_converter(image_color_converter)  # ONLY FOR CAMERA SENSOR
 
         # TICK 阻塞器
         if self.id_local == self.name:
@@ -215,7 +216,7 @@ class CarlaSensor(CarlaActor):
             SimulatorOutput: 框架中的统一仿真器输出数据
         """
         if isinstance(data, carla.Image):
-            data.convert(self.img_color_converter)
+            data.convert(self._img_color_converter)
             return Image.from_carla(data)
         if isinstance(data, carla.LidarMeasurement | carla.SemanticLidarMeasurement):
             return PointCloud.from_carla(data)
@@ -223,6 +224,23 @@ class CarlaSensor(CarlaActor):
             return Collision.from_carla(data)
         raise ValueError(f"Unsupported sensor data type: {type(data)}")
     
+    def _resolve_image_color_converter(self, value: carla.ColorConverter | None) -> carla.ColorConverter:
+        """根据传感器类型解析图像颜色转换器"""
+        if value is not None:
+            return value
+        
+        # 默认情况
+        if self.bp.id.lower().endswith('rgb'):
+            return carla.ColorConverter.Raw
+        elif self.bp.id.lower().endswith('depth'):
+            return carla.ColorConverter.LogarithmicDepth
+        elif self.bp.id.lower().endswith('instance_segmentation'):
+            return carla.ColorConverter.CityScapesPalette
+        elif self.bp.id.lower().endswith('semantic_segmentation'):
+            return carla.ColorConverter.CityScapesPalette
+        else:
+            raise ValueError(f"Unsupported sensor type: {self.bp.id}")
+
     @property
     def hook_sensor_data_recv(self) -> List[Callable[[SimulatorOutput], None]]:
         return self._hook_sensor_data_recv
