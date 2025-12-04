@@ -14,6 +14,8 @@ class CarlaVehicle(CarlaActor):
     carla.Vehicle 的外部封装, 用于提供高级功能或适配可重启的服务端
     """
 
+    ID_GENERATOR_HEADER = "Vehicle_"
+
     class ControlMode(Enum):
         NONE = 0
         CARLA_AUTOPILOT = 1
