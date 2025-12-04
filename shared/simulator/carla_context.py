@@ -242,7 +242,7 @@ class CarlaContext:
         self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.info('CARLA server is available now')
 
-    def tick(self):
+    def tick(self, *, force: bool = False):
         """手动 Tick 服务端, 在此处应用 TickBlocker """
         self.world.tick()
 
@@ -250,7 +250,7 @@ class CarlaContext:
 
         # TickBlocker 阻塞
         try:
-            while True:
+            while not force and not self._event_shutdown.is_set():
                 all_passed = all(not blocker.is_set() for blocker in self._tick_blockers)
                 if all_passed:
                     break
