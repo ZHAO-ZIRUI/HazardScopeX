@@ -175,9 +175,9 @@ class CarlaActor():
         """
         if isinstance(bp, carla.ActorBlueprint):
             return bp
-        elif isinstance(bp, CarlaBlueprints):
-            return bp.to_carla()
-        elif isinstance(bp, str):
+        if isinstance(bp, CarlaBlueprints):
+            bp = bp.value
+        if isinstance(bp, str):
             blueprint_library = self._context.world.get_blueprint_library()
             try:
                 return blueprint_library.find(bp)
