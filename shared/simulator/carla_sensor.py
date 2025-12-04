@@ -109,11 +109,19 @@ class CarlaSensor(CarlaActor):
     def spawn(self) -> Self:
         """在仿真中生成 Sensor 实例并开始监听"""
         super().spawn()
+
+        # 注册 Tick Blocker
+        self._context.tick_blockers.append(self._tick_blocker)
+
+        # 开始监听
         self.start_listen()
         return self
 
     def destroy(self) -> Self:
         """销毁 Sensor 实例"""
+        # 移除 Tick Blocker
+        self._context.tick_blockers.remove(self._tick_blocker)
+        
         # 清理钩子
         self._hook_sensor_data_recv.clear()
         self._hook_sensor_data_ready.clear()
