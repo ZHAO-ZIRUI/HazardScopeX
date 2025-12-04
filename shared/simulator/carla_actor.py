@@ -240,7 +240,7 @@ class CarlaActor():
             self.logger.debug(f"Attribute 'role_name' set to '{self._name}'")
         return self._bp
 
-    def _resolve_parent(self, parent: carla.Actor | 'CarlaActor' | int | None) -> list[carla.Actor | None]:
+    def _resolve_parent(self, parent: carla.Actor | Self | None) -> list[carla.Actor | None]:
         """将多种可能的父级输入统一为 carla.Actor
 
         Args:
