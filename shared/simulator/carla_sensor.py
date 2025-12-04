@@ -5,7 +5,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, Callable, List
 from typing_extensions import Self, Unpack
 
-from shared.simulator import CarlaActor, CarlaBlueprints, CarlaTransform
+from shared.simulator import CarlaActor, CarlaBlueprints, CarlaTickBlocker, CarlaTransform
 from shared.data import *
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ class CarlaSensor(CarlaActor):
     carla.Sensor 的外部封装, 用于提供高级功能或适配可重启的服务端
     """
 
-    ID_GENERATOR_HEADER = "SENSOR_"
+    ID_GENERATOR_HEADER = "Sensor_"
 
     def __init__(
         self,
@@ -49,7 +49,11 @@ class CarlaSensor(CarlaActor):
         self.img_color_converter = carla.ColorConverter.Raw    # ONLY FOR CAMERA SENSOR
 
         # TICK 阻塞器
-        self._tick_blocker: threading.Event = threading.Event()
+        if self.id_local == self.name:
+            tick_blocker_name = self.id_local
+        else:
+            tick_blocker_name = f"{self.name}_{self.id_local}"
+        self._tick_blocker: CarlaTickBlocker = CarlaTickBlocker(name=tick_blocker_name, auto_set_after_tick=True)
 
         # 传感器事件钩子
         self._hook_sensor_data_recv: List[Callable[[SimulatorOutput], None]] = []
