@@ -58,6 +58,9 @@ class CarlaActor:
 
         self._actor_ref: list[carla.Actor | None] = [None]  # 长度为 1 的列表, 用于存储 carla.Actor 实例的引用
 
+    def __post_init__(self):
+        pass
+
     @property
     def name(self) -> str:
         """别名, 只读"""
