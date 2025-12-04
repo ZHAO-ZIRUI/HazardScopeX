@@ -1,11 +1,15 @@
 from .external_config_reader import ExternalConfigReader
 from .abstract_config import AbstractConfig
 from .carla_context_config import CarlaContextConfig
-
+from .carla_actor_manager_config import CarlaActorManagerConfig
+from .config_manager import ConfigManager
 
 __all__ = [
     "ExternalConfigReader",
     "AbstractConfig",
     # 具体的配置文件
     "CarlaContextConfig",
+    "CarlaActorManagerConfig",
+    # 配置管理器
+    "ConfigManager",
 ]
