@@ -141,6 +141,9 @@ class CarlaContext:
         self._event_shutdown.set()
         self._thread_dead_detector.join(timeout=1.0)
 
+        # 销毁所有 Actor
+        self.actors.destroy_all()
+
         # 报告 self._client 的引用数量
         ref_count = sys.getrefcount(self._client)
         self.logger.debug(f'Client reference count: {ref_count - 1}')
