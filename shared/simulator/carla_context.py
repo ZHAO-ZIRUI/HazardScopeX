@@ -14,9 +14,10 @@ from typing_extensions import Self
 from logging import Logger
 from contextlib import contextmanager
 
-from shared.configs import CarlaContextConfig, ExternalConfigReader
+from shared.configs import ExternalConfigReader, ConfigManager
 from shared.utils import Logging
-from shared.simulator import CarlaTickBlocker, CarlaMaps
+from shared.simulator import CarlaTickBlocker, CarlaActorManager, CarlaMaps
+
 
 class CarlaContext:
     """
@@ -25,10 +26,9 @@ class CarlaContext:
 
     def __init__(
         self,
-        config: CarlaContextConfig | ExternalConfigReader | Path = CarlaContextConfig(),
+        config: ExternalConfigReader | Path = Path('config.yaml'),
     ):
         self._logger = Logging().get_logger('Context')
-        self._config = self._resolve_config(config)
 
         self._client: None | carla.Client = None
         self._thread_dead_detector: None | threading.Thread = None
@@ -37,6 +37,9 @@ class CarlaContext:
         self._evnet_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
         self._event_heavy_operation: threading.Event = threading.Event()
+
+        self._service_config_manager = ConfigManager().load(config)
+        self._service_actor_manager: CarlaActorManager = CarlaActorManager(self)
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
@@ -57,10 +60,6 @@ class CarlaContext:
         return self._tick_blockers
 
     @property
-    def config(self) -> CarlaContextConfig:
-        return self._config
-
-    @property
     def logger(self) -> Logger:
         return self._logger
 
@@ -72,14 +71,14 @@ class CarlaContext:
     @property
     def fps(self) -> float:
         """同步模式帧数, 单位: FPS"""
-        return self._config.runtime_sync_mode_fps
+        return self.configs.context.runtime_sync_mode_fps
 
     @property
     def client(self) -> carla.Client:
         """carla.Client 实例别名"""
         if self._client is None:
-            self._client = carla.Client(self._config.server_host, self._config.server_port)
-            self._client.set_timeout(self._config.runtime_timeout_seconds)
+            self._client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
+            self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         return self._client
 
     @property
@@ -97,20 +96,28 @@ class CarlaContext:
         """carla.TrafficManager 实例别名"""
         return self.client.get_trafficmanager()
 
+    @property
+    def configs(self) -> ConfigManager:
+        return self._service_config_manager
+
+    @property
+    def actors(self) -> CarlaActorManager:
+        return self._service_actor_manager
+
     @contextmanager
     def heavy_operation(self):
         """重操作, 该模式下会设置所有的 Timeout 为 heavy_operation_timeout_seconds, 并临时跳过死检"""
-        self.client.set_timeout(self._config.runtime_heavy_operation_timeout_seconds)
+        self.client.set_timeout(self.configs.context.runtime_heavy_operation_timeout_seconds)
         self._event_heavy_operation.set()
         self.logger.debug('Entering heavy operation mode ...')
         yield
         self._event_heavy_operation.clear()
-        self.client.set_timeout(self._config.runtime_timeout_seconds)
+        self.client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.debug('Exiting heavy operation mode')
 
     def bringup(self):
         """启动 CARLA 上下文"""
-        if not self._config.server_self_managed_enabled:
+        if not self.configs.context.server_self_managed_enabled:
             self.logger.warning('Using external CARLA server')
         else:
             self.server_bringup()
@@ -121,7 +128,7 @@ class CarlaContext:
         # 进入同步模式
         settings = self.world.get_settings()
         settings.synchronous_mode = True
-        settings.fixed_delta_seconds = 1/self._config.runtime_sync_mode_fps
+        settings.fixed_delta_seconds = 1/self.configs.context.runtime_sync_mode_fps
         self.world.apply_settings(settings)
 
         # 启动死检测线程
@@ -139,45 +146,45 @@ class CarlaContext:
         self.logger.debug(f'Client reference count: {ref_count - 1}')
 
         # 停止服务端进程
-        if not self._config.server_self_managed_enabled:
+        if not self.configs.context.server_self_managed_enabled:
             self.logger.warning('Using external CARLA server, server teardown is ignored')
         else:
             self.server_teardown()
 
     def server_bringup(self):
         # 二次阻止在未启用自管理模式时启动服务端进程
-        if not self._config.server_self_managed_enabled:
+        if not self.configs.context.server_self_managed_enabled:
             return
         
         # 清理服务端进程, 防止残留
         if self._has_server_process():
             self._server_kill()
-            wait_time = self._config.server_bringup_after_kill_wait_seconds
+            wait_time = self.configs.context.server_bringup_after_kill_wait_seconds
             self.logger.info(f'CARLA server processes cleaned up, wait {wait_time} seconds before bringing up again ...')
             time.sleep(wait_time)
 
         # 启动服务端进程
-        if self._config.server_multi_gpu_enabled:
+        if self.configs.context.server_multi_gpu_enabled:
             # 启动主进程
             cmd_primary = [
-                self._config.server_self_managed_exe_path, 
+                self.configs.context.server_self_managed_exe_path, 
                 '-nullrhi', 
-                f'-carla-rpc-port={self._config.server_port}', 
-                f'-carla-primary-port={self._config.server_port + self._config.server_multi_gpu_port_offset}',
-                f'-carla-primary-host={self._config.server_host}'
+                f'-carla-rpc-port={self.configs.context.server_port}', 
+                f'-carla-primary-port={self.configs.context.server_port + self.configs.context.server_multi_gpu_port_offset}',
+                f'-carla-primary-host={self.configs.context.server_host}'
             ]
             self._server_launch(cmd_primary)
-            self.logger.info(f'CARLA server primary process started, port: {self._config.server_port}')
+            self.logger.info(f'CARLA server primary process started, port: {self.configs.context.server_port}')
 
             # 启动渲染进程
-            for gpu_id in self._config.server_multi_gpu_ids:
+            for gpu_id in self.configs.context.server_multi_gpu_ids:
                 rpc_port = self._get_random_free_port(20000, 30000)
                 cmd_render = [
-                    self._config.server_self_managed_exe_path, 
+                    self.configs.context.server_self_managed_exe_path, 
                     '-RenderOffscreen', 
                     f'-carla-rpc-port={rpc_port}',
-                    f'-carla-primary-port={self._config.server_port + self._config.server_multi_gpu_port_offset}',
-                    f'-carla-primary-host={self._config.server_host}',
+                    f'-carla-primary-port={self.configs.context.server_port + self.configs.context.server_multi_gpu_port_offset}',
+                    f'-carla-primary-host={self.configs.context.server_host}',
                     f'-ini:[/Script/Engine.RendererSettings]:r.GraphicsAdapter={gpu_id}'
                 ]
                 self._server_launch(cmd_render)
@@ -185,12 +192,12 @@ class CarlaContext:
         else:
             # 启动正常进程
             cmd_normal = [
-                self._config.server_self_managed_exe_path, 
+                self.configs.context.server_self_managed_exe_path, 
                 '-RenderOffscreen', 
-                f'-carla-rpc-port={self._config.server_port}'
+                f'-carla-rpc-port={self.configs.context.server_port}'
             ]
             self._server_launch(cmd_normal)
-            self.logger.info(f'CARLA server normal process started, port: {self._config.server_port}')
+            self.logger.info(f'CARLA server normal process started, port: {self.configs.context.server_port}')
 
     def server_teardown(self):
         """停止 CARLA 服务端"""
@@ -202,19 +209,19 @@ class CarlaContext:
         self.logger.info('Waiting for CARLA server available ...')
 
         # 初始等待
-        if self._config.server_self_managed_enabled:
-            self.logger.debug(f'Waiting {self._config.server_bringup_init_wait_seconds} seconds first ...')
-            time.sleep(self._config.server_bringup_init_wait_seconds)
+        if self.configs.context.server_self_managed_enabled:
+            self.logger.debug(f'Waiting {self.configs.context.server_bringup_init_wait_seconds} seconds first ...')
+            time.sleep(self.configs.context.server_bringup_init_wait_seconds)
 
-        timeout = 1/self._config.runtime_sync_mode_fps * 2  # 两个帧的周期
-        client = carla.Client(self._config.server_host, self._config.server_port)
+        timeout = 1/self.configs.context.runtime_sync_mode_fps * 2  # 两个帧的周期
+        client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
         client.set_timeout(timeout)
 
         frame = 0
         token = str(uuid.uuid4())  # 用于日志
         timer = time.perf_counter()
         while frame == 0:
-            if time.perf_counter() - timer > self._config.server_bringup_timeout_seconds:
+            if time.perf_counter() - timer > self.configs.context.server_bringup_timeout_seconds:
                 msg = f'CARLA server is not available until timeout, please check the if existing a server process'
                 self.logger.critical(msg)
                 raise RuntimeError(msg)
@@ -226,13 +233,13 @@ class CarlaContext:
                 Logging.interval(1, self.logger.debug, f'CARLA server is not available now, retrying ...', token)
 
                 # 报告 RuntimeError 后, 客户端需要重建
-                client = carla.Client(self._config.server_host, self._config.server_port)
+                client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
                 client.set_timeout(timeout)
                 continue
         
         Logging.cancel_interval(token)
         self._client = client
-        self._client.set_timeout(self._config.runtime_timeout_seconds)
+        self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.info('CARLA server is available now')
 
     def tick(self):
@@ -247,7 +254,7 @@ class CarlaContext:
                 all_passed = all(not blocker.is_set() for blocker in self._tick_blockers)
                 if all_passed:
                     break
-                if time.perf_counter() - time_begin > self._config.runtime_blocker_timeout_seconds:
+                if time.perf_counter() - time_begin > self.configs.context.runtime_blocker_timeout_seconds:
                     # 报告 TickBlocker 阻塞统计状态
                     count_blocked = len([blocker for blocker in self._tick_blockers if blocker.is_set()])
                     count_all = len(self._tick_blockers)
@@ -262,7 +269,7 @@ class CarlaContext:
                     Logging.interval(1, self.logger.warning, blocker_status, 'tick_blocker_details_blocked')
                 
                 # 等待防止过度 CPU 占用
-                time.sleep(1/self._config.runtime_sync_mode_fps)
+                time.sleep(1/self.configs.context.runtime_sync_mode_fps)
         except KeyboardInterrupt:
             raise SystemExit(100)
 
@@ -284,7 +291,7 @@ class CarlaContext:
         try:
             while not self._event_shutdown.is_set() and not self._evnet_server_dead.is_set():
                 self.tick()
-                time.sleep(1/self._config.runtime_sync_mode_fps)
+                time.sleep(1/self.configs.context.runtime_sync_mode_fps)
         except KeyboardInterrupt:
             self.logger.info('Spin stopped by manual interrupt')
             return
@@ -295,7 +302,7 @@ class CarlaContext:
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
             self.tick()
-            time.sleep(1/self._config.runtime_sync_mode_fps)
+            time.sleep(1/self.configs.context.runtime_sync_mode_fps)
         self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
 
@@ -306,7 +313,7 @@ class CarlaContext:
         while tick_counter < ticks:
             self.tick()
             tick_counter += 1
-            time.sleep(1/self._config.runtime_sync_mode_fps)
+            time.sleep(1/self.configs.context.runtime_sync_mode_fps)
         self.logger.debug(f'Waiting finished: {ticks} ticks')
 
     def change_map(self, map: str | CarlaMaps):
@@ -371,8 +378,8 @@ class CarlaContext:
         """检测服务端是否存活的线程"""
         self.logger.debug('Server dead detector started')
         
-        check_timeout = 1/self._config.runtime_sync_mode_fps * 5  # 5个帧的周期
-        detector_client = carla.Client(self._config.server_host, self._config.server_port)
+        check_timeout = 1/self.configs.context.runtime_sync_mode_fps * 5  # 5个帧的周期
+        detector_client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
         detector_client.set_timeout(check_timeout)
         
         try:
@@ -389,12 +396,3 @@ class CarlaContext:
         finally:
             del detector_client
             self.logger.debug('Server dead detector stopped')
-
-    def _resolve_config(self, incoming: CarlaContextConfig | ExternalConfigReader | Path) -> CarlaContextConfig:
-        """从多种来源解析并确定配置"""
-        if isinstance(incoming, CarlaContextConfig):
-            return incoming
-        elif isinstance(incoming, ExternalConfigReader | Path):
-            return CarlaContextConfig.load(incoming)
-        else:
-            raise ValueError(f'Invalid config type: {type(incoming)}')
