@@ -1,5 +1,4 @@
 from threading import Event
-from typing_extensions import Self
 
 
 class CarlaTickBlocker(Event):
