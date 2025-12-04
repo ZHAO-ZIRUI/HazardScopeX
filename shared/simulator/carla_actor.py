@@ -146,6 +146,9 @@ class CarlaActor():
         
         # 更新 Actor 实例引用
         self._actor_ref[0] = actor
+
+        # 注册到 ActorManager
+        self._context.actors.add(self)
         return self
 
     def destroy(self) -> Self:
