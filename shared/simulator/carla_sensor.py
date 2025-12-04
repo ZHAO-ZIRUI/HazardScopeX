@@ -228,16 +228,23 @@ class CarlaSensor(CarlaActor):
         """根据传感器类型解析图像颜色转换器"""
         if value is not None:
             return value
+
+        mapping = {
+            'Raw': carla.ColorConverter.Raw,
+            'LogarithmicDepth': carla.ColorConverter.LogarithmicDepth,
+            'Depth': carla.ColorConverter.Depth,
+            'CityScapesPalette': carla.ColorConverter.CityScapesPalette,
+        }
         
         # 默认情况
         if self.bp.id.lower().endswith('rgb'):
             return carla.ColorConverter.Raw
         elif self.bp.id.lower().endswith('depth'):
-            return carla.ColorConverter.LogarithmicDepth
+            return mapping[self._context.configs.actor_manager.image_cc_depth]
         elif self.bp.id.lower().endswith('instance_segmentation'):
-            return carla.ColorConverter.CityScapesPalette
+            return mapping[self._context.configs.actor_manager.image_cc_instance_segmentation]
         elif self.bp.id.lower().endswith('semantic_segmentation'):
-            return carla.ColorConverter.CityScapesPalette
+            return mapping[self._context.configs.actor_manager.image_cc_semantic_segmentation]
         else:
             raise ValueError(f"Unsupported sensor type: {self.bp.id}")
 
