@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import Self, Unpack
 
 from shared.simulator import CarlaBlueprints, CarlaTransform
-from shared.utils import IdGenerator, Logging, PostInitMeta
+from shared.utils import IdGenerator, Logging
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
 
 
-class CarlaActor(metaclass=PostInitMeta):
+class CarlaActor():
     """
     carla.Actor 实例的容器, 用于在 CarlaContext 中管理 Actor 的生命周期和行为
     """
@@ -57,9 +57,6 @@ class CarlaActor(metaclass=PostInitMeta):
         self._parent_ref = self._resolve_parent(parent)
 
         self._actor_ref: list[carla.Actor | None] = [None]  # 长度为 1 的列表, 用于存储 carla.Actor 实例的引用
-
-    def __post_init__(self):
-        pass
 
     @property
     def name(self) -> str:
