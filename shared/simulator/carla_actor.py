@@ -157,7 +157,7 @@ class CarlaActor(metaclass=PostInitMeta):
 
             # 更新 Actor 实例引用
             self._actor_ref[0] = actor
-            self.logger.info(f"Actor is alive now with CARLA ID: {self.id_carla} at {Logging.short_tf(self.tf_now)}")
+            self.logger.info(f"Actor is spawned and available now with id: {self.id_local}, carla id: {self.id_carla}")
         except RuntimeError as e:
             if self._flag_ignore_spawn_failure:
                 self.logger.warning(f"Failed to spawn actor but ignored: {e}")
