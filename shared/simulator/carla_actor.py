@@ -62,6 +62,12 @@ class CarlaActor(metaclass=PostInitMeta):
         # 注册到 ActorManager
         self._context.actors.add(self)
 
+    def __str__(self) -> str:
+        return f"CarlaActor(name='{self.name}', id_local='{self.id_local}', is_alive='{self.is_alive}', is_managed='{self.is_managed_actor}')"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @property
     def name(self) -> str:
         """别名, 只读"""
