@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, Any
 from typing_extensions import Self, Unpack
 
 from shared.simulator import CarlaBlueprints, CarlaTransform
-from shared.utils import IdGenerator, Logging
+from shared.utils import IdGenerator, Logging, PostInitMeta
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
 
 
-class CarlaActor():
+class CarlaActor(metaclass=PostInitMeta):
     """
     carla.Actor 实例的容器, 用于在 CarlaContext 中管理 Actor 的生命周期和行为
     """
@@ -57,6 +57,10 @@ class CarlaActor():
         self._parent_ref = self._resolve_parent(parent)
 
         self._actor_ref: list[carla.Actor | None] = [None]  # 长度为 1 的列表, 用于存储 carla.Actor 实例的引用
+
+    def __post_init__(self):
+        # 注册到 ActorManager
+        self._context.actors.add(self)
 
     @property
     def name(self) -> str:
@@ -134,8 +138,15 @@ class CarlaActor():
 
         # 尝试生成 Actor
         try:
+            self.logger.debug(f"Spawning actor '{self.name}' with blueprint '{self._bp.id}' at {Logging.short_tf(self.tf_init)}")
             actor = self._context.world.spawn_actor(self._bp, self._tf, attach_to=attach_to)
-            self.logger.info(f"Spawned actor (CARLA ID: {actor.id}) at {Logging.short_tf(self._tf)}")
+
+            # 强制 Tick 一次, 让 Actor 实例有机会生成
+            self._context.tick(force=True)
+
+            # 更新 Actor 实例引用
+            self._actor_ref[0] = actor
+            self.logger.info(f"Actor is alive now with CARLA ID: {self.id_carla} at {Logging.short_tf(self.tf_now)}")
         except RuntimeError as e:
             if self._flag_ignore_spawn_failure:
                 self.logger.warning(f"Failed to spawn actor but ignored: {e}")
@@ -143,12 +154,7 @@ class CarlaActor():
             else:
                 self.logger.error(f"Failed to spawn actor: {e}")
                 raise e
-        
-        # 更新 Actor 实例引用
-        self._actor_ref[0] = actor
 
-        # 注册到 ActorManager
-        self._context.actors.add(self)
         return self
 
     def destroy(self) -> Self:
