@@ -13,74 +13,63 @@ class PlayerVehicle(CarlaVehicle):
     玩家车辆, 包含车后视角相机
 
     相机:
-        - cam_main
-        - cam_game
+        - Cam_Front
+        - Cam_Game
     
     激光雷达:
-        - lidar_main
+        - Lidar
     """
 
-    CAM_MAIN_NAME = 'CAM_MAIN'
-    CAM_MAIN_TF = CarlaTransform(x=0.0, y=0.0, z=1.85, yaw=0.0)
+    CAM_FRONT_NAME = 'CAM_FRONT'
+    CAM_FRONT_TF = CarlaTransform(x=0.0, y=0.0, z=1.85, yaw=0.0)
 
     CAM_GAME_NAME = 'CAM_GAME'
     CAM_GAME_TF = CarlaTransform(x=-5.5, y=0.0, z=2.5, pitch=-15.0)
 
-    LIDAR_MAIN_NAME = 'LIDAR_MAIN'
-    LIDAR_MAIN_TF = CarlaTransform(x=0.0, y=0.0, z=2.2)
+    LIDAR_NAME = 'LIDAR'
+    LIDAR_TF = CarlaTransform(x=0.0, y=0.0, z=2.2)
 
     def __init__(
-            self,
-            context: 'CarlaContext',
-            tf: CarlaTransform | carla.Transform,
-            bp: carla.ActorBlueprint | str | CarlaBlueprints = CarlaBlueprints.VEHICLE_TESLA_MODEL3,
-            name: str = '',
-            **attributes: Unpack[Dict[str, Any]],
-        ):
-            self._context = context
-            resolved_bp = self._context.actors.resolve_blueprint(bp)
-            super().__init__(bp=resolved_bp, name=name)
-            self._context.actors.resolve_transform(self, tf)
-            self._context.actors.resolve_attributes(self, attributes)
-            self._context.actors.add(self)
+        self,
+        context: 'CarlaContext',
+        tf: CarlaTransform | carla.Transform,
+        bp: carla.ActorBlueprint | str | CarlaBlueprints = CarlaBlueprints.VEHICLE_TESLA_MODEL3,
+        name: str = 'Player',
+        **attributes: Unpack[Dict[str, Any]],
+    ):
+        self._context = context
+        super().__init__(
+            context=context,
+            bp=bp,
+            tf=tf,
+            name=name,
+            **attributes,
+        )
 
-            self._cam_main: CarlaSensor | None = None
-            self._cam_game: CarlaSensor | None = None
-            self._lidar_main: CarlaSensor | None = None
+        self._cam_front: CarlaSensor | None = None
+        self._cam_game: CarlaSensor | None = None
+        self._lidar: CarlaSensor | None = None
 
-            self._post_init()
-    
-    @property
-    def cam_main(self) -> CarlaSensor:
-        return self._cam_main
-
-    @property
-    def lidar_main(self) -> CarlaSensor:
-        return self._lidar_main
-    
-    @property
-    def cam_game(self) -> CarlaSensor:
-        return self._cam_game
-
-    def _post_init(self):
-        self._cam_main = self._context.actors.create_sensor(
+    def __post_init__(self):
+        super().__post_init__()
+        self._cam_front = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
-            name=self.CAM_MAIN_NAME,
-            tf=self.CAM_MAIN_TF,
+            name=self.name + '_' + self.CAM_FRONT_NAME,
+            tf=self.CAM_FRONT_TF,
             parent=self,
         )
 
         self._cam_game = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
-            name=self.CAM_GAME_NAME,
+            name=self.name + '_' + self.CAM_GAME_NAME,
             tf=self.CAM_GAME_TF,
             parent=self,
         )
 
-        self._lidar_main = self._context.actors.create_sensor(
+        self._lidar = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST,
-            name=self.LIDAR_MAIN_NAME,
-            tf=self.LIDAR_MAIN_TF,
+            name=self.name + '_' + self.LIDAR_NAME,
+            tf=self.LIDAR_TF,
             parent=self,
             rotation_frequency=self._context.fps,
             points_per_second=1000000,
@@ -89,3 +78,15 @@ class PlayerVehicle(CarlaVehicle):
             upper_fov=2,
             lower_fov=-24.8,
         )
+
+    @property
+    def cam_front(self) -> CarlaSensor:
+        return self._cam_front
+
+    @property
+    def lidar(self) -> CarlaSensor:
+        return self._lidar
+    
+    @property
+    def cam_game(self) -> CarlaSensor:
+        return self._cam_game
