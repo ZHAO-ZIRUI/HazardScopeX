@@ -47,7 +47,8 @@ class CarlaSensor(CarlaActor):
         self._data: SimulatorOutput | None = None
         self._is_sensor_data_received = False
 
-        self._img_color_converter = self._resolve_image_color_converter(image_color_converter)  # ONLY FOR CAMERA SENSOR
+        if self.is_camera:
+            self._img_color_converter = self._resolve_image_color_converter(image_color_converter)
 
         # TICK 阻塞器
         if self.id_local == self.name:
