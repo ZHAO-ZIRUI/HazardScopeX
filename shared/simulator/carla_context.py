@@ -97,6 +97,11 @@ class CarlaContext:
         return self.client.get_trafficmanager()
 
     @property
+    def spawn_points(self) -> list[carla.Transform]:
+        """carla.Transform 实例列表"""
+        return self.world.get_map().get_spawn_points()
+
+    @property
     def configs(self) -> ConfigManager:
         return self._service_config_manager
 
