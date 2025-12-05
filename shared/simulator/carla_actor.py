@@ -262,11 +262,6 @@ class CarlaActor(metaclass=PostInitMeta):
             return [parent]
         elif isinstance(parent, CarlaActor):
             return parent._actor_ref
-        elif isinstance(parent, int):
-            actor = self._context.world.get_actor(parent)
-            if actor is None:
-                raise ValueError(f"Actor with ID '{parent}' not found")
-            return [actor]
         else:
             return [None]
 
