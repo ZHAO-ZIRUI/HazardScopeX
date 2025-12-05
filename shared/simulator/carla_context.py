@@ -404,3 +404,7 @@ class CarlaContext:
         finally:
             del detector_client
             self.logger.debug('Server dead detector stopped')
+
+    @property
+    def hook_on_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
+        return self._hook_on_tick
