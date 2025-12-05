@@ -252,8 +252,6 @@ class CarlaContext:
 
     def tick(self, *, force: bool = False):
         """手动 Tick 服务端, 在此处应用 TickBlocker """
-        self.world.tick()
-
         time_begin = time.perf_counter()
 
         # TickBlocker 阻塞
