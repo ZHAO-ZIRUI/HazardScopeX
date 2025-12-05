@@ -23,7 +23,7 @@ class CarlaActor(metaclass=PostInitMeta):
         bp: carla.ActorBlueprint | CarlaBlueprints | str,
         tf: carla.Transform | CarlaTransform,
         *,
-        parent: carla.Actor | Self | None = None,
+        parent: Self | None = None,
         name: str | None = None,
         ignore_attribute_failure: bool = False,
         ignore_spawn_failure: bool = False,
@@ -36,7 +36,7 @@ class CarlaActor(metaclass=PostInitMeta):
             context (CarlaContext): CarlaContext 实例
             bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图
             tf (carla.Transform | CarlaTransform): 初始变换
-            parent (carla.Actor | 'CarlaActor' | int | None): 父级对象
+            parent (CarlaActor | None): 父级对象
             name (str | None): 别名
             ignore_attribute_failure (bool): 是否忽略属性失败
             ignore_spawn_failure (bool): 是否忽略生成失败
@@ -50,11 +50,11 @@ class CarlaActor(metaclass=PostInitMeta):
         self._is_managed_actor = is_managed_actor
         self._flag_ignore_attribute_failure = ignore_attribute_failure
         self._flag_ignore_spawn_failure = ignore_spawn_failure
+        self._parent = parent
 
         self._bp = self._resolve_blueprint(bp)
         self._bp = self._resolve_attributes(**attributes)
         self._tf = self._resolve_transform(tf)
-        self._parent_ref = self._resolve_parent(parent)
 
         self._actor_ref: list[carla.Actor | None] = [None]  # 长度为 1 的列表, 用于存储 carla.Actor 实例的引用
 
@@ -118,6 +118,11 @@ class CarlaActor(metaclass=PostInitMeta):
         return self._actor_ref[0]
 
     @property
+    def parent(self) -> Self | None:
+        """父级 Actor 实例, 只读"""
+        return self._parent
+
+    @property
     def is_alive(self) -> bool:
         """Actor 是否存活"""
         return self._actor_ref[0] is not None and self._actor_ref[0].is_alive
@@ -138,9 +143,9 @@ class CarlaActor(metaclass=PostInitMeta):
     def spawn(self) -> Self:
         """在仿真中生成 Actor 实例"""
         # 获取父级 Actor 实例
-        attach_to = self._parent_ref[0]
+        attach_to = self.parent.actor if self.parent is not None else None
         if attach_to is not None and not attach_to.is_alive:
-            raise ValueError(f"Parent actor: '{attach_to.name}' not spawned yet or not alive")
+            raise ValueError(f"Parent actor: '{self.parent}' not spawned yet or not alive")
 
         # 尝试生成 Actor
         try:
@@ -254,22 +259,6 @@ class CarlaActor(metaclass=PostInitMeta):
             self._bp.set_attribute('role_name', self._name)
             self.logger.debug(f"Attribute 'role_name' set to '{self._name}'")
         return self._bp
-
-    def _resolve_parent(self, parent: carla.Actor | Self | None) -> list[carla.Actor | None]:
-        """将多种可能的父级输入统一为 carla.Actor
-
-        Args:
-            parent (carla.Actor | Self | int | None): 父级输入
-
-        Returns:
-            list[carla.Actor | None]: 长度为 1 的列表, 用于存储 carla.Actor 实例的引用
-        """
-        if isinstance(parent, carla.Actor):
-            return [parent]
-        elif isinstance(parent, CarlaActor):
-            return parent._actor_ref
-        else:
-            return [None]
 
     @classmethod
     def from_carla(cls, context: 'CarlaContext', actor: carla.Actor) -> Self:

@@ -25,7 +25,7 @@ class CarlaSensor(CarlaActor):
         bp: carla.ActorBlueprint | CarlaBlueprints | str,
         tf: carla.Transform | CarlaTransform,
         *,
-        parent: carla.Actor | Self | None = None,
+        parent: Self | None = None,
         name: str | None = None,
         ignore_attribute_failure: bool = False,
         ignore_spawn_failure: bool = False,
