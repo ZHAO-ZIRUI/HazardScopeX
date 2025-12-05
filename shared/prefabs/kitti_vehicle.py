@@ -21,7 +21,8 @@ class KittiVehicle(CarlaVehicle):
         - cam_right_depth
         - cam_back_rgb
         - cam_back_depth
-
+        - cam_game
+    
     激光雷达:
         - lidar
     """
@@ -37,6 +38,9 @@ class KittiVehicle(CarlaVehicle):
 
     CAM_BACK_NAME = 'CAM_BACK'
     CAM_BACK_TF = CarlaTransform(x=-0.06, y=0.0, z=1.85, yaw=180.0)
+
+    CAM_GAME_NAME = 'CAM_GAME'
+    CAM_GAME_TF = CarlaTransform(x=-5.5, y=0.0, z=2.5, pitch=-15.0)
 
     LIDAR_NAME = 'LIDAR_MAIN'
     LIDAR_TF = CarlaTransform(x=0.0, y=0.0, z=1.93)
@@ -66,6 +70,7 @@ class KittiVehicle(CarlaVehicle):
         self._cam_right_depth: CarlaSensor | None = None
         self._cam_back_rgb: CarlaSensor | None = None
         self._cam_back_depth: CarlaSensor | None = None
+        self._cam_game: CarlaSensor | None = None
         self._lidar: CarlaSensor | None = None
 
     def __post_init__(self):
@@ -126,6 +131,13 @@ class KittiVehicle(CarlaVehicle):
             parent=self,
         )
 
+        self._cam_game = self._context.actors.create_sensor(
+            bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
+            name=self.name + '_' + self.CAM_GAME_NAME,
+            tf=self.CAM_GAME_TF,
+            parent=self,
+        )
+
         self._lidar = self._context.actors.create_sensor(
             bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST_SEMANTIC,
             name=self.name + '_' + self.LIDAR_NAME,
@@ -170,6 +182,10 @@ class KittiVehicle(CarlaVehicle):
     @property
     def cam_back_depth(self) -> CarlaSensor:
         return self._cam_back_depth
+
+    @property
+    def cam_game(self) -> CarlaSensor:
+        return self._cam_game
 
     @property
     def lidar(self) -> CarlaSensor:
