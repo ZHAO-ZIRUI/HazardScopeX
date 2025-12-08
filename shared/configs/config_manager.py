@@ -10,6 +10,7 @@ class ConfigManager:
     def __init__(self):
         self._carla_context_config = CarlaContextConfig()
         self._carla_actor_manager_config = CarlaActorManagerConfig()
+        self._carla_io_manager_config = CarlaIOManagerConfig()
 
     @property
     def context(self) -> CarlaContextConfig:
@@ -19,7 +20,12 @@ class ConfigManager:
     def actor_manager(self) -> CarlaActorManagerConfig:
         return self._carla_actor_manager_config
 
+    @property
+    def io_manager(self) -> CarlaIOManagerConfig:
+        return self._carla_io_manager_config
+
     def load(self, incoming: Path | ExternalConfigReader) -> Self:
         self._carla_context_config = CarlaContextConfig.load(incoming)
         self._carla_actor_manager_config = CarlaActorManagerConfig.load(incoming)
+        self._carla_io_manager_config = CarlaIOManagerConfig.load(incoming)
         return self

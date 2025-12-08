@@ -16,7 +16,7 @@ from contextlib import contextmanager
 
 from shared.configs import ExternalConfigReader, ConfigManager
 from shared.utils import Logging
-from shared.simulator import CarlaTickBlocker, CarlaActorManager, CarlaMaps
+from shared.simulator import CarlaTickBlocker, CarlaActorManager, CarlaMaps, CarlaIOManager
 
 
 class CarlaContext:
@@ -40,6 +40,7 @@ class CarlaContext:
 
         self._service_config_manager = ConfigManager().load(config)
         self._service_actor_manager: CarlaActorManager = CarlaActorManager(self)
+        self._service_io_manager: CarlaIOManager = CarlaIOManager(self)
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
@@ -109,6 +110,10 @@ class CarlaContext:
     def actors(self) -> CarlaActorManager:
         return self._service_actor_manager
 
+    @property
+    def io(self) -> CarlaIOManager:
+        return self._service_io_manager
+
     @contextmanager
     def heavy_operation(self):
         """重操作, 该模式下会设置所有的 Timeout 为 heavy_operation_timeout_seconds, 并临时跳过死检"""
@@ -146,7 +151,8 @@ class CarlaContext:
         self._event_shutdown.set()
         self._thread_dead_detector.join(timeout=1.0)
 
-        # 销毁所有 Actor
+        # 销毁过程
+        self.io.destroy_all()
         self.actors.destroy_all()
 
         # 报告 self._client 的引用数量
