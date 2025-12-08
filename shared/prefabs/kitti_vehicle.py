@@ -50,7 +50,7 @@ class KittiVehicle(CarlaVehicle):
         context: 'CarlaContext',
         tf: CarlaTransform | carla.Transform,
         bp: carla.ActorBlueprint | str | CarlaBlueprints = CarlaBlueprints.VEHICLE_TESLA_MODEL3,
-        name: str = '',
+        name: str = 'KittiVehicle',
         **attributes: Unpack[Dict[str, Any]],
     ):
         self._context = context

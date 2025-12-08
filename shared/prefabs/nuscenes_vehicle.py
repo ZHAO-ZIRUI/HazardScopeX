@@ -56,7 +56,7 @@ class NuScenesVehicle(CarlaVehicle):
         context: 'CarlaContext',
         tf: CarlaTransform | carla.Transform,
         bp: carla.ActorBlueprint | str | CarlaBlueprints = CarlaBlueprints.VEHICLE_TESLA_MODEL3,
-        name: str = '',
+        name: str = 'NuScenesVehicle',
         **attributes: Unpack[Dict[str, Any]],
     ):
         self._context = context
