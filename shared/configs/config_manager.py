@@ -11,6 +11,7 @@ class ConfigManager:
         self._carla_context_config = CarlaContextConfig()
         self._carla_actor_manager_config = CarlaActorManagerConfig()
         self._carla_io_manager_config = CarlaIOManagerConfig()
+        self._carla_recorder_config = CarlaRecorderConfig()
 
     @property
     def context(self) -> CarlaContextConfig:
@@ -23,6 +24,10 @@ class ConfigManager:
     @property
     def io_manager(self) -> CarlaIOManagerConfig:
         return self._carla_io_manager_config
+
+    @property
+    def recorder(self) -> CarlaRecorderConfig:
+        return self._carla_recorder_config
 
     def load(self, incoming: Path | ExternalConfigReader) -> Self:
         self._carla_context_config = CarlaContextConfig.load(incoming)

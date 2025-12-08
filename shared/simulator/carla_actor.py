@@ -51,6 +51,7 @@ class CarlaActor(metaclass=PostInitMeta):
         self._flag_ignore_attribute_failure = ignore_attribute_failure
         self._flag_ignore_spawn_failure = ignore_spawn_failure
         self._parent = parent
+        self._cache_attributes: dict[str, str] = {}
 
         self._bp = self._resolve_blueprint(bp)
         self._bp = self._resolve_attributes(**attributes)
@@ -181,6 +182,22 @@ class CarlaActor(metaclass=PostInitMeta):
             self.logger.warning(f"Failed to destroy actor (CARLA ID: {cache_carla_id}), but ignored")
         return self
 
+    def serialize(self) -> str:
+        """序列化为 YAML 字符串“”“
+
+        Returns:
+            str: YAML 字符串
+        """
+        dump_data = {
+            '_id_local': self._id_local,
+            '_name': self._name,
+            '_bp': self._bp.id,
+            '_tf_init': CarlaTransform.from_carla(self.tf_init).serialize(),
+            '_parent_name': self._parent.name if self._parent is not None else None,
+            '_attributes': self._cache_attributes,
+        }
+        return dump_data
+
     def _resolve_blueprint(self, bp: carla.ActorBlueprint | CarlaBlueprints | str) -> carla.ActorBlueprint:
         """将多种可能的蓝图输入统一为 carla.ActorBlueprint
 
@@ -246,6 +263,7 @@ class CarlaActor(metaclass=PostInitMeta):
             try:
                 self._bp.set_attribute(key, str(value))
                 self.logger.debug(f"Attribute '{key}' set to '{str(value)}'")
+                self._cache_attributes[key] = str(value)
             except IndexError as e:
                 msg = f"Attribute '{key}' not found in blueprint '{self._bp.id}'"
                 if not self._flag_ignore_attribute_failure:
@@ -258,6 +276,7 @@ class CarlaActor(metaclass=PostInitMeta):
         if self._bp.has_attribute('role_name'):
             self._bp.set_attribute('role_name', self._name)
             self.logger.debug(f"Attribute 'role_name' set to '{self._name}'")
+            self._cache_attributes['role_name'] = self._name
         return self._bp
 
     @classmethod

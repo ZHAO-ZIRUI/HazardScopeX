@@ -16,7 +16,7 @@ from contextlib import contextmanager
 
 from shared.configs import ExternalConfigReader, ConfigManager
 from shared.utils import Logging
-from shared.simulator import CarlaTickBlocker, CarlaActorManager, CarlaMaps, CarlaIOManager
+from shared.simulator import CarlaTickBlocker, CarlaActorManager, CarlaMaps, CarlaIOManager, CarlaRecorder
 
 
 class CarlaContext:
@@ -41,6 +41,7 @@ class CarlaContext:
         self._service_config_manager = ConfigManager().load(config)
         self._service_actor_manager: CarlaActorManager = CarlaActorManager(self)
         self._service_io_manager: CarlaIOManager = CarlaIOManager(self)
+        self._service_recorder: CarlaRecorder = CarlaRecorder(self)
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
@@ -113,6 +114,10 @@ class CarlaContext:
     @property
     def io(self) -> CarlaIOManager:
         return self._service_io_manager
+
+    @property
+    def recorder(self) -> CarlaRecorder:
+        return self._service_recorder
 
     @contextmanager
     def heavy_operation(self):

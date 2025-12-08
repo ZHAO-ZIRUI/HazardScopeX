@@ -3,6 +3,7 @@ from .abstract_config import AbstractConfig
 from .carla_context_config import CarlaContextConfig
 from .carla_actor_manager_config import CarlaActorManagerConfig
 from .carla_io_manager_config import CarlaIOManagerConfig
+from .carla_recorder_config import CarlaRecorderConfig
 from .config_manager import ConfigManager
 
 __all__ = [
@@ -12,6 +13,7 @@ __all__ = [
     "CarlaContextConfig",
     "CarlaActorManagerConfig",
     "CarlaIOManagerConfig",
+    "CarlaRecorderConfig",
     # 配置管理器
     "ConfigManager",
 ]

@@ -1,5 +1,6 @@
 import carla
 import time
+import yaml
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Dict
 from typing_extensions import Unpack, Self
@@ -341,6 +342,9 @@ class CarlaActorManager:
             else:
                 return CarlaActor.from_carla(self._context, actor)
         return None
+
+    def serialize_all(self) -> list[dict[str, Any]]:
+        return [actor.serialize() for actor in self._known_actors]
         
     def _topological_sort_by_parent(self) -> list[CarlaActor]:
         """根据父级依赖关系对 Actor 进行拓扑排序
