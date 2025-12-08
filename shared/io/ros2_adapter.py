@@ -91,11 +91,11 @@ class ROS2Adapter(AbstractIOAdapter):
         time.sleep(0.1)
         
         if self._worker_process.is_alive():
-            self.logger.info(f"[ROS2HP] Started worker process for '{self._ros_topic_name}' (PID: {self._worker_process.pid})")
+            self.logger.info(f"Started worker process for '{self._ros_topic_name}' (PID: {self._worker_process.pid})")
         else:
-            self.logger.error(f"[ROS2HP] Failed to start worker process for '{self._ros_topic_name}'")
+            self.logger.error(f"Failed to start worker process for '{self._ros_topic_name}'")
             if self._worker_process.exitcode is not None:
-                self.logger.error(f"[ROS2HP] Worker exit code: {self._worker_process.exitcode}")
+                self.logger.error(f"Worker exit code: {self._worker_process.exitcode}")
         
         return self
 
@@ -104,7 +104,7 @@ class ROS2Adapter(AbstractIOAdapter):
         if self._worker_process is not None:
             if self._worker_process.is_alive():
                 pid = self._worker_process.pid
-                self.logger.debug(f"[ROS2HP] Stopping worker process for '{self._ros_topic_name}' (PID: {pid})")
+                self.logger.debug(f"Stopping worker process for '/{self._ros_topic_name}' (PID: {pid})")
                 try:
                     os.kill(pid, signal.SIGINT)
                 except ProcessLookupError:
@@ -114,7 +114,7 @@ class ROS2Adapter(AbstractIOAdapter):
                     self._worker_process.terminate()
                     self._worker_process.join(timeout=1.0)
                 if self._worker_process.is_alive():
-                    self.logger.warning(f"[ROS2HP] Worker process for '{self._ros_topic_name}' did not terminate in time, forcing shutdown")
+                    self.logger.warning(f"Worker process for '/{self._ros_topic_name}' did not terminate in time, forcing shutdown")
                     self._worker_process.kill()
                     self._worker_process.join()
             try:
@@ -152,14 +152,14 @@ class ROS2Adapter(AbstractIOAdapter):
         from shared.data import Image as SharedImage, PointCloud as SharedPointCloud
         
         logger = Logging().get_logger('IOManager')
-        logger.debug(f"[ROS2HP] Starting worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}'")
+        logger.debug(f"Starting worker for shm to ros2: '{shm_topic}' -> '/{ros_topic_name}'")
 
         # 连接到共享内存
         try:
             shm = SharedMemory(name=shm_topic)
-            logger.debug(f"[ROS2HP] Connected to shared memory '{shm_topic}'")
+            logger.debug(f"Connected to shared memory '{shm_topic}'")
         except FileNotFoundError:
-            logger.error(f"[ROS2HP] Shared memory '{shm_topic}' not found")
+            logger.error(f"Shared memory '{shm_topic}' not found")
             return
 
         try:
@@ -167,7 +167,7 @@ class ROS2Adapter(AbstractIOAdapter):
                 rclpy.init()
             
             ros_node = rclpy.create_node(ros_node_name, enable_rosout=False)
-            logger.debug(f"[ROS2HP] Created ROS2 node '{ros_node_name}'")
+            logger.debug(f"Created ROS2 node '{ros_node_name}'")
             
             # 根据传感器类型确定数据类和消息类型
             if sensor_type == 'camera':
@@ -177,11 +177,11 @@ class ROS2Adapter(AbstractIOAdapter):
                 data_type = SharedPointCloud
                 ros_message_type = PointCloud2
             else:
-                raise ValueError(f"[ROS2HP] Unsupported sensor type: {sensor_type}")
+                raise ValueError(f"Unsupported sensor type: {sensor_type}")
             
             # 创建 Publisher
             ros_publisher = ros_node.create_publisher(ros_message_type, ros_topic_name, ros_qos)
-            logger.debug(f"[ROS2HP] Created ROS2 publisher for '{ros_topic_name}'")
+            logger.debug(f"Created ROS2 publisher for '{ros_topic_name}'")
 
             # 主工作循环
             last_frame = None
@@ -189,6 +189,7 @@ class ROS2Adapter(AbstractIOAdapter):
                 while True:
                     # 首先只读取帧号，避免反序列化大数据
                     current_frame = data_type.try_from_shm_frame_only(shm, default=None)
+                    print(f'FrameCheck: {current_frame} -> {last_frame}')
                     
                     # 如果没有数据或帧号未变化，跳过
                     if current_frame is None:
@@ -203,7 +204,8 @@ class ROS2Adapter(AbstractIOAdapter):
                                 # 将数据转换为 ROS2 消息
                                 ros2_data = data.to_ros2(frame_id=ros_frame_id, timestamp_source=timestamp_source)
                                 if rclpy.ok():
-                                    ros_publisher.publish(ros2_data)
+                                    # ros_publisher.publish(ros2_data)
+                                    print(data.sim_frame)
                                 else:
                                     break
                                 last_frame = current_frame
@@ -215,9 +217,9 @@ class ROS2Adapter(AbstractIOAdapter):
                         continue
 
             except KeyboardInterrupt:
-                logger.info("[ROS2HP] Worker received interrupt signal")
+                logger.info("Worker received interrupt signal")
             except Exception as e:
-                logger.error(f"[ROS2HP] Worker error: {e}")
+                logger.error(f"Worker error: {e}")
             finally:
                 # 销毁 ROS2 资源
                 if ros_node is not None:
@@ -229,9 +231,9 @@ class ROS2Adapter(AbstractIOAdapter):
             try:
                 shm.close()
             except Exception as e:
-                logger.debug(f"[ROS2HP] Error closing shared memory: {e}")
+                logger.debug(f"Error closing shared memory: {e}")
 
-        logger.debug(f"[ROS2HP] Worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}' stopped")
+        logger.debug(f"Worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}' stopped")
 
     def _resolve_ros_node_name(self, name: str) -> str:
         """解析 ROS2 节点名称, 如果名称未指定或为空, 则生成一个默认名称, 其他情况则直接用户输入
