@@ -189,8 +189,7 @@ class ROS2Adapter(AbstractIOAdapter):
                 while True:
                     # 首先只读取帧号，避免反序列化大数据
                     current_frame = data_type.try_from_shm_frame_only(shm, default=None)
-                    print(f'FrameCheck: {current_frame} -> {last_frame}')
-                    
+
                     # 如果没有数据或帧号未变化，跳过
                     if current_frame is None:
                         time.sleep(0.01)
@@ -204,8 +203,7 @@ class ROS2Adapter(AbstractIOAdapter):
                                 # 将数据转换为 ROS2 消息
                                 ros2_data = data.to_ros2(frame_id=ros_frame_id, timestamp_source=timestamp_source)
                                 if rclpy.ok():
-                                    # ros_publisher.publish(ros2_data)
-                                    print(data.sim_frame)
+                                    ros_publisher.publish(ros2_data)
                                 else:
                                     break
                                 last_frame = current_frame
