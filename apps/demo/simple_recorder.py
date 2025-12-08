@@ -1,16 +1,16 @@
 # 简单的录制程序
 # 在 CARLA 中创建一辆车辆, 并为其安装传感器, 然后录制仿真数据
+from pathlib import Path
 from shared.simulator import *
-from shared.utils import Config, Logging
-from shared.simulator import CarlaTransform
+from shared.utils import Logging
 
 if __name__ == "__main__":
     # 基础组件初始化
-    config = Config.from_yaml('config.yaml')                # 读取配置文件
-    logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
+    config = Path('config.yaml')                            # 读取配置文件
+    logger = Logging.load(config).get_logger('Main')        # 设置日志记录器
 
     logger.info('Starting simple server')
-    with CarlaContext.from_config(config) as context:
+    with CarlaContext(config) as context:
         
         vehicle = context.actors.create_vehicle(
             bp=CarlaBlueprints.VEHICLE_AUDI_A2,
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
         # 以上下文管理器方式录制仿真数据
         # 特别注意, 传感器要在开始录制前被 SPAWN
-        with context.recorder.record('demo'):
+        with context.recorder.record():
             vehicle.set_carla_autopilot(enable=True)
             context.wait_seconds(30)
 

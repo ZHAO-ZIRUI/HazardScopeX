@@ -2,9 +2,10 @@
 import numpy as np
 import cv2
 import random
+from pathlib import Path
 from shared.data.image import Image
 from shared.simulator import *
-from shared.utils import Config, Logging
+from shared.utils import Logging
 from shared.prefabs import PlayerVehicle
 from shared.scenarios import Injector, Factor
 
@@ -71,10 +72,10 @@ class FactorSensorDataRandomLoss(Factor):
 
 if __name__ == "__main__":
     # 基础组件初始化
-    config = Config.from_yaml('config.yaml')                # 读取配置文件
-    logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
+    config = Path('config.yaml')                            # 读取配置文件
+    logger = Logging.load(config).get_logger('Main')        # 设置日志记录器
 
-    with CarlaContext.from_config(config) as context:
+    with CarlaContext(config) as context:
         context.change_map('Town04')
 
         vehicle = PlayerVehicle(context, context.spawn_points[0])

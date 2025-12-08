@@ -1,15 +1,16 @@
 # 简单的回放程序
 # 回放记录的仿真数据, 并使用 ROS2 发布传感器数据
+from pathlib import Path
 from shared.simulator import *
-from shared.utils import Config, Logging
+from shared.utils import Logging
 
 
 if __name__ == "__main__":
     # 基础组件初始化
-    config = Config.from_yaml('config.yaml')                # 读取配置文件
-    logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
+    config = Path('config.yaml')                            # 读取配置文件
+    logger = Logging.load(config).get_logger('Main')        # 设置日志记录器
 
-    with CarlaContext.from_config(config) as context:
+    with CarlaContext(config) as context:
 
         # 以上下文管理器方式回放仿真数据, 并使用 ROS2 发布传感器数据
         # 回放时, 传感器通过 demo.carla.yaml 文件内描述的属性与关系重建
