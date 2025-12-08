@@ -146,10 +146,8 @@ class CarlaIOManager:
 
         # 先创建 SHM
         if shm_topic is None or shm_topic == '':
-            shm_topic = f'{self._config.shared_memory_domain}_{topic.replace("/", "_")}'
-        else:
-            shm_topic = f'{self._config.shared_memory_domain}_{shm_topic}'
-        shm = self.create_shm(shm_topic)
+            shm_topic = topic
+        shm = self.create_shm(shm_topic.replace("/", "_"))
 
         # 创建 ROS2 高性能适配器
         adapter = ROS2Adapter(

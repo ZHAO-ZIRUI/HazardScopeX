@@ -244,5 +244,5 @@ class ROS2Adapter(AbstractIOAdapter):
         """
         if name is None or name == '' or name == self.DEFAULT_ROS_NODE_NAME:
             id_gen = IdGenerator(header=self.DEFAULT_ROS_NODE_NAME)
-            return f"{self.DEFAULT_ROS_NODE_NAME}_{next(id_gen)}"
+            return next(id_gen)
         return name
