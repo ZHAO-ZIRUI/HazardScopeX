@@ -2,12 +2,12 @@ import os
 import platform
 import subprocess
 import time
-import sys
 import random
 import socket
 import uuid
 import carla
 import threading
+import gc
 from pathlib import Path
 from typing import Callable
 from typing_extensions import Self
@@ -154,10 +154,20 @@ class CarlaContext:
         # 销毁过程
         self.io.destroy_all()
         self.actors.destroy_all()
+        self.traffic.shut_down()
 
-        # 报告 self._client 的引用数量
-        ref_count = sys.getrefcount(self._client)
-        self.logger.debug(f'Client reference count: {ref_count - 1}')
+        # 清理 hook
+        self._hook_on_tick.clear()
+
+        # 清理 tick blockers
+        self._tick_blockers.clear()
+
+        # 清理 client
+        del self._client
+        self._client = None
+
+        # 强制垃圾回收
+        gc.collect()
 
         # 停止服务端进程
         if not self.configs.context.server_self_managed_enabled:
