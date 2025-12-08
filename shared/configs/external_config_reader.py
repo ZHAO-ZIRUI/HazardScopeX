@@ -66,6 +66,13 @@ class ExternalConfigReader:
         if target_type == NoneType:
             return value
         
+        # list, 如果是列表类型且值已经是列表，直接返回
+        if target_type == list:
+            if isinstance(value, list):
+                return value
+            # 如果不是列表，按原逻辑转换为字符串
+            return str(value)
+        
         # bool 
         if target_type == bool:
             if isinstance(value, bool):

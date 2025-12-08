@@ -1,7 +1,7 @@
 from abc import ABC
 from pathlib import Path
 from typing_extensions import Self
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, MISSING
 
 from shared.configs import ExternalConfigReader
 
@@ -39,6 +39,7 @@ class AbstractConfig(ABC):
         for field in fields(instance):
             if field.metadata.get('route') is not None:
                 route = field.metadata['route']
-                setattr(instance, field.name, reader.get(route, default=field.default))
+                default_value = field.default if field.default != MISSING else getattr(instance, field.name)
+                setattr(instance, field.name, reader.get(route, default=default_value))
         
         return instance
