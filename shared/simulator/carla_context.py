@@ -195,7 +195,6 @@ class CarlaContext:
                 '-nullrhi', 
                 f'-carla-rpc-port={self.configs.context.server_port}', 
                 f'-carla-primary-port={self.configs.context.server_port + self.configs.context.server_multi_gpu_port_offset}',
-                f'-carla-primary-host={self.configs.context.server_host}'
             ]
             self._server_launch(cmd_primary)
             self.logger.info(f'CARLA server primary process started, port: {self.configs.context.server_port}')
