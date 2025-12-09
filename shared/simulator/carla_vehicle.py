@@ -90,3 +90,17 @@ class CarlaVehicle(CarlaActor):
                 self.logger.warning(f"Failed to disable autopilot before destroy: {e}")
         
         return super().destroy()
+
+    @classmethod
+    def from_carla(cls, context: 'CarlaContext', actor: carla.Vehicle) -> Self:
+        instance = cls(
+            context=context,
+            bp=actor.type_id,
+            tf=actor.get_transform(),
+            name=actor.attributes.get('role_name', None),
+            ignore_attribute_failure=False,
+            ignore_spawn_failure=False,
+            is_managed_actor=False,
+        )
+        instance._actor_ref[0] = actor
+        return instance
