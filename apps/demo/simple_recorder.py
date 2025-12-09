@@ -1,58 +1,35 @@
-# 简单的录制程序
-# 在 CARLA 中创建一辆车辆, 并为其安装传感器, 然后录制仿真数据
-from pathlib import Path
-from shared.simulator import *
+# ==============================================================
+# 简单的录制程序样例
+# 
+# 数据会保存在 recorder/ 目录下，以时间戳命名. 后缀为 .carla 的文件为录制数据, 后缀为 .yaml 的文件为元数据, 记录了传感器的属性与位置
+#
+#
+# 逻辑：
+# 1. 创建一个携带传感器的预制车辆
+# 2. 对车辆启动 CARLA AUTOPILOT
+# 3. 录制 30 秒数据
+# ==============================================================
+from shared.simulator import CarlaContext
 from shared.utils import Logging
+from shared.prefabs import PlayerVehicle
 
 if __name__ == "__main__":
-    # 基础组件初始化
-    config = Path('config.yaml')                            # 读取配置文件
-    logger = Logging.load(config).get_logger('Main')        # 设置日志记录器
+    logger = Logging.load('config.yaml').get_logger('Main')
+    logger.info('DEMO FOR RECORDER')
 
-    logger.info('Starting simple server')
-    with CarlaContext(config) as context:
+
+    with CarlaContext() as context:
         
-        vehicle = context.actors.create_vehicle(
-            bp=CarlaBlueprints.VEHICLE_AUDI_A2,
-            tf=context.spawn_points[0],
-        )
+        # 创建一个携带传感器的预制车辆
+        vehicle = PlayerVehicle(context, context.spawn_points[0])
 
-        cam_front = context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
-            name='CAM_FRONT',
-            tf=CarlaTransform(x=1.6, y=0.0, z=1.7),
-            parent=vehicle,
-        )
-
-        cam_game = context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
-            name='CAM_GAME',
-            tf=CarlaTransform(x=-5.5, y=0.0, z=2.5, pitch=-15.0),
-            parent=vehicle,
-        )
-
-        lidar_main = context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST,
-            name='LIDAR_MAIN',
-            tf=CarlaTransform(x=0.0, y=0.0, z=2.2),
-            parent=vehicle,
-        )
-
+        # 等待车辆稳定
         context.actors.spawn_all()
         context.actors.wait_stable(vehicle)
 
-        # 以上下文管理器方式录制仿真数据
-        # 特别注意, 传感器要在开始录制前被 SPAWN
+        # 录制 30 秒数据
         with context.recorder.record():
             vehicle.set_carla_autopilot(enable=True)
             context.wait_seconds(30)
 
-        # 上方代码等价于
-        # ------------------------------------------------------------
-        # context.recorder.start_record('demo')
-        # vehicle.set_carla_autopilot(enable=True)
-        # context.wait_seconds(30)
-        # context.recorder.stop_record()
-        # ------------------------------------------------------------
-
-    logger.info('Goodbye!')
+    logger.info('GOODBYE!')
