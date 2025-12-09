@@ -48,7 +48,9 @@ class Logging:
         return logging.getLogger(name)
 
     @classmethod
-    def load(cls, config: ExternalConfigReader | Path) -> Self:
+    def load(cls, config: ExternalConfigReader | Path | str) -> Self:
+        if isinstance(config, str):
+            config = Path(config)
         if isinstance(config, Path):
             config = ExternalConfigReader.load(config)
         level: str = config.get("logging/level")
