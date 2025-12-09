@@ -177,8 +177,9 @@ class PointCloud(SimulatorOutput):
         msg.point_step = 16  # 4 floats * 4 bytes
         msg.row_step = msg.point_step * msg.width
         msg.is_dense = False
-        msg.data = ros_points.astype(np.float32).tobytes()
-        
+        # 使用 memoryview 直接暴露底层连续缓冲区, 避免多余拷贝
+        # 此处直接操作 msg 的 _data 属性, 而不是 msg.data, 因为 msg.data 会进行额外的格式转换
+        msg._data = memoryview(ros_points)
         return msg
 
     @classmethod
