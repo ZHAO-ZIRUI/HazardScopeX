@@ -67,16 +67,16 @@ class PlayerVehicle(CarlaVehicle):
         )
 
         self._lidar = self._context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST,
+            bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST_SEMANTIC,
             name=self.name + '_' + self.LIDAR_NAME,
             tf=self.LIDAR_TF,
             parent=self,
             rotation_frequency=self._context.fps,
-            points_per_second=1000000,
+            points_per_second=120_000 * self._context.fps,
             channels=64,
-            range=100,
+            range=120,
             upper_fov=2,
-            lower_fov=-24.8,
+            lower_fov=-24.5,
         )
 
     @property
