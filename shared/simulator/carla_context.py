@@ -43,6 +43,8 @@ class CarlaContext:
         self._service_io_manager: CarlaIOManager = CarlaIOManager(self)
         self._service_recorder: CarlaRecorder = CarlaRecorder(self)
 
+        self._time_last_tick: float = 0.0
+
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
         self.__post_init__()
@@ -301,6 +303,7 @@ class CarlaContext:
 
         # 执行 TICK
         self.world.tick()
+        self._time_last_tick = time.perf_counter()
 
         # 自动设置 TickBlocker
         for blocker in self._tick_blockers:
@@ -317,7 +320,8 @@ class CarlaContext:
         try:
             while not self._event_shutdown.is_set() and not self._evnet_server_dead.is_set():
                 self.tick()
-                time.sleep(1/self.configs.context.runtime_sync_mode_fps)
+                time.sleep(self._calc_tick_wait_time())
+                self._time_last_tick = time.perf_counter()
         except KeyboardInterrupt:
             self.logger.info('Spin stopped by manual interrupt')
             return
@@ -328,7 +332,8 @@ class CarlaContext:
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
             self.tick()
-            time.sleep(1/self.configs.context.runtime_sync_mode_fps)
+            time.sleep(self._calc_tick_wait_time())
+            self._time_last_tick = time.perf_counter()
         self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
 
@@ -339,7 +344,8 @@ class CarlaContext:
         while tick_counter < ticks:
             self.tick()
             tick_counter += 1
-            time.sleep(1/self.configs.context.runtime_sync_mode_fps)
+            time.sleep(self._calc_tick_wait_time())
+            self._time_last_tick = time.perf_counter()
         self.logger.debug(f'Waiting finished: {ticks} ticks')
 
     def change_map(self, map: str | CarlaMaps):
@@ -422,6 +428,14 @@ class CarlaContext:
         finally:
             del detector_client
             self.logger.debug('Server dead detector stopped')
+
+    def _calc_tick_wait_time(self) -> float:
+        """计算 TICK 等待时间"""
+        time_now = time.perf_counter()
+        time_diff = time_now - self._time_last_tick
+        time_wait = 1/self.configs.context.runtime_sync_mode_fps - time_diff
+        time_wait = max(time_wait, 1/self.configs.context.runtime_sync_mode_fps * 1/4)  # 最小等待时间不超过 1/4 帧
+        return time_wait
 
     @property
     def hook_on_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
