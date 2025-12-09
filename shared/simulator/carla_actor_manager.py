@@ -282,7 +282,11 @@ class CarlaActorManager:
             
             # 进行 tick 操作
             self._context.tick(force=True)
-            time.sleep(1/self._context.fps)
+            try:
+                time.sleep(1/self._context.fps)
+            except KeyboardInterrupt:
+                self.logger.warning('Wait stable interrupted by user')
+                raise SystemExit(102)
 
     def find_by_local_id(self, id: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
         """根据本地 ID 查找 Actor

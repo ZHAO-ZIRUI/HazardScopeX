@@ -15,7 +15,10 @@
 
 | **CODE** | **DESCRIPTION** |
 |----------|-----------------|
-| 100 | 用户中断 (`KeyboardInterrupt`) |
+| **10X** | **用户中断 (`KeyboardInterrupt`)** |
+| 100 | 在执行 `spin()`, `wait_ticks()`, `wait_seconds()`过程中发生用户中断 |
+| 101 | 在服务端启动过程中发生用户中断 |
+| 102 | 在等待 Actor 稳定时 `wait_stable()` 发生用户中断 |
 | **21X** | **CARLA 服务端错误** |
 | 211 | CARLA 服务端在启动时无法正确连接 |
 | 212 | CARLA 服务端进程在运行时被检测进程发现死亡 |

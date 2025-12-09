@@ -192,7 +192,11 @@ class CarlaContext:
             self._server_kill()
             wait_time = self.configs.context.server_bringup_after_kill_wait_seconds
             self.logger.info(f'CARLA server processes cleaned up, wait {wait_time} seconds before bringing up again ...')
-            time.sleep(wait_time)
+            try:
+                time.sleep(wait_time)
+            except KeyboardInterrupt:
+                self.logger.warning('Server bringup interrupted by user')
+                raise SystemExit(101)
 
         # 启动服务端进程
         if self.configs.context.server_multi_gpu_enabled:
@@ -241,7 +245,11 @@ class CarlaContext:
         # 初始等待
         if self.configs.context.server_self_managed_enabled:
             self.logger.debug(f'Waiting {self.configs.context.server_bringup_init_wait_seconds} seconds first ...')
-            time.sleep(self.configs.context.server_bringup_init_wait_seconds)
+            try:
+                time.sleep(self.configs.context.server_bringup_init_wait_seconds)
+            except KeyboardInterrupt:
+                self.logger.warning('Server bringup interrupted by user')
+                raise SystemExit(101)
 
         timeout = 1/self.configs.context.runtime_sync_mode_fps * 2  # 两个帧的周期
         client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
@@ -320,7 +328,11 @@ class CarlaContext:
         try:
             while not self._event_shutdown.is_set() and not self._evnet_server_dead.is_set():
                 self.tick()
-                time.sleep(self._calc_tick_wait_time())
+                try:
+                    time.sleep(self._calc_tick_wait_time())
+                except KeyboardInterrupt:
+                    self.logger.warning('Spin interrupted by user')
+                    raise SystemExit(100)
                 self._time_last_tick = time.perf_counter()
         except KeyboardInterrupt:
             self.logger.info('Spin stopped by manual interrupt')
@@ -332,7 +344,11 @@ class CarlaContext:
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
             self.tick()
-            time.sleep(self._calc_tick_wait_time())
+            try:
+                time.sleep(self._calc_tick_wait_time())
+            except KeyboardInterrupt:
+                self.logger.warning(f'Wait seconds (seconds: {seconds}) interrupted by user')
+                raise SystemExit(100)
             self._time_last_tick = time.perf_counter()
         self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
@@ -344,7 +360,11 @@ class CarlaContext:
         while tick_counter < ticks:
             self.tick()
             tick_counter += 1
-            time.sleep(self._calc_tick_wait_time())
+            try:
+                time.sleep(self._calc_tick_wait_time())
+            except KeyboardInterrupt:
+                self.logger.warning(f'Wait ticks (ticks: {ticks}) interrupted by user')
+                raise SystemExit(100)
             self._time_last_tick = time.perf_counter()
         self.logger.debug(f'Waiting finished: {ticks} ticks')
 
