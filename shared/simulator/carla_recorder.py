@@ -190,7 +190,7 @@ class CarlaRecorder:
                 parent=self._context.actors.find_by_name(actor_dump['_parent_name']),
                 **actor_dump['_attributes'],
             )
-            sensor.spawn(self._context.world)
+            sensor.spawn()
 
         self._context.tick() # 执行一次 TICK(), 确保传感器对象被 SPAWN
         self._cache_replay_frames += 1
