@@ -112,7 +112,6 @@ class Factor(ABC):
         
         该方法必须被子类实现, 并手动设置 self._is_warmup_completed 为 True 以标记预热完成
         """
-        raise NotImplementedError
         if self._is_warmup_completed:
             return
         self.status = self.FactorStatus.WARMUP
