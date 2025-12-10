@@ -24,7 +24,7 @@ class Factor(ABC):
     - FINISHED       # 完成, 用于标记因子生命周期结束
 
     因子的命名请修改类属性 NAME, 遵循以下命名规则:
-    - 以 Factor 开始, 使用 PascalCase(大驼峰) 命名
+    - 以 F_ 开始, 使用 PascalCase(大驼峰) 命名
     - 第二个单词表示因子的类型
         - Env: 环境因素, 包括天气, 时间, 光照等
         - Traffic: 车流因素, 与主要事件关系不大的车流因素
@@ -32,13 +32,13 @@ class Factor(ABC):
         - Case: 交互因素, 具体的交互场景
     - 第三个至以后的单词表示因子的具体说明
     - 示例:
-        - FactorEnvHeavyRain
-        - FactorTrafficLargeVehilces
-        - FactorSensorCamLoss
-        - FactorCaseForceCutin
+        - F_EnvHeavyRain
+        - F_TrafficLargeVehilces
+        - F_SensorCamLoss
+        - F_CaseForceCutin
     """
 
-    NAME = 'Factor'
+    NAME = 'F_BaseFactor'
     PRIORITY = 0
 
     class FactorStatus(Enum):
