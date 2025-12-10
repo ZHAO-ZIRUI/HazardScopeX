@@ -52,7 +52,7 @@ class Injector(metaclass=PostInitMeta):
             factor.bringup()
 
         # 进行一次 Tick, 防止 bringup 阶段遗漏
-        self._context.wait_ticks(1)
+        self._context.wait_ticks(1, no_log=True)
 
         # 绑定 TICK 钩子
         self._context.hook_on_tick.append(self.tick)
@@ -77,7 +77,7 @@ class Injector(metaclass=PostInitMeta):
             factor.teardown()
 
         # 进行一次 Tick, 防止 teardown 阶段遗漏
-        self._context.wait_ticks(1)
+        self._context.wait_ticks(1, no_log=True)
 
         self.logger.info(f'All {len(self._factors)} factors torn down')
         return
