@@ -338,9 +338,10 @@ class CarlaContext:
             self.logger.info('Spin stopped by manual interrupt')
             return
 
-    def wait_seconds(self, seconds: float, *, force: bool = False):
+    def wait_seconds(self, seconds: float, *, force: bool = False, no_log: bool = False):
         """等待指定秒数"""
-        self.logger.info(f'Waiting {seconds} seconds ...')
+        if not no_log:
+            self.logger.info(f'Waiting {seconds} seconds ...')
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
             self.tick(force=force)
@@ -350,12 +351,14 @@ class CarlaContext:
                 self.logger.warning(f'Wait seconds (seconds: {seconds}) interrupted by user')
                 raise SystemExit(100)
             self._time_last_tick = time.perf_counter()
-        self.logger.debug(f'Waiting finished: {seconds} seconds')
+        if not no_log:
+            self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
 
-    def wait_ticks(self, ticks: int, *, force: bool = False):
+    def wait_ticks(self, ticks: int, *, force: bool = False, no_log: bool = False):
         """等待指定帧数"""
-        self.logger.info(f'Waiting {ticks} ticks ...')
+        if not no_log:
+            self.logger.info(f'Waiting {ticks} ticks ...')
         tick_counter = 0
         while tick_counter < ticks:
             self.tick(force=force)
@@ -366,7 +369,8 @@ class CarlaContext:
                 self.logger.warning(f'Wait ticks (ticks: {ticks}) interrupted by user')
                 raise SystemExit(100)
             self._time_last_tick = time.perf_counter()
-        self.logger.debug(f'Waiting finished: {ticks} ticks')
+        if not no_log:
+            self.logger.debug(f'Waiting finished: {ticks} ticks')
 
     def change_map(self, map: str | CarlaMaps):
         with self.heavy_operation():
