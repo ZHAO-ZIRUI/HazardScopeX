@@ -81,3 +81,16 @@ class Injector(metaclass=PostInitMeta):
 
         self.logger.info(f'All {len(self._factors)} factors torn down')
         return
+
+    def spin_until_finished(self, *factors: Unpack[Factor]) -> None:
+        if len(factors) == 0:
+            factors = self._factors
+        
+        while any(factor.stage != Factor.FactorStage.COMPLETED for factor in factors):
+            try:
+                self._context.wait_ticks(1, no_log=True, raise_interrupted=True)
+            except KeyboardInterrupt:
+                self.logger.warning(f'Spin until finished interrupted by user')
+                raise SystemExit(401)
+        
+        self.logger.info(f'All {len(factors)} factors finished')
