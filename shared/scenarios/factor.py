@@ -8,7 +8,7 @@ from shared.utils import Logging, PostInitMeta
 
 class Factor(metaclass=PostInitMeta):
     """
-    Factor 基类, 用于定义因子的接口
+    Factor 基类, 用于定义可以注入的因子
     """
 
     # 因子名称
@@ -19,11 +19,11 @@ class Factor(metaclass=PostInitMeta):
 
     class FactorStage(Enum):
         """因子生命周期的阶段枚举类"""
-        BRINGUP = auto()
-        WAIT_FOR_TRIGGER = auto()
-        TRIGGERED = auto()
-        COMPLETED = auto()
-        TEARDOWN = auto()
+        BRINGUP = auto()             # 准备阶段, 用于生成因子所需的 Actor 等操作, 对应 hook_bringup 钩子, 只会执行一次
+        WAIT_FOR_TRIGGER = auto()    # 等待触发阶段, 因子开始 update() 后首先进入该阶段, 会在每次 tick() 时执行 hook_update 钩子
+        TRIGGERED = auto()           # 触发阶段, 处于 update() 阶段, 需要手动设置 self.stage 进入该阶段
+        COMPLETED = auto()           # 完成阶段, 处于 update() 阶段, 用于标记因子完成所有操作或达成特定条件, 需要手动设置 self.stage 进入该阶段
+        TEARDOWN = auto()            # 销毁阶段, 用于销毁因子所需的 Actor 等操作, 对应 hook_teardown 钩子, 只会执行一次
 
     def __init__(self, context: CarlaContext):
         self._context = context
