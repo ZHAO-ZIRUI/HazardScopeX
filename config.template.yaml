@@ -32,7 +32,7 @@ context:
     # 自管理模式, 该模式下 CarlaContext 将自动管理 CARLA 服务端的生命周期
     self_managed:
       # 是否启用自管理模式
-      enabled: false
+      enabled: true
       # 服务端的可执行文件路径
       # 在 Windows 下, 该路径需要以 .exe 结尾
       # 在 Linux 下, 该路径需要以 .sh 结尾
