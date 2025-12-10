@@ -93,7 +93,8 @@ class Factor(ABC):
     def status(self, value: FactorStatus):
         before = self._status
         self._status = value
-        self.logger.debug(f'Status changed: {before.name} -> {value.name}')
+        if before != value:
+            self.logger.debug(f'Status changed: {before.name} -> {value.name}')
         return self
 
     @property
