@@ -83,6 +83,14 @@ class Injector(metaclass=PostInitMeta):
         return
 
     def spin_until_finished(self, *factors: Unpack[Factor]) -> None:
+        """持续运行仿真直到指定因子完成
+
+        Args:
+            *factors: 指定因子, 如果为空, 则运行直到所有因子完成
+
+        Raises:
+            SystemExit: 用户中断
+        """
         if len(factors) == 0:
             factors = self._factors
         

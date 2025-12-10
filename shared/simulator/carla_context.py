@@ -338,8 +338,22 @@ class CarlaContext:
             self.logger.info('Spin stopped by manual interrupt')
             return
 
-    def wait_seconds(self, seconds: float, *, force: bool = False, no_log: bool = False, raise_interrupted: bool = False):
-        """等待指定秒数"""
+    def wait_seconds(
+        self, 
+        seconds: float, 
+        *, 
+        force: bool = False, 
+        no_log: bool = False, 
+        raise_interrupted: bool = False,
+    ):
+        """等待指定秒数
+
+        Args:
+            seconds (float): 等待秒数
+            force (bool): 是否强制执行
+            no_log (bool): 是否不打印日志
+            raise_interrupted (bool): 是否在用户中断时抛出异常
+        """
         if not no_log:
             self.logger.info(f'Waiting {seconds} seconds ...')
         begin = time.perf_counter()
@@ -357,8 +371,22 @@ class CarlaContext:
             self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
 
-    def wait_ticks(self, ticks: int, *, force: bool = False, no_log: bool = False, raise_interrupted: bool = False):
-        """等待指定帧数"""
+    def wait_ticks(
+        self,
+        ticks: int,
+        *,
+        force: bool = False,
+        no_log: bool = False,
+        raise_interrupted: bool = False,
+    ):
+        """等待指定帧数
+
+        Args:
+            ticks (int): 等待帧数
+            force (bool): 是否强制执行
+            no_log (bool): 是否不打印日志
+            raise_interrupted (bool): 是否在用户中断时抛出异常
+        """
         if not no_log:
             self.logger.info(f'Waiting {ticks} ticks ...')
         tick_counter = 0
