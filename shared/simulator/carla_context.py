@@ -329,7 +329,7 @@ class CarlaContext:
             while not self._event_shutdown.is_set() and not self._evnet_server_dead.is_set():
                 self.tick()
                 try:
-                    time.sleep(self.calc_tick_wait_time())
+                    time.sleep(self._calc_tick_wait_time())
                 except KeyboardInterrupt:
                     self.logger.warning('Spin interrupted by user')
                     raise SystemExit(100)
@@ -345,7 +345,7 @@ class CarlaContext:
         while time.perf_counter() - begin < seconds:
             self.tick(force=force)
             try:
-                time.sleep(self.calc_tick_wait_time())
+                time.sleep(self._calc_tick_wait_time())
             except KeyboardInterrupt:
                 self.logger.warning(f'Wait seconds (seconds: {seconds}) interrupted by user')
                 raise SystemExit(100)
@@ -361,7 +361,7 @@ class CarlaContext:
             self.tick(force=force)
             tick_counter += 1
             try:
-                time.sleep(self.calc_tick_wait_time())
+                time.sleep(self._calc_tick_wait_time())
             except KeyboardInterrupt:
                 self.logger.warning(f'Wait ticks (ticks: {ticks}) interrupted by user')
                 raise SystemExit(100)
@@ -378,7 +378,7 @@ class CarlaContext:
             self.world.tick()  # 这里使用 carla.world.tick()
             self.logger.info(f'Map changed to {map_name}, fullname: "{self.world.get_map().name}"')
 
-    def calc_tick_wait_time(self) -> float:
+    def _calc_tick_wait_time(self) -> float:
         """计算 TICK 等待时间"""
         time_now = time.perf_counter()
         time_diff = time_now - self._time_last_tick
