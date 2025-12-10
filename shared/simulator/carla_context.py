@@ -338,7 +338,7 @@ class CarlaContext:
             self.logger.info('Spin stopped by manual interrupt')
             return
 
-    def wait_seconds(self, seconds: float, *, force: bool = False, no_log: bool = False):
+    def wait_seconds(self, seconds: float, *, force: bool = False, no_log: bool = False, raise_interrupted: bool = False):
         """等待指定秒数"""
         if not no_log:
             self.logger.info(f'Waiting {seconds} seconds ...')
@@ -347,15 +347,17 @@ class CarlaContext:
             self.tick(force=force)
             try:
                 time.sleep(self._calc_tick_wait_time())
-            except KeyboardInterrupt:
-                self.logger.warning(f'Wait seconds (seconds: {seconds}) interrupted by user')
-                raise SystemExit(100)
+            except KeyboardInterrupt as e:
+                if not raise_interrupted:
+                    self.logger.warning(f'Wait seconds (seconds: {seconds}) interrupted by user')
+                    raise SystemExit(100)
+                raise e
             self._time_last_tick = time.perf_counter()
         if not no_log:
             self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
 
-    def wait_ticks(self, ticks: int, *, force: bool = False, no_log: bool = False):
+    def wait_ticks(self, ticks: int, *, force: bool = False, no_log: bool = False, raise_interrupted: bool = False):
         """等待指定帧数"""
         if not no_log:
             self.logger.info(f'Waiting {ticks} ticks ...')
@@ -365,9 +367,11 @@ class CarlaContext:
             tick_counter += 1
             try:
                 time.sleep(self._calc_tick_wait_time())
-            except KeyboardInterrupt:
-                self.logger.warning(f'Wait ticks (ticks: {ticks}) interrupted by user')
-                raise SystemExit(100)
+            except KeyboardInterrupt as e:
+                if not raise_interrupted:
+                    self.logger.warning(f'Wait ticks (ticks: {ticks}) interrupted by user')
+                    raise SystemExit(100)
+                raise e
             self._time_last_tick = time.perf_counter()
         if not no_log:
             self.logger.debug(f'Waiting finished: {ticks} ticks')
