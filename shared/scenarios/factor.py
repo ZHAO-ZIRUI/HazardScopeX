@@ -26,9 +26,8 @@ class Factor(metaclass=PostInitMeta):
         COMPLETED = auto()
         TEARDOWN = auto()
 
-    def __init__(self, context: CarlaContext, vehicle_ego: CarlaVehicle):
+    def __init__(self, context: CarlaContext):
         self._context = context
-        self._vehicle_ego = vehicle_ego
         self._stage = self.FactorStage.BRINGUP
         self._logger = Logging().get_logger(self.NAME)
         self._factor_actors: dict[str, CarlaActor] = {}
