@@ -338,12 +338,12 @@ class CarlaContext:
             self.logger.info('Spin stopped by manual interrupt')
             return
 
-    def wait_seconds(self, seconds: float):
+    def wait_seconds(self, seconds: float, *, force: bool = False):
         """等待指定秒数"""
         self.logger.info(f'Waiting {seconds} seconds ...')
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
-            self.tick()
+            self.tick(force=force)
             try:
                 time.sleep(self.calc_tick_wait_time())
             except KeyboardInterrupt:
@@ -353,12 +353,12 @@ class CarlaContext:
         self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
 
-    def wait_ticks(self, ticks: int):
+    def wait_ticks(self, ticks: int, *, force: bool = False):
         """等待指定帧数"""
         self.logger.info(f'Waiting {ticks} ticks ...')
         tick_counter = 0
         while tick_counter < ticks:
-            self.tick()
+            self.tick(force=force)
             tick_counter += 1
             try:
                 time.sleep(self.calc_tick_wait_time())
