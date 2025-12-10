@@ -56,6 +56,10 @@ class Factor(ABC):
         self._strength = strength
         self._result: float = -1.0
         self._actors: dict[str, CarlaActor] = {}
+
+        self._counter_warmup: int = 0
+        self._counter_update: int = 0
+        self._counter_teardown: int = 0
         
         self._is_warmup_completed = False
         self._is_teardown_completed = False
@@ -116,6 +120,7 @@ class Factor(ABC):
         if self._is_warmup_completed:
             return
         self.status = self.FactorStatus.WARMUP
+        self._counter_warmup += 1
         return self
 
     @abstractmethod
@@ -127,6 +132,7 @@ class Factor(ABC):
         if self._is_update_ended:
             return
         self.status = self.FactorStatus.UPDATE
+        self._counter_update += 1
         self._result = self._evaluate()
         return self
 
