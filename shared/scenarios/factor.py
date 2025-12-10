@@ -19,6 +19,7 @@ class Factor(metaclass=PostInitMeta):
     PRIORITY: int = 0
 
     class FactorStage(Enum):
+        """因子生命周期的阶段枚举类"""
         BRINGUP = auto()
         WAIT_FOR_TRIGGER = auto()
         TRIGGERED = auto()
