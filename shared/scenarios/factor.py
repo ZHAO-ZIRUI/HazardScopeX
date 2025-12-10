@@ -109,7 +109,7 @@ class Factor(ABC):
     def bringup(self) -> None:
         """因子要件的初始化逻辑, 用于生成场景实例, 只会执行一次"""
         self.status = self.FactorStatus.BRINGUP
-        return self
+        return
 
     @abstractmethod
     def warmup(self) -> None:
@@ -121,7 +121,7 @@ class Factor(ABC):
             return
         self.status = self.FactorStatus.WARMUP
         self._counter_warmup += 1
-        return self
+        return
 
     @abstractmethod
     def update(self) -> None:
@@ -134,7 +134,7 @@ class Factor(ABC):
         self.status = self.FactorStatus.UPDATE
         self._counter_update += 1
         self._result = self._evaluate()
-        return self
+        return
 
     def teardown(self) -> None:
         """因子要件的销毁逻辑, 用于销毁场景实例, 只会执行一次"""
@@ -148,8 +148,8 @@ class Factor(ABC):
 
         self._is_teardown_completed = True
         self.status = self.FactorStatus.FINISHED
-        return self
+        return
 
     def _evaluate(self) -> float:
         """因子执行评估逻辑, 用于评估因子的执行结果"""
-        return self._result
+        return -1.0
