@@ -3,7 +3,7 @@ from typing_extensions import Self, Unpack
 from logging import Logger
 
 from shared.simulator import CarlaContext, CarlaTickBlocker
-from shared.scenarios import Factor
+from shared.scenarios import Factor, Evaluator
 from shared.utils import Logging, PostInitMeta
 
 class Injector(metaclass=PostInitMeta):
@@ -102,3 +102,24 @@ class Injector(metaclass=PostInitMeta):
                 raise SystemExit(401)
         
         self.logger.info(f'All {len(factors)} factors finished')
+
+    def spin_until_evaluator_threshold(self, evaluator: Evaluator, threshold: float) -> None:
+        """持续运行仿真直到评估器结果达到指定阈值
+
+        Args:
+            evaluator (Evaluator): 评估器
+            threshold (float): 阈值
+
+        Raises:
+            SystemExit: 用户中断
+        """
+        assert isinstance(threshold, float) and 0.0 <= threshold <= 1.0
+        while evaluator.result is None or evaluator.result < threshold:
+            try:
+                self._context.wait_ticks(1, no_log=True, raise_interrupted=True)
+            except KeyboardInterrupt:
+                self.logger.warning(f'Spin until evaluator threshold interrupted by user')
+                raise SystemExit(401)
+        
+        self.logger.info(f'Evaluator {evaluator.NAME} threshold reached')
+        return
