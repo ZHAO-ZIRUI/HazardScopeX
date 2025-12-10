@@ -1,155 +1,102 @@
-from abc import ABC, abstractmethod
+import carla
 from logging import Logger
+from typing import Callable, final
+from typing_extensions import Self
 from enum import Enum, auto
 
-from shared.utils import Logging
-from shared.simulator import CarlaContext, CarlaActor
+from shared.simulator import CarlaContext, CarlaActor, CarlaVehicle
+from shared.utils import Logging, PostInitMeta
 
-
-class Factor(ABC):
+class Factor(metaclass=PostInitMeta):
     """
-    场景因子, 用于在仿真中注入特定的场景因子
-
-    因子定义包含以下内容:
-    - strength: 归一化表示的因子强度, 在 __init__ 阶段中赋值, 范围为 0.0 到 1.0, 默认为 1.0
-    - PRIORITY: 因子优先级, 用于在多个因子联合注入时, 控制因子的执行顺序, 范围为整型区间, 越小越先执行
-    - result:   归一化表示的因子执行评估结果, 范围为 0.0 到 1.0, 在因子未处于 FINISHED 状态时为 -1.0
-
-    因子的生命周期如下:
-    - HANGUP         # 挂起, 因子尚未开始执行
-    - bringup()      # 初始化, 用于生成场景实例
-    - warmup() x N   # 预热, 用于启动车辆或车流等, 会执行多帧, 直到因子处于 UPDATE 状态
-    - update() x N   # 帧更新, 用于更新实例状态或进行触发, 会执行多帧
-    - teardown() x N # 销毁, 用于销毁场景实例, 会执行多帧, 直到因子处于 FINISHED 状态
-    - FINISHED       # 完成, 用于标记因子生命周期结束
-
-    因子的命名请修改类属性 NAME, 遵循以下命名规则:
-    - 以 F_ 开始, 使用 PascalCase(大驼峰) 命名
-    - 第二个单词表示因子的类型
-        - Env: 环境因素, 包括天气, 时间, 光照等
-        - Traffic: 车流因素, 与主要事件关系不大的车流因素
-        - Sensor: 传感器因素, 包括对相机, 激光雷达, 毫米波雷达等传感器的数据处理
-        - Case: 交互因素, 具体的交互场景
-    - 第三个至以后的单词表示因子的具体说明
-    - 示例:
-        - F_EnvHeavyRain
-        - F_TrafficLargeVehilces
-        - F_SensorCamLoss
-        - F_CaseForceCutin
+    Factor 基类, 用于定义因子的接口
     """
 
-    NAME = 'F_BaseFactor'
-    PRIORITY = 0
+    # 因子名称
+    NMAE = 'F_Abstract'
 
-    class FactorStatus(Enum):
-        HANGUP = auto()
+    # 因子优先级, 数值越小优先级越高
+    PRIORITY: int = 0
+
+    class FactorStage(Enum):
         BRINGUP = auto()
-        WARMUP = auto()
-        UPDATE = auto()
+        WAIT_FOR_TRIGGER = auto()
+        TRIGGERED = auto()
+        COMPLETED = auto()
         TEARDOWN = auto()
-        FINISHED = auto()
 
-    def __init__(self, context: CarlaContext, strength: float = 1.0):
-        self._logger = Logging().get_logger(self.NAME)
+    def __init__(self, context: CarlaContext, vehicle_ego: CarlaVehicle):
         self._context = context
-        self._status = self.FactorStatus.HANGUP
-        self._strength = strength
-        self._result: float = -1.0
-        self._actors: dict[str, CarlaActor] = {}
+        self._vehicle_ego = vehicle_ego
+        self._stage = self.FactorStage.BRINGUP
+        self._logger = Logging().get_logger(self.NAME)
+        self._factor_actors: dict[str, CarlaActor] = {}
 
-        self._counter_warmup: int = 0
-        self._counter_update: int = 0
-        self._counter_teardown: int = 0
-        
-        self._is_warmup_completed = False
-        self._is_teardown_completed = False
-        self._is_update_ended = False
+        self._count_update_frames: int = 0
+
+        self._hook_bringup: list[Callable[[Self], None]] = []
+        self._hook_update: list[Callable[[Self], None]] = []
+        self._hook_teardown: list[Callable[[Self], None]] = []
+
+    def __post_init__(self) -> Self:
+        """在此处绑定钩子"""
+        return self
 
     @property
     def logger(self) -> Logger:
         return self._logger
-
+    
     @property
-    def status(self) -> FactorStatus:
-        return self._status
+    def stage(self) -> FactorStage:
+        """因子当前阶段, 只读"""
+        return self._stage
 
-    @property
-    def is_update_ended(self) -> bool:
-        """因子更新是否结束, 用于标记因子更新周期的结束, 只读"""
-        return self._is_update_ended
-
-    @property
-    def is_warmup_completed(self) -> bool:
-        """因子预热是否完成, 只读"""
-        return self._is_warmup_completed
-
-    @property
-    def is_teardown_completed(self) -> bool:
-        """因子销毁是否完成, 只读"""
-        return self._is_teardown_completed
-
-    @property
-    def strength(self) -> float:
-        """因子强度, 用于控制因子的强度, 范围为 0.0 到 1.0, 默认为 1.0, 只读"""
-        return self._strength
-
-    @status.setter
-    def status(self, value: FactorStatus):
-        before = self._status
-        self._status = value
+    @stage.setter
+    def stage(self, value: FactorStage):
+        before = self._stage
+        self._stage = value
         if before != value:
-            self.logger.debug(f'Status changed: {before.name} -> {value.name}')
+            self.logger.debug(f'Stage changed: {before.name} -> {value.name}')
         return self
 
-    @property
-    def result(self) -> float:
-        """因子执行评估结果, 范围为 0.0 到 1.0, 在因子未处于 FINISHED 状态时, 结果为 -1.0, 只读"""
-        return self._result
-
+    @final
     def bringup(self) -> None:
-        """因子要件的初始化逻辑, 用于生成场景实例, 只会执行一次"""
-        self.status = self.FactorStatus.BRINGUP
-        return
+        for hook in self._hook_bringup:
+            hook()
 
-    @abstractmethod
-    def warmup(self) -> None:
-        """因子要件的预热逻辑, 用于启动车辆或车流等, 会执行多帧
-        
-        该方法必须被子类实现, 并手动设置 self._is_warmup_completed 为 True 以标记预热完成
-        """
-        if self._is_warmup_completed:
-            return
-        self.status = self.FactorStatus.WARMUP
-        self._counter_warmup += 1
-        return
+        # 状态转移 BRINGUP -> WAIT_FOR_TRIGGER
+        self.stage = self.FactorStage.WAIT_FOR_TRIGGER
 
-    @abstractmethod
+    @final
     def update(self) -> None:
-        """因子要件的更新逻辑, 用于更新实例状态或进行触发, 会执行多帧
-        
-        该方法必须被子类实现, 并手动设置 self._is_update_ended 为 True 以标记更新结束
-        """
-        if self._is_update_ended:
-            return
-        self.status = self.FactorStatus.UPDATE
-        self._counter_update += 1
-        self._result = self._evaluate()
-        return
+        self._count_update_frames += 1
+        for hook in self._hook_update:
+            hook()
 
+    @final
     def teardown(self) -> None:
-        """因子要件的销毁逻辑, 用于销毁场景实例, 只会执行一次"""
+        # 状态转移 Any -> TEARDOWN
+        self.stage = self.FactorStage.TEARDOWN
 
-        self.status = self.FactorStatus.TEARDOWN
+        # 销毁因子 Actor
+        self.destroy_factor_actors()
 
-        # 销毁所有场景 Actor 实例
-        for actor in self._actors.values():
+        for hook in self._hook_teardown:
+            hook()
+
+    def destroy_factor_actors(self) -> None:
+        for actor in self._factor_actors.values():
             actor.destroy()
-        self._actors.clear()
+        self._factor_actors.clear()
 
-        self._is_teardown_completed = True
-        self.status = self.FactorStatus.FINISHED
-        return
+    @property
+    def hook_bringup(self) -> list[Callable[[Self], None]]:
+        return self._hook_bringup
 
-    def _evaluate(self) -> float:
-        """因子执行评估逻辑, 用于评估因子的执行结果"""
-        return -1.0
+    @property
+    def hook_update(self) -> list[Callable[[Self], None]]:
+        return self._hook_update
+
+    @property
+    def hook_teardown(self) -> list[Callable[[Self], None]]:
+        return self._hook_teardown
