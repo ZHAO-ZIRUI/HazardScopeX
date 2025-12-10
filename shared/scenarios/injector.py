@@ -1,5 +1,5 @@
 import carla
-from typing_extensions import Self
+from typing_extensions import Self, Unpack
 from logging import Logger
 
 from shared.simulator import CarlaContext, CarlaTickBlocker

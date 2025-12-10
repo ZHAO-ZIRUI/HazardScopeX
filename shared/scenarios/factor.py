@@ -1,10 +1,9 @@
-import carla
 from logging import Logger
 from typing import Callable, final
 from typing_extensions import Self
 from enum import Enum, auto
 
-from shared.simulator import CarlaContext, CarlaActor, CarlaVehicle
+from shared.simulator import CarlaContext, CarlaActor
 from shared.utils import Logging, PostInitMeta
 
 class Factor(metaclass=PostInitMeta):
