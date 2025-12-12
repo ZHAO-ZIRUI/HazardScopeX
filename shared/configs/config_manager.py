@@ -33,4 +33,5 @@ class ConfigManager:
         self._carla_context_config = CarlaContextConfig.load(incoming)
         self._carla_actor_manager_config = CarlaActorManagerConfig.load(incoming)
         self._carla_io_manager_config = CarlaIOManagerConfig.load(incoming)
+        self._carla_recorder_config = CarlaRecorderConfig.load(incoming)
         return self
