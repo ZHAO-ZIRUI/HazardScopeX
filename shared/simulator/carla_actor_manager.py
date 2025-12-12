@@ -74,7 +74,7 @@ class CarlaActorManager:
         bp: carla.ActorBlueprint | CarlaBlueprints | str,
         tf: carla.Transform | CarlaTransform,
         *,
-        parent: carla.Actor | CarlaActor | None = None,
+        parent: CarlaActor | None = None,
         name: str | None = None,
         ignore_attribute_failure: bool = False,
         ignore_spawn_failure: bool = False,
@@ -86,7 +86,7 @@ class CarlaActorManager:
         Args:
             bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图
             tf (carla.Transform | CarlaTransform): 初始变换
-            parent (carla.Actor | CarlaActor | None): 父级对象
+            parent (CarlaActor | None): 父级对象
             name (str | None): 别名
             ignore_attribute_failure (bool): 是否忽略属性失败
             ignore_spawn_failure (bool): 是否忽略生成失败
