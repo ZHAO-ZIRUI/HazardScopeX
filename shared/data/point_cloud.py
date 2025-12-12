@@ -60,12 +60,12 @@ class PointCloud(SimulatorOutput):
 
             # 读取点云, 并构建 Channel 列
             points_per_channel = [carla_input.get_point_count(i) for i in range(carla_input.channels)]
-            potins_sum = sum(points_per_channel)
-            cloud_raw = np.frombuffer(carla_input.raw_data, dtype=np.float32).reshape(potins_sum, 4).copy()
+            points_sum = sum(points_per_channel)
+            cloud_raw = np.frombuffer(carla_input.raw_data, dtype=np.float32).reshape(points_sum, 4).copy()
             col_channel = np.repeat(np.arange(carla_input.channels), points_per_channel).astype(np.uint32)
             
             # 创建结构化数组并填充数据, 避免额外拷贝
-            cloud = np.empty(potins_sum, dtype=format)
+            cloud = np.empty(points_sum, dtype=format)
             cloud[cls.FIELD_X] = cloud_raw[:, 0]
             cloud[cls.FIELD_Y] = cloud_raw[:, 1]
             cloud[cls.FIELD_Z] = cloud_raw[:, 2]
@@ -184,7 +184,7 @@ class PointCloud(SimulatorOutput):
 
     @classmethod
     def from_ros2(cls, ros2_msg: "PointCloud2") -> Self:
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def to_file(
         self, 
