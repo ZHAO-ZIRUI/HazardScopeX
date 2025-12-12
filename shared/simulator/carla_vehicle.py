@@ -1,4 +1,5 @@
 import carla
+import numpy as np
 from typing import TYPE_CHECKING, Any
 from typing_extensions import Self, Unpack
 from enum import Enum
@@ -55,6 +56,18 @@ class CarlaVehicle(CarlaActor):
         """车辆的控制模式标志"""
         return self._control_mode
 
+    @property
+    def tf_now_baselink(self) -> carla.Transform:
+        """当前帧车辆后轮中心在世界坐标系下的变换, 只读"""
+        pos_wheel_bl = self.actor.get_physics_control().wheels[2].position
+        pos_wheel_br = self.actor.get_physics_control().wheels[3].position
+
+        pos_baselink = (pos_wheel_bl + pos_wheel_br) / 2 / 100.0  # cm -> m
+        return carla.Transform(
+            location = pos_baselink,
+            rotation = self.actor.get_transform().rotation,
+        )
+
     @control_mode.setter
     def control_mode(self, value: ControlMode):
         self._control_mode = value
@@ -74,6 +87,33 @@ class CarlaVehicle(CarlaActor):
             self.control_mode = self.ControlMode.NONE
             self.actor.set_autopilot(False)
         return self
+
+    def get_vehicle_center_to_baselink_transform_matrix(self) -> np.ndarray:
+        """计算从车辆中心在世界坐标系下的变换到后轮中心在世界坐标系下的变换的变换矩阵
+        
+        返回 4x4 齐次变换矩阵，表示从车辆中心在世界坐标系下的变换到后轮中心在世界坐标系下的变换的变换矩阵
+        旋转部分为单位矩阵，仅包含平移
+        
+        Returns:
+            np.ndarray: 4x4 变换矩阵
+        """
+        # 获取世界坐标系下的变换矩阵
+        T_center_world = np.array(self.tf_now.get_matrix())
+        T_baselink_world = np.array(self.tf_now_baselink.get_matrix())
+        
+        # 计算从车辆中心到后轮中心的相对变换矩阵
+        # T_center_baselink = T_center_world @ inv(T_baselink_world)
+        T_world_baselink = np.linalg.inv(T_baselink_world)
+        T_center_baselink = T_center_world @ T_world_baselink
+        
+        # 提取平移向量
+        translation = T_center_baselink[:3, 3]
+        
+        # 构建新的变换矩阵，旋转部分为单位矩阵
+        T_result = np.eye(4)
+        T_result[:3, 3] = translation
+        
+        return T_result
 
     def destroy(self) -> Self:
         """销毁 Vehicle 实例"""

@@ -1,4 +1,5 @@
 import carla
+import numpy as np
 from logging import Logger
 from typing import TYPE_CHECKING, Any
 from typing_extensions import Self, Unpack
@@ -96,12 +97,25 @@ class CarlaActor(metaclass=PostInitMeta):
 
     @property
     def tf_now(self) -> carla.Transform:
-        """当前变换, 只读"""
+        """当前帧在世界坐标系下的变换, 只读
+        
+        一般在 XY 中心在 Actor 的XY平面投影几何中心, Z 在 Actor 下方边界
+        """
         if not self.is_alive:
             msg = f"Tried to get transform of actor '{self.name}' but it is not alive"
             self.logger.error(msg)
             raise RuntimeError(msg)
         return self.actor.get_transform()
+
+    @property
+    def tf_now_center(self) -> carla.Transform:
+        """当前帧Actor几何中心在世界坐标系下的变换, 只读"""
+        T_base_world = np.array(self.tf_now.get_matrix())
+        T_center_world = T_base_world @ self.get_actor_base_to_center_transform_matrix()
+        return carla.Transform(
+            location = carla.Location(x=T_center_world[0, 3], y=T_center_world[1, 3], z=T_center_world[2, 3]),
+            rotation = self.actor.get_transform().rotation,
+        )
 
     @property
     def tf_init(self) -> carla.Transform | None:
@@ -200,6 +214,22 @@ class CarlaActor(metaclass=PostInitMeta):
             '_attributes': self._cache_attributes,
         }
         return dump_data
+
+    def get_actor_base_to_center_transform_matrix(self) -> np.ndarray:
+        """计算从Actor基座标系到几何中心坐标系的变换矩阵
+        
+        返回 4x4 齐次变换矩阵,表示从Actor基座标系到几何中心坐标系的变换
+        
+        Returns:
+            np.ndarray: 4x4 变换矩阵
+        """
+        tf_center_base = carla.Transform(
+            location = self.actor.bounding_box.location,
+            rotation = self.actor.bounding_box.rotation,
+        )
+        T_center_base = np.array(tf_center_base.get_matrix())
+        T_base_center = np.linalg.inv(T_center_base)
+        return T_base_center
 
     def _resolve_blueprint(self, bp: carla.ActorBlueprint | CarlaBlueprints | str) -> carla.ActorBlueprint:
         """将多种可能的蓝图输入统一为 carla.ActorBlueprint
