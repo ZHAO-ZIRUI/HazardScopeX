@@ -12,7 +12,7 @@ class Factor(metaclass=PostInitMeta):
     """
 
     # 因子名称
-    NMAE = 'F_Abstract'
+    NAME = 'F_Abstract'
 
     # 因子优先级, 数值越小优先级越高
     PRIORITY: int = 0
