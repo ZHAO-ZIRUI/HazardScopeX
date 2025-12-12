@@ -144,9 +144,12 @@ class CarlaActor(metaclass=PostInitMeta):
     def spawn(self) -> Self:
         """在仿真中生成 Actor 实例"""
         # 获取父级 Actor 实例
-        attach_to = self.parent.actor if self.parent is not None else None
-        if attach_to is not None and not attach_to.is_alive:
-            raise ValueError(f"Parent actor: '{self.parent}' not spawned yet or not alive")
+        if self.parent is not None:
+            if not self.parent.is_alive:
+                raise ValueError(f"Parent actor: '{self.parent}' not spawned yet or not alive")
+            attach_to = self.parent.actor
+        else:
+            attach_to = None
 
         # 尝试生成 Actor
         try:
