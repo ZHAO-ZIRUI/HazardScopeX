@@ -1,36 +1,34 @@
-# 简单的回放程序
+# ==============================================================
+# 简单的回放程序样例
+# 
 # 回放记录的仿真数据, 并使用 ROS2 发布传感器数据
-from shared.simulator import *
-from shared.utils import Config, Logging
-
+# 回放时, 传感器通过 demo.carla.yaml 文件内描述的属性与关系重建
+#
+#
+# 逻辑：
+# 1. 加载回放数据
+# 2. 通过名称查找特定传感器
+# 3. 创建 ROS2 绑定输出
+# ==============================================================
+from shared.simulator import CarlaContext
+from shared.utils import Logging
+from shared.simulator import CarlaSensor
 
 if __name__ == "__main__":
-    # 基础组件初始化
-    config = Config.from_yaml('config.yaml')                # 读取配置文件
-    logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
+    logger = Logging.load('config.yaml').get_logger('Main')
+    logger.info('DEMO FOR REPLAY')
 
-    with CarlaContext.from_config(config) as context:
 
-        # 以上下文管理器方式回放仿真数据, 并使用 ROS2 发布传感器数据
-        # 回放时, 传感器通过 demo.carla.yaml 文件内描述的属性与关系重建
-        with context.recorder.replay('demo', fps=10, log_interval=3.0):
+    with CarlaContext() as context:
+        
+        # 回放仿真数据, 此处文件名不需要添加任何后缀
+        with context.recorder.replay('20251209_111257', fps=10, log_interval=3.0):
+            
+            # 通过名称查找名称为 Player_CAM_GAME 的相机传感器
+            cam_game = context.actors.find_by_name('Player_CAM_GAME')
+            assert isinstance(cam_game, CarlaSensor)  # 断言传感器对象
 
-            # 可以通过 context.actors.find_by_name 找到特定的 Actor
-            vehicle = context.actors.find_by_name('ACTOR_001')
-            cam_game = context.actors.find_by_name('CAM_GAME')
+            # 创建 ROS2 绑定传感器输出
+            context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(cam_game)
 
-            # 通过和其他脚本一致的方式创建 hook 绑定
-            context.io.create_ros2_hp(ros_topic_name='/harzed_scope/cam/game').bind_sensor_output(cam_game)
-            context.recorder.hook_on_replay_finished.append(lambda: logger.info('Replaying finished callback'))
-
-        # 上方代码等价于
-        # ------------------------------------------------------------
-        # context.recorder.start_replay('demo')
-        # vehicle = context.actors.find_by_name('ACTOR_001')
-        # cam_game = context.actors.find_by_name('CAM_GAME')
-        # context.io.create_ros2_hp(ros_topic_name='/harzed_scope/cam/game').bind_sensor_output(cam_game)
-        # context.recorder.hook_on_replay_finished.append(lambda: logger.info('Replaying finished callback'))
-        # context.recorder.spin_replay(fps=10, log_interval=3.0)
-        # ------------------------------------------------------------
-
-    logger.info('Goodbye!')
+    logger.info('GOODBYE!')

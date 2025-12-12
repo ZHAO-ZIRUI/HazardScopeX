@@ -1,9 +1,11 @@
 import carla
 import time
-from typing import Dict, Any, TYPE_CHECKING
-from typing_extensions import Self, Unpack
+import yaml
+from logging import Logger
+from typing import TYPE_CHECKING, Any, Dict
+from typing_extensions import Unpack, Self
 
-from shared.simulator import CarlaActor, CarlaVehicle, CarlaSensor, CarlaBlueprints, CarlaTransform
+from shared.simulator import CarlaActor, CarlaBlueprints, CarlaTransform, CarlaVehicle, CarlaSensor
 from shared.utils import Logging
 
 if TYPE_CHECKING:
@@ -20,443 +22,204 @@ class CarlaActorManager:
         context: 'CarlaContext',
     ):
         self._context = context
-        self._actors: Dict[str, CarlaActor] = {}
-        self._blueprint_library = self._context.world.get_blueprint_library()
-        self._sync_mode_fps = context.fps
-        self._actors_stable_threshold = context._actors_spawn_stable_threshold
-        self._actors_stable_timeout = context._actors_spawn_stable_timeout
-        self.logger = Logging().get_logger('ActorManager')
-
-    @property
-    def registry(self) -> Dict[str, CarlaActor]:
-        return self._actors
-
-    def __getitem__(self, key: str) -> CarlaActor:
-        return self._actors[key]
+        self._known_actors: set[CarlaActor] = set()
+        self._logger = Logging().get_logger('ActorManager')
 
     def __len__(self) -> int:
-        return len(self._actors)
+        return len(self._known_actors)
 
-    def serialize(self) -> list[dict[str, Any]]:
-        return [actor.serialize() for actor in self._actors.values()]
+    @property
+    def logger(self) -> Logger:
+        """日志记录器, 只读"""
+        return self._logger
 
-    def values(self) -> list[CarlaActor]:
-        return list[CarlaActor](self._actors.values())
-
-    def add(self, actor: CarlaActor):
-        self._actors[actor.id_local] = actor
-        self.logger.info(f"Registered actor container '{actor.id_local}' -> '{actor.name}'")
-        return
-
-    def remove(self, actor: CarlaActor):
-        if actor.id_local not in self._actors:
-            self.logger.warning(f"Actor container '{actor.id_local}' not found in registry")
-            return
-        del self._actors[actor.id_local]
-        self.logger.info(f"Removed actor container '{actor.id_local}'")
-        return
-
-    def spawn_all(self, *, ignore_spawn_failure: bool = False) -> Self:
-        """生成所有注册表中的 Actor
-
-        Raises:
-            RuntimeError: 检测到循环依赖
+    def add(self, actor: CarlaActor) -> Self:
+        """添加 Actor 到注册表
+        
+        Args:
+            actor (CarlaActor): 要添加的 Actor
 
         Returns:
             Self: 链式调用支持
         """
-        # 构建依赖图：actor_id -> 依赖它的actors列表
-        dependents: Dict[str, list[CarlaActor]] = {actor_id: [] for actor_id in self._actors.keys()}
-        in_degree: Dict[str, int] = {actor_id: 0 for actor_id in self._actors.keys()}
-        
-        # 计算入度
-        for actor in self._actors.values():
-            if actor.parent is not None:
-                if actor.parent.id_local not in self._actors:
-                    raise RuntimeError(f"Actor '{actor.id_local}' depends on '{actor.parent.id_local}' which is not in registry")
-                dependents[actor.parent.id_local].append(actor)
-                in_degree[actor.id_local] += 1
-        
-        # Kahn算法进行拓扑排序
-        queue: list[CarlaActor] = []
-        sorted_actors: list[CarlaActor] = []
-        
-        # 将所有入度为0的actor加入队列, 即没有依赖的actor
-        for actor_id, degree in in_degree.items():
-            if degree == 0:
-                queue.append(self._actors[actor_id])
-        
-        while queue:
-            current = queue.pop(0)
-            sorted_actors.append(current)
-            
-            # 遍历所有依赖当前actor的actors
-            for dependent in dependents[current.id_local]:
-                in_degree[dependent.id_local] -= 1
-                if in_degree[dependent.id_local] == 0:
-                    queue.append(dependent)
-        
-        # 检查是否存在循环依赖
-        if len(sorted_actors) != len(self._actors):
-            unsorted = [actor_id for actor_id, degree in in_degree.items() if degree > 0]
-            raise RuntimeError(f"Circular dependency detected among actors: {unsorted}")
-        
-        # 按照依赖顺序spawn所有actors
-        self.logger.info(f"Spawning {len(sorted_actors)} actors in dependency order")
-        self.logger.debug(f"Sorted actors: {[actor.id_local for actor in sorted_actors]}")
-        for actor in sorted_actors:
-            actor.spawn(self._context.world, ignore_spawn_failure=ignore_spawn_failure)
-        
-        # 防止 attch 到空目标或者销毁错误
-        self._context.tick()
+        before_count = len(self._known_actors)
+        self._known_actors.add(actor)
+        after_count = len(self._known_actors)
+        if after_count - before_count == 1:
+            self.logger.debug(f"Added actor '{actor.name}' to registry")
+        elif after_count - before_count == 0:
+            self.logger.debug(f"Added actor '{actor.name}' to registry but it was already in registry")
         return self
 
-    def destroy_all(self) -> Self:
-        """销毁所有注册表中的 Actor"""
-        for actor in self._actors.values():
-            actor.destroy()
-        try:
-            self._context.tick()
-        except RuntimeError as e:
-            self.logger.error(f'Failed to tick world after destroying actors: {e}')
+    def remove(self, actor: CarlaActor) -> Self:
+        """从注册表中移除 Actor
+        
+        Args:
+            actor (CarlaActor): 要移除的 Actor
+
+        Returns:
+            Self: 链式调用支持
+        """
+        before_count = len(self._known_actors)
+        self._known_actors.remove(actor)
+        after_count = len(self._known_actors)
+        if after_count - before_count == -1:
+            self.logger.debug(f"Removed actor '{actor.name}' from registry")
+        elif after_count - before_count == 0:
+            self.logger.debug(f"Removed actor '{actor.name}' from registry but it was not in registry")
         return self
 
     def create_actor(
         self,
-        bp: str | carla.ActorBlueprint | CarlaBlueprints,
-        name: str = '',
-        tf: carla.Transform | CarlaTransform | None = None,
-        parent: carla.Actor | CarlaActor | None = None,
+        bp: carla.ActorBlueprint | CarlaBlueprints | str,
+        tf: carla.Transform | CarlaTransform,
         *,
+        parent: CarlaActor | None = None,
+        name: str | None = None,
         ignore_attribute_failure: bool = False,
-        target: type[CarlaActor] = CarlaActor,
-        **attributes: Unpack[Dict[str, Any]],
+        ignore_spawn_failure: bool = False,
+        is_managed_actor: bool = True,
+        **attributes: Unpack[dict[str, Any]],
     ) -> CarlaActor:
-        """创建 CarlaActor 实例
+        """创建 CarlaActor 实例, 返回 CarlaActor 实例
 
         Args:
-            bp (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
-            name (str): 别名
-            tf (carla.Transform): 初始变换
-            parent (carla.Actor | CarlaActor | None): 附着到的目标 Actor
+            bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图
+            tf (carla.Transform | CarlaTransform): 初始变换
+            parent (CarlaActor | None): 父级对象
+            name (str | None): 别名
             ignore_attribute_failure (bool): 是否忽略属性失败
-            target (type[CarlaActor]): 目标 CarlaActor 子类类型, 默认为 CarlaActor
-            attributes (Unpack[Dict[str, Any]]): 蓝图属性
-
-        Raises:
-            ValueError: 蓝图输入不合规
-            IndexError: 属性未找到, 且 ignore_attribute_failure 为 False
-            ValueError: 属性设置失败, 且 ignore_attribute_failure 为 False
+            ignore_spawn_failure (bool): 是否忽略生成失败
+            is_managed_actor (bool): 是否被管理
+            attributes (Unpack[dict[str, Any]]): 蓝图属性
 
         Returns:
             CarlaActor: 创建的 CarlaActor 实例
         """
-        # 解析蓝图
-        bp = self.resolve_blueprint(bp)
-        
-        # 创建一个目标 CarlaActor 或其子类实例, 仅用作容器
-        actor = target(bp, name=name)
-
-        # 解析属性与变换
-        self.resolve_attributes(actor, attributes, ignore_failure=ignore_attribute_failure)
-        self.resolve_transform(actor, tf)
-
-        # 附着目标
-        actor.parent = parent
-
-        # 注册到注册表
-        self.add(actor)
-
-        # 注册 Tick Blocker
-        if target == CarlaSensor:
-            auto_set = True
-        else:
-            auto_set = False
-        self._context.bind_tick_blocker(actor.id_local + '_' + actor.name, actor.tick_blocker, auto_set=auto_set)
-
+        actor = CarlaActor(
+            context=self._context,
+            bp=bp,
+            tf=tf,
+            parent=parent,
+            name=name,
+            ignore_attribute_failure=ignore_attribute_failure,
+            ignore_spawn_failure=ignore_spawn_failure,
+            is_managed_actor=is_managed_actor,
+            **attributes,
+        )
         return actor
 
     def create_vehicle(
         self,
-        bp: str | carla.ActorBlueprint | CarlaBlueprints,
-        tf: carla.Transform,
-        parent: carla.Actor | CarlaActor | None = None,
+        bp: carla.ActorBlueprint | CarlaBlueprints | str,
+        tf: carla.Transform | CarlaTransform,
         *,
-        name: str = '',
+        name: str | None = None,
         ignore_attribute_failure: bool = False,
-        **attributes: Unpack[Dict[str, Any]],
+        ignore_spawn_failure: bool = False,
+        is_managed_actor: bool = True,
+        **attributes: Unpack[dict[str, Any]],
     ) -> CarlaVehicle:
-        """创建 CarlaVehicle 实例
+        """创建 CarlaVehicle 实例, 返回 CarlaVehicle 实例
 
         Args:
-            bp (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
-            name (str): 别名
-            tf (carla.Transform): 初始变换
-            parent (carla.Actor | CarlaActor | None): 附着到的目标 Actor
+            bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图
+            tf (carla.Transform | CarlaTransform): 初始变换
+            name (str | None): 别名
             ignore_attribute_failure (bool): 是否忽略属性失败
-            attributes (Unpack[Dict[str, Any]]): 蓝图属性
-
-        Raises:
-            ValueError: 蓝图输入不合规
-            IndexError: 属性未找到, 且 ignore_attribute_failure 为 False
-            ValueError: 属性设置失败, 且 ignore_attribute_failure 为 False
+            ignore_spawn_failure (bool): 是否忽略生成失败
+            is_managed_actor (bool): 是否被管理
+            attributes (Unpack[dict[str, Any]]): 蓝图属性
 
         Returns:
             CarlaVehicle: 创建的 CarlaVehicle 实例
         """
-        # 检查 BP 是否合规
-        bp = self.resolve_blueprint(bp)
-        if not bp.id.lower().startswith('vehicle.'):
-            raise ValueError(f"Blueprint '{bp.id}' is not a vehicle blueprint")
-        
-        return self.create_actor(bp, name=name, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaVehicle, **attributes)
-    
+        actor = CarlaVehicle(
+            context=self._context,
+            bp=bp,
+            tf=tf,
+            name=name,
+            ignore_attribute_failure=ignore_attribute_failure,
+            ignore_spawn_failure=ignore_spawn_failure,
+            is_managed_actor=is_managed_actor,
+            **attributes,
+        )
+        return actor
+
     def create_sensor(
         self,
-        bp: str | carla.ActorBlueprint | CarlaBlueprints,
-        tf: carla.Transform,
-        parent: carla.Actor | CarlaActor | None = None,
+        bp: carla.ActorBlueprint | CarlaBlueprints | str,
+        tf: carla.Transform | CarlaTransform,
         *,
-        name: str = '',
+        parent: carla.Actor | CarlaActor | None = None,
+        name: str | None = None,
         ignore_attribute_failure: bool = False,
-        **attributes: Unpack[Dict[str, Any]],
+        ignore_spawn_failure: bool = False,
+        is_managed_actor: bool = True,
+        image_color_converter: carla.ColorConverter | None = None,
+        **attributes: Unpack[dict[str, Any]],
     ) -> CarlaSensor:
-        """创建 CarlaSensor 实例
+        """创建 CarlaSensor 实例, 返回 CarlaSensor 实例
 
         Args:
-            bp (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
-            tf (carla.Transform): 初始变换
-            parent (carla.Actor | CarlaActor | None): 附着到的目标 Actor
-            name (str): 别名
+            bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图
+            tf (carla.Transform | CarlaTransform): 初始变换
+            parent (carla.Actor | CarlaActor | None): 父级对象
+            name (str | None): 别名
             ignore_attribute_failure (bool): 是否忽略属性失败
-            attributes (Unpack[Dict[str, Any]]): 蓝图属性
-
-        Raises:
-            ValueError: 蓝图输入不合规
-            IndexError: 属性未找到, 且 ignore_attribute_failure 为 False
-            ValueError: 属性设置失败, 且 ignore_attribute_failure 为 False
+            ignore_spawn_failure (bool): 是否忽略生成失败
+            is_managed_actor (bool): 是否被管理
+            image_color_converter (carla.ColorConverter | None): 图像颜色转换器
+            attributes (Unpack[dict[str, Any]]): 蓝图属性
 
         Returns:
             CarlaSensor: 创建的 CarlaSensor 实例
         """
-        # 检查 BP 是否合规
-        bp = self.resolve_blueprint(bp)
-        if not bp.id.lower().startswith('sensor.'):
-            raise ValueError(f"Blueprint '{bp.id}' is not a sensor blueprint")
-        
-        actor = self.create_actor(bp, name=name, tf=tf, parent=parent, ignore_attribute_failure=ignore_attribute_failure, target=CarlaSensor, **attributes)
-        
-        # 设置传感器颜色转换器
-        if bp.id == CarlaBlueprints.SENSOR_CAMERA_INSTANCE_SEGMENTATION.value:
-            actor.img_color_converter = self.resolve_img_color_converter(
-                self._context.config.get("context/actors/img_cc_instance_segmentation", 
-                default="CityScapesPalette")
-            )
-        elif bp.id == CarlaBlueprints.SENSOR_CAMERA_SEMANTIC_SEGMENTATION.value:
-            actor.img_color_converter = self.resolve_img_color_converter(
-                self._context.config.get("context/actors/img_cc_semantic_segmentation", 
-                default="CityScapesPalette")
-            )
-        elif bp.id == CarlaBlueprints.SENSOR_CAMERA_DEPTH.value:
-            actor.img_color_converter = self.resolve_img_color_converter(
-                self._context.config.get("context/actors/img_cc_depth", 
-                default="Depth")
-            )
-
+        actor = CarlaSensor(
+            context=self._context,
+            bp=bp,
+            tf=tf,
+            parent=parent,
+            name=name,
+            ignore_attribute_failure=ignore_attribute_failure,
+            ignore_spawn_failure=ignore_spawn_failure,
+            is_managed_actor=is_managed_actor,
+            image_color_converter=image_color_converter,
+            **attributes,
+        )
         return actor
 
-    def find_by_local_id(self, id: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
-        """根据 ID 查找 Actor
+    def spawn_all(self) -> Self:
+        """生成所有注册表中的 Actor"""
+
+        # 按照父级关系排序
+        sorted_actors = self._topological_sort_by_parent()
+        self.logger.debug(f"Sorted actors: {[actor.name for actor in sorted_actors]}")
         
-        Args:
-            id (str):  本地 ID
-        """
-        for actor in self._actors.values():
-            if actor.id_local == id:
-                return actor
-        self.logger.warning(f"Actor with local ID '{id}' not found")
-        return None
-
-    def find_by_carla_id(self, id: int) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
-        """根据 CARLA ID 查找 Actor
-        
-        Args:
-            type (type[CarlaActor]):  Actor 类型
-            id (int):  CARLA ID
-        """
-        # 查找已有注册表
-        for actor in self._actors.values():
-            if actor.actor.id == id:
-                return actor
-        
-        # 查找 CARLA 世界
-        actor = self._context.world.get_actor(id)
-        if actor is not None:
-            bp = self.resolve_blueprint(actor.type_id)
-
-            try:
-                name = actor.attributes['role_name']
-            except KeyError:
-                name = ''
-
-            # 组装本地容器
-            if isinstance(actor, carla.Vehicle):
-                local_actor = CarlaVehicle(bp, name=name, actor=actor)
-                self.add(local_actor)
-                return local_actor
-            elif isinstance(actor, carla.Sensor):
-                local_actor = CarlaSensor(bp, name=name, actor=actor)
-                self.add(local_actor)
-                return local_actor
-            else:
-                local_actor = CarlaActor(bp, name=name, actor=actor)
-                self.add(local_actor)
-                return local_actor
-        return None
-
-    def find_by_name(self, name: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
-        """根据名称查找 Actor
-        
-        Args:
-            type (type[CarlaActor]):  Actor 类型
-            name (str):  Actor 名称
-        """
-        # 查找已有注册表
-        for actor in self._actors.values():
-            if actor.name == name:
-                return actor
-
-        # 查找 CARLA 世界
-        all_actors = self._context.world.get_actors()
-        for actor in all_actors:
-            try:
-                role_name = actor.attributes['role_name']
-            except KeyError:
+        for actor in sorted_actors:
+            if actor.is_alive:
+                self._logger.warning(f"Actor '{actor.name}' is already alive, skipping spawn")
                 continue
+            actor.spawn()
+        return self
 
-            if role_name != name:
-                continue
-
-            bp = self.resolve_blueprint(actor.type_id)
-            if isinstance(actor, carla.Vehicle):
-                local_actor = CarlaVehicle(bp, name=name, actor=actor)
-                self.add(local_actor)
-                return local_actor
-            elif isinstance(actor, carla.Sensor):
-                local_actor = CarlaSensor(bp, name=name, actor=actor)
-                self.add(local_actor)
-                return local_actor
-            else:
-                local_actor = CarlaActor(bp, name=name, actor=actor)
-                self.add(local_actor)
-                return local_actor
-
-        self.logger.warning(f"Actor with name '{name}' not found")
-        return None
-
-    def resolve_blueprint(
+    def destroy_all(
         self,
-        blueprint: str | carla.ActorBlueprint | CarlaBlueprints,
-    ) -> carla.ActorBlueprint:
-        """将多种可能的蓝图输入统一为 carla.ActorBlueprint
-
-        Args:
-            blueprint (str | carla.ActorBlueprint | CarlaBlueprints): 蓝图输入
-
-        Raises:
-            KeyError: 蓝图未找到
-
-        Returns:
-            carla.ActorBlueprint: 确定的 carla.ActorBlueprint 对象
-        """
-        if isinstance(blueprint, CarlaBlueprints):
-            blueprint = blueprint.value
-
-        if isinstance(blueprint, str):
-            try:
-                blueprint = self._blueprint_library.find(blueprint)
-            except IndexError as e:
-                self.logger.error(f"Blueprint '{blueprint}' not found")
-                raise e
-        
-        if isinstance(blueprint, carla.ActorBlueprint):
-            self.logger.debug(f"Blueprint '{blueprint}' found")
-            return blueprint
-
-    def resolve_attributes(
-        self,
-        actor: CarlaActor,
-        attributes: Dict[str, Any],
         *,
-        ignore_failure: bool = False,
+        remove_from_registry: bool = True,
+        remove_unmanaged_actors: bool = False,
     ) -> Self:
-        """将属性写入到 carla.ActorBlueprint 中
-
-        Args:
-            actor (CarlaActor): 目标 CarlaActor
-            attributes (Dict[str, Any]): 蓝图属性
-            ignore_failure (bool): 是否忽略失败, 如果为 True, 则不会抛出异常
-
-        Raises:
-            IndexError: 属性未找到
-            ValueError: 属性设置失败
-
-        Returns:
-            Self: 链式调用支持
-        """
-        # 先处理默认别名
-        if actor.bp.has_attribute('role_name'):
-            actor.bp.set_attribute('role_name', actor.name)
-
-        for key, value in attributes.items():
-            try:
-                actor.bp.set_attribute(key, str(value))
-                actor.logger.debug(f"Attribute '{key}' set to '{str(value)}'")
-            except IndexError as e:
-                actor.logger.error(f"Attribute '{key}' not found in blueprint '{actor.bp.id}'")
-                if not ignore_failure:
-                    raise e
-            except ValueError as e:
-                actor.logger.error(f"Attribute '{key}' not set in blueprint '{actor.bp.id}': {e}")
-                if not ignore_failure:
-                    raise e
-        return self
-
-    def resolve_transform(
-        self,
-        actor: CarlaActor,
-        tf: carla.Transform | CarlaTransform | None = None,
-    ) -> Self:
-        """将变换写入到 carla.Actor 中
-
-        Args:
-            actor (CarlaActor): 目标 carla.Actor
-            tf (carla.Transform | CarlaTransform): 变换输入
-        """
-        if tf is None:
-            actor.logger.warning(f"No initial transform provided. Using default transform.")
-            tf = carla.Transform()
-        if isinstance(tf, CarlaTransform):
-            tf = tf.to_carla()
-        actor.tf_init = tf
-        return self
-
-    def resolve_img_color_converter(self, name: str) -> carla.ColorConverter:
-        """根据名称解析图像颜色转换器
-        
-        Args:
-            name (str): 名称
-        """
-        if name.upper() == "RAW":
-            return carla.ColorConverter.Raw
-        elif name.upper() == "LOGARITHMICDEPTH":
-            return carla.ColorConverter.LogarithmicDepth
-        elif name.upper() == "DEPTH":
-            return carla.ColorConverter.Depth
-        elif name.upper() == "CITYSCAPESPALETTE":
-            return carla.ColorConverter.CityScapesPalette
+        """销毁所有注册表中的 Actor"""
+        if remove_unmanaged_actors:
+            actors_to_remove = [actor for actor in self._known_actors if not actor.is_managed_actor]
         else:
-            raise ValueError(f"Invalid image color converter name: {name}")
+            actors_to_remove = list(self._known_actors)
+        for actor in actors_to_remove:
+            actor.destroy()
+            if remove_from_registry:
+                self.remove(actor)
+        self._context.tick(force=True)
+        return self
 
     def wait_stable(self, *actors: CarlaActor):
         """等待指定 Actor 稳定
@@ -466,7 +229,7 @@ class CarlaActorManager:
         """
         # 当 actors 为空时，使用注册表中的所有 actors
         if not actors:
-            actors = tuple(self._actors.values())
+            actors = self._known_actors
         
         # 记录每个 actor 的上次变换和稳定状态
         last_transforms: Dict[str, carla.Transform] = {}
@@ -479,8 +242,8 @@ class CarlaActorManager:
         timer = time.perf_counter()
         
         # 第一次必须进行 tick, 让 actors 有机会移动
-        self._context.tick()
-        time.sleep(1/self._sync_mode_fps)
+        self._context.tick(force=True)
+        time.sleep(1/self._context.fps)
         
         while True:
             # 检查所有 actors 是否都稳定
@@ -494,10 +257,11 @@ class CarlaActorManager:
                 tf_last = last_transforms[actor.id_local]
                 
                 # 检查位置变化是否小于阈值
+                threshold = self._context.configs.actor_manager.spawn_wait_stable_threshold
                 if (
-                    abs(tf_current.location.x - tf_last.location.x) < self._actors_stable_threshold and
-                    abs(tf_current.location.y - tf_last.location.y) < self._actors_stable_threshold and
-                    abs(tf_current.location.z - tf_last.location.z) < self._actors_stable_threshold
+                    abs(tf_current.location.x - tf_last.location.x) < threshold and
+                    abs(tf_current.location.y - tf_last.location.y) < threshold and
+                    abs(tf_current.location.z - tf_last.location.z) < threshold
                 ):
                     stable_flags[actor.id_local] = True
                     actor.logger.debug(f"Actor is stable at {Logging.short_tf(tf_current)}")
@@ -511,10 +275,139 @@ class CarlaActorManager:
                 break
             
             # 检查是否超时
-            if time.perf_counter() - timer > self._actors_stable_timeout:
-                self.logger.warning(f'Actors stable wait timeout after {self._actors_stable_timeout} seconds')
+            timeout = self._context.configs.actor_manager.spawn_wait_stable_timeout
+            if time.perf_counter() - timer > timeout:
+                self.logger.warning(f'Actors stable wait timeout after {timeout} seconds')
                 break
             
             # 进行 tick 操作
-            self._context.tick()
-            time.sleep(1/self._sync_mode_fps)
+            self._context.tick(force=True)
+            try:
+                time.sleep(1/self._context.fps)
+            except KeyboardInterrupt:
+                self.logger.warning('Wait stable interrupted by user')
+                raise SystemExit(102)
+
+    def find_by_local_id(self, id: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+        """根据本地 ID 查找 Actor
+        
+        Args:
+            id (str): 本地 ID
+
+        Returns:
+            CarlaActor | None: 找到的 Actor, 如果未找到, 则返回 None
+        """
+        for actor in self._known_actors:
+            if actor.id_local == id:
+                return actor
+        return None
+
+    def find_by_carla_id(self, id: int) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+        """根据 CARLA ID 查找 Actor
+        
+        Args:
+            id (int):  CARLA 服务端的 Actor ID
+
+        Returns:
+            CarlaActor | None: 找到的 Actor, 如果未找到, 则返回 None
+        """
+        # 查找已有注册表
+        for actor in self._known_actors:
+            if actor.id_carla == id:
+                return actor
+
+        # 查找 CARLA 世界
+        actor = self._context.world.get_actor(id)
+        if actor is None:
+            return None
+        if isinstance(actor, carla.Vehicle):
+            return CarlaVehicle.from_carla(self._context, actor)
+        elif isinstance(actor, carla.Sensor):
+            return CarlaSensor.from_carla(self._context, actor)
+        else:
+            return CarlaActor.from_carla(self._context, actor)
+
+    def find_by_name(self, name: str) -> CarlaActor | CarlaVehicle | CarlaSensor | None:
+        """根据名称查找 Actor"""
+        # 查找已有注册表
+        for actor in self._known_actors:
+            if actor.name == name:
+                return actor
+
+        # 查找 CARLA 世界中的 Actor role_name
+        all_actors = self._context.world.get_actors()
+        for actor in all_actors:
+            if actor.attributes.get('role_name', None) != name:
+                continue
+            if isinstance(actor, carla.Vehicle):
+                return CarlaVehicle.from_carla(self._context, actor)
+            elif isinstance(actor, carla.Sensor):
+                return CarlaSensor.from_carla(self._context, actor)
+            else:
+                return CarlaActor.from_carla(self._context, actor)
+        return None
+
+    def serialize_all(self) -> list[dict[str, Any]]:
+        return [actor.serialize() for actor in self._known_actors]
+        
+    def _topological_sort_by_parent(self) -> list[CarlaActor]:
+        """根据父级依赖关系对 Actor 进行拓扑排序
+        
+        Returns:
+            list[CarlaActor]: 排序后的 Actor 列表，父级 Actor 在子级之前
+        """
+        # 构建依赖图：记录每个 actor 的子级列表
+        children_map: Dict[CarlaActor, list[CarlaActor]] = {}
+        # 记录所有 actors
+        all_actors = list(self._known_actors)
+        
+        # 初始化 children_map
+        for actor in all_actors:
+            children_map[actor] = []
+        
+        # 构建依赖关系：如果 actor 有 parent，则 parent 依赖于 actor（parent 必须先生成）
+        # 实际上我们需要的是：parent -> children 的映射
+        for actor in all_actors:
+            parent = actor.parent
+            if parent is not None and parent in self._known_actors:
+                children_map[parent].append(actor)
+        
+        # Kahn's algorithm: 拓扑排序
+        # 计算每个 actor 的入度（有多少个 actor 依赖于它）
+        in_degree: Dict[CarlaActor, int] = {}
+        for actor in all_actors:
+            in_degree[actor] = 0
+        
+        # 计算入度：如果 actor 有 parent，则 actor 的入度为 1
+        for actor in all_actors:
+            if actor.parent is not None and actor.parent in self._known_actors:
+                in_degree[actor] = 1
+        
+        # 找到所有入度为 0 的节点（没有 parent 的 actors）
+        queue: list[CarlaActor] = [actor for actor in all_actors if in_degree[actor] == 0]
+        result: list[CarlaActor] = []
+        
+        # 拓扑排序
+        while queue:
+            # 取出一个入度为 0 的节点
+            current = queue.pop(0)
+            result.append(current)
+            
+            # 处理当前节点的所有子节点
+            for child in children_map[current]:
+                in_degree[child] -= 1
+                # 如果子节点的入度变为 0，加入队列
+                if in_degree[child] == 0:
+                    queue.append(child)
+        
+        # 检查是否有循环依赖（理论上不应该发生，但作为安全检查）
+        if len(result) != len(all_actors):
+            self._logger.warning(
+                f"Topological sort incomplete: {len(result)}/{len(all_actors)} actors sorted. "
+                "Possible circular dependency detected."
+            )
+            # 将未排序的 actors 添加到结果末尾
+            remaining = [actor for actor in all_actors if actor not in result]
+            result.extend(remaining)
+        
+        return result

@@ -3,17 +3,17 @@
 # 将传感器数据导出为数据集
 
 import threading
+from pathlib import Path
 from shared.simulator import *
-from shared.utils import Config, Logging
-from shared.simulator import CarlaTransform
+from shared.utils import Logging
 from shared.dataset import DatasetDumper
 
 if __name__ == "__main__":
     # 基础组件初始化
-    config = Config.from_yaml('config.yaml')                # 读取配置文件
-    logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
+    config = Path('config.yaml')                            # 读取配置文件
+    logger = Logging.load(config).get_logger('Main')        # 设置日志记录器
 
-    with CarlaContext.from_config(config) as context:
+    with CarlaContext(config) as context:
         vehicle = context.actors.create_vehicle(
             bp=CarlaBlueprints.VEHICLE_AUDI_A2,
             tf=context.spawn_points[0],

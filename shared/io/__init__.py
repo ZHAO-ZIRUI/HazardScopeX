@@ -1,11 +1,9 @@
-from .io_adapter import IOAdapter
+from .abstract_io_adapter import AbstractIOAdapter
 from .shared_memory_adapter import SharedMemoryAdapter
 from .ros2_adapter import ROS2Adapter
-from .ros2_high_performance_adapter import ROS2HighPerformanceAdapter
 
 __all__ = [
-    "IOAdapter",
+    "AbstractIOAdapter",
     "SharedMemoryAdapter",
     "ROS2Adapter",
-    "ROS2HighPerformanceAdapter",
 ]

@@ -85,7 +85,9 @@ class Image(SimulatorOutput):
         msg.encoding = 'bgra8'
         msg.is_bigendian = False
         msg.step = self.width * 4
-        msg.data = self._raw.data.tobytes()
+        # 使用 memoryview + cast 直接暴露底层连续缓冲区, 避免多余拷贝
+        # 此处直接操作 msg 的 _data 属性, 而不是 msg.data, 因为 msg.data 会进行额外的格式转换
+        msg._data = memoryview(self._raw).cast('B')
         return msg
 
     @classmethod

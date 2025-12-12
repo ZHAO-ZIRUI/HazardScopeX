@@ -6,6 +6,7 @@
 
 # Ignore Python Cache
 __pycache__/
+.pytest_cache/
 
 # Ignore user config
 config.yaml
@@ -19,3 +20,11 @@ recorders/*
 # Ignore dataset files
 export/*
 !export/.gitkeep
+
+# Ignore tmp files
+tmp/*
+!tmp/.gitkeep
+
+# Ignore coverage test files
+.coverage
+coverage.xml

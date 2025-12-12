@@ -1,13 +1,22 @@
-# 最简服务器程序
+# ==============================================================
+# 简单的服务器程序样例
+# 
+# 启动 CARLA 服务器并保持运行
+#
+#
+# 逻辑：
+# 1. 初始化 CARLA 上下文
+# 2. 启动主线程阻塞循环
+# ==============================================================
 from shared.simulator import CarlaContext
-from shared.utils import Config, Logging
+from shared.utils import Logging
 
 if __name__ == "__main__":
-    # 基础组件初始化
-    config = Config.from_yaml('config.yaml')                # 读取配置文件
-    logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
+    logger = Logging.load('config.yaml').get_logger('Main')
+    logger.info('DEMO FOR EMPTY SERVER')
 
-    logger.info('Starting simple server')
-    with CarlaContext.from_config(config) as context:        # 创建 CARLA 上下文
-        context.spin()                                       # 启动主线程阻塞循环
-    logger.info('Goodbye!')
+    with CarlaContext() as context:
+        # 启动主线程阻塞循环
+        context.spin()
+
+    logger.info('GOODBYE!')

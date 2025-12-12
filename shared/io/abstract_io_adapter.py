@@ -4,9 +4,9 @@ from typing_extensions import Self
 from shared.simulator import CarlaSensor
 
 
-class IOAdapter(ABC):
+class AbstractIOAdapter(ABC):
     """
-    IO 适配器, 用于将仿真器的输入输出转换
+    AbstractIOAdapter 抽象基类, 用于定义 IO 适配器的接口
     """
 
     @abstractmethod

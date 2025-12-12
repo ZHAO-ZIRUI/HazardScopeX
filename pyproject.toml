@@ -26,3 +26,8 @@ packages = ["shared"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[dependency-groups]
+dev = [
+    "coverage>=7.12.0",
+]

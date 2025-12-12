@@ -1,72 +1,189 @@
 import carla
-import logging
-import threading
-from functools import wraps
-from typing import Any
-from typing_extensions import Self
+from logging import Logger
+from typing import TYPE_CHECKING, Any
+from typing_extensions import Self, Unpack
 
-from shared.simulator import CarlaTransform
-from shared.utils import IdGenerator, Logging
+from shared.simulator import CarlaBlueprints, CarlaTransform
+from shared.utils import IdGenerator, Logging, PostInitMeta
 
-class CarlaActor:
+if TYPE_CHECKING:
+    from shared.simulator import CarlaContext
+
+
+class CarlaActor(metaclass=PostInitMeta):
     """
-    carla.Actor 的外部封装, 用于提供高级功能或适配可重启的服务端
+    carla.Actor 实例的容器, 用于在 CarlaContext 中管理 Actor 的生命周期和行为
     """
 
-    ID_GENERATOR_HEADER = "ACTOR_"
+    ID_GENERATOR_HEADER = "Actor_"
 
-    @staticmethod
-    def require_actor_alive(func):
-        """强制要求 Actor 是否可用的装饰器"""
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self._actor is None:
-                raise RuntimeError(f'Actor not spawned yet. Call context.actors.spawn() first.')
-            if not self._actor.is_alive:
-                raise RuntimeError(f'Actor is not alive anymore.')
-            return func(self, *args, **kwargs)
-        return wrapper
-
-    @staticmethod
-    def warn_actor_not_alive(func):
-        """警告 Actor 不可用的装饰器"""
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self._actor is None:
-                self.logger.warning(f'Actor not spawned yet. Call context.actors.spawn() first.')
-            if not self._actor.is_alive:
-                self.logger.warning(f'Actor is not alive anymore.')
-            return func(self, *args, **kwargs)
-        return wrapper
-    
     def __init__(
-        self, 
-        bp: carla.ActorBlueprint,
-        name: str = '',
-        actor: carla.Actor | None = None,
+        self,
+        context: 'CarlaContext',
+        bp: carla.ActorBlueprint | CarlaBlueprints | str,
+        tf: carla.Transform | CarlaTransform,
+        *,
+        parent: Self | None = None,
+        name: str | None = None,
+        ignore_attribute_failure: bool = False,
+        ignore_spawn_failure: bool = False,
+        is_managed_actor: bool = True,
+        **attributes: Unpack[dict[str, Any]],
     ):
-        # 生成本地 ID
-        self._id_generator = IdGenerator(header=self.ID_GENERATOR_HEADER)
-        self._id_local = next(self._id_generator)
+        """创建 CarlaActor 实例
 
-        # 别名
-        self._name = name
+        Args:
+            context (CarlaContext): CarlaContext 实例
+            bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图
+            tf (carla.Transform | CarlaTransform): 初始变换
+            parent (CarlaActor | None): 父级对象
+            name (str | None): 别名
+            ignore_attribute_failure (bool): 是否忽略属性失败
+            ignore_spawn_failure (bool): 是否忽略生成失败
+            is_managed_actor (bool): 是否被管理
+        """
+        self._id_local = next(IdGenerator(header=self.ID_GENERATOR_HEADER))
+        self._context = context
+        self._name = self._resolve_name(name)
+        self._logger = Logging().get_logger(self._name)
 
-        # 日志记录器
-        self._logger = Logging().get_logger(self.name)
+        self._is_managed_actor = is_managed_actor
+        self._flag_ignore_attribute_failure = ignore_attribute_failure
+        self._flag_ignore_spawn_failure = ignore_spawn_failure
+        self._parent = parent
+        self._cache_attributes: dict[str, str] = {}
 
-        # 初始值
-        self._bp = bp
-        self._tf_init: carla.Transform | None = None
-        self._parent: Self | None = None
+        self._bp = self._resolve_blueprint(bp)
+        self._bp = self._resolve_attributes(**attributes)
+        self._tf = self._resolve_transform(tf)
 
-        # carla.Actor 实例
-        self._actor = actor
+        self._actor_ref: list[carla.Actor | None] = [None]  # 长度为 1 的列表, 用于存储 carla.Actor 实例的引用
 
-        # TICK 阻塞器
-        self._tick_blocker: threading.Event = threading.Event()
+    def __post_init__(self):
+        # 注册到 ActorManager
+        self._context.actors.add(self)
 
-        self.logger.info(f"Created with blueprint '{self._bp.id}'")
+    def __str__(self) -> str:
+        return f"CarlaActor(name='{self.name}', id_local='{self.id_local}', is_alive='{self.is_alive}', is_managed='{self.is_managed_actor}')"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    @property
+    def name(self) -> str:
+        """别名, 只读"""
+        return self._name
+
+    @property
+    def logger(self) -> Logger:
+        """日志记录器, 只读"""
+        return self._logger
+
+    @property
+    def bp(self) -> carla.ActorBlueprint:
+        """蓝图, 只读"""
+        return self._bp
+
+    @property
+    def id_local(self) -> str:
+        """本地唯一 ID, 只读"""
+        return self._id_local
+
+    @property
+    def id_carla(self) -> int:
+        """CARLA ID, 只读"""
+        return self.actor.id if self.is_alive else -1
+
+    @property
+    def tf_now(self) -> carla.Transform:
+        """当前变换, 只读"""
+        if not self.is_alive:
+            msg = f"Tried to get transform of actor '{self.name}' but it is not alive"
+            self.logger.error(msg)
+            raise RuntimeError(msg)
+        return self.actor.get_transform()
+
+    @property
+    def tf_init(self) -> carla.Transform | None:
+        """初始变换, 只读"""
+        return self._tf
+
+    @property
+    def actor(self) -> carla.Actor:
+        """carla.Actor 实例, 只读"""
+        if not self.is_alive:
+            msg = f"Tried to get actor instance of actor '{self.name}' but it is not alive."
+            self.logger.error(msg)
+            raise RuntimeError(msg)
+        assert self._actor_ref[0] is not None
+        return self._actor_ref[0]
+
+    @property
+    def parent(self) -> Self | None:
+        """父级 Actor 实例, 只读"""
+        return self._parent
+
+    @property
+    def is_alive(self) -> bool:
+        """Actor 是否存活"""
+        return self._actor_ref[0] is not None and self._actor_ref[0].is_alive
+
+    @property
+    def is_managed_actor(self) -> bool:
+        """Actor 是否被 CarlaContext 管理"""
+        return self._is_managed_actor
+
+    @is_managed_actor.setter
+    def is_managed_actor(self, value: bool):
+        self._is_managed_actor = value
+        if value:
+            self.logger.info(f"Actor '{self.name}' is now managed by CarlaContext")
+        else:
+            self.logger.warning(f"Actor '{self.name}' is no longer managed by CarlaContext")
+
+    def spawn(self) -> Self:
+        """在仿真中生成 Actor 实例"""
+        # 获取父级 Actor 实例
+        if self.parent is not None:
+            if not self.parent.is_alive:
+                raise ValueError(f"Parent actor: '{self.parent}' not spawned yet or not alive")
+            attach_to = self.parent.actor
+        else:
+            attach_to = None
+
+        # 尝试生成 Actor
+        try:
+            self.logger.debug(f"Spawning actor '{self.name}' with blueprint '{self._bp.id}' at {Logging.short_tf(self.tf_init)}")
+            actor = self._context.world.spawn_actor(self._bp, self._tf, attach_to=attach_to)
+
+            # 强制 Tick 一次, 让 Actor 实例有机会生成
+            self._context.tick(force=True)
+
+            # 更新 Actor 实例引用
+            self._actor_ref[0] = actor
+            self.logger.info(f"Actor is spawned and available now with id: {self.id_local}, carla id: {self.id_carla}")
+        except RuntimeError as e:
+            if self._flag_ignore_spawn_failure:
+                self.logger.warning(f"Failed to spawn actor but ignored: {e}")
+                return self
+            else:
+                self.logger.error(f"Failed to spawn actor: {e}")
+                raise e
+
+        return self
+
+    def destroy(self) -> Self:
+        """销毁 Actor 实例"""
+        if self._actor_ref[0] is None:
+            return self
+        cache_carla_id = self.id_carla
+        result = self._actor_ref[0].destroy()
+        self._actor_ref[0] = None
+        if result:
+            self.logger.info(f"Destroyed actor (CARLA ID: {cache_carla_id})")
+        else:
+            self.logger.warning(f"Failed to destroy actor (CARLA ID: {cache_carla_id}), but ignored")
+        return self
 
     def serialize(self) -> str:
         """序列化为 YAML 字符串“”“
@@ -78,129 +195,105 @@ class CarlaActor:
             '_id_local': self._id_local,
             '_name': self._name,
             '_bp': self._bp.id,
-            '_tf_init': CarlaTransform.from_carla(self._tf_init).serialize(),
+            '_tf_init': CarlaTransform.from_carla(self.tf_init).serialize(),
             '_parent_name': self._parent.name if self._parent is not None else None,
-            '_attributes': self._actor.attributes,
+            '_attributes': self._cache_attributes,
         }
         return dump_data
 
-    @property
-    def bp(self) -> carla.ActorBlueprint:
-        """蓝图, 包含创建 Actor 所需的属性信息"""
-        return self._bp
-
-    @property
-    def logger(self) -> logging.Logger:
-        return self._logger
-
-    @property
-    def name(self) -> str:
-        if self._name == '':
-            return self._id_local
-        else:
-            return self._name
-
-    @property
-    def id_local(self) -> str:
-        """本地容器的 ID, 用于在注册表中唯一标识"""
-        return self._id_local
-
-    @property
-    def tf_init(self) -> carla.Transform | None:
-        """初始变换"""
-        return self._tf_init
-
-    @property
-    def tick_blocker(self) -> threading.Event:
-        """TICK 阻塞器"""
-        return self._tick_blocker
-
-    @property
-    @require_actor_alive
-    def tf_now(self) -> carla.Transform:
-        """当前变换"""
-        return self._actor.get_transform()
-
-    @tf_init.setter
-    def tf_init(self, value: carla.Transform):
-        if self._tf_init is not None:
-            self.logger.warning(f"Initial transform already set to {Logging.short_tf(self._tf_init)}. Overwriting with {Logging.short_tf(value)}")
-        if self._actor is not None:
-            self.logger.warning(f"Actor already spawned. Setting initial transform will have no effect.")
-            return
-        self.logger.debug(f"Setting initial transform to {Logging.short_tf(value)}")
-        self._tf_init = value
-        return
-
-    @property
-    def parent(self) -> Self | None:
-        """父 Actor"""
-        return self._parent
-
-    @parent.setter
-    def parent(self, value: Self | None):
-        if self._parent is not None:
-            self.logger.warning(f"Parent already set to {self._parent.name}. Overwriting with {value.name}")
-        if self._actor is not None:
-            self.logger.warning(f"Actor already spawned. Setting parent will have no effect.")
-            return
-        if value is None:
-            return
-        self.logger.info(f"Setting parent to {value.id_local}")
-        self._parent = value
-        return
-
-    @property
-    @require_actor_alive
-    def actor(self) -> carla.Actor:
-        """carla.Actor 实例"""
-        return self._actor
-
-    @actor.setter
-    def actor(self, value: carla.Actor):
-        if self._actor is not None:
-            self.logger.warning(f"Actor already set. Overwriting with {value.id}")
-            return
-        self.logger.debug(f"Bind actor instance (CARLA ID: {value.id})")
-        self._actor = value
-        return
-
-    def spawn(self, world: carla.World, ignore_spawn_failure: bool = False) -> Self:
-        """在仿真中生成 Actor 实例
+    def _resolve_blueprint(self, bp: carla.ActorBlueprint | CarlaBlueprints | str) -> carla.ActorBlueprint:
+        """将多种可能的蓝图输入统一为 carla.ActorBlueprint
 
         Args:
-            world (carla.World): 仿真世界
-            ignore_spawn_failure (bool): 是否忽略生成失败, 如果为 True, 则不会抛出异常
-
-        Raises:
-            RuntimeError: 生成失败, 且 ignore_spawn_failure 为 False
+            bp (carla.ActorBlueprint | CarlaBlueprints | str): 蓝图输入
 
         Returns:
-            Self: 链式调用支持
+            carla.ActorBlueprint: 确定的 carla.ActorBlueprint 对象
         """
-        try:
-            self.actor = world.spawn_actor(self._bp, self._tf_init, attach_to=self._parent.actor if self._parent is not None else None)
-            self.logger.info(f"Spawned actor (CARLA ID: {self.actor.id})")
-        except RuntimeError as e:
-            if ignore_spawn_failure:
-                self.logger.warning(f"Failed to spawn actor but ignored: {e}")
-                return self
-            else:
-                self.logger.error(f"Failed to spawn actor: {e}")
-                raise e
-        return self
+        if isinstance(bp, carla.ActorBlueprint):
+            return bp
+        if isinstance(bp, CarlaBlueprints):
+            bp = bp.value
+        if isinstance(bp, str):
+            blueprint_library = self._context.world.get_blueprint_library()
+            try:
+                return blueprint_library.find(bp)
+            except IndexError as e:
+                raise ValueError(f"Blueprint '{bp}' not found in blueprint library") from e
+        else:
+            raise ValueError(f"Invalid blueprint input: {bp}")
 
-    @warn_actor_not_alive
-    def destroy(self) -> Self:
-        """销毁 Actor 实例"""
-        if self._actor is None:
-            return self
-        
-        try:
-            actor_id = self._actor.id   # 暂存 CARLA ID, 防止销毁后无法获取
-            self._actor.destroy()
-            self._actor = None
-            self.logger.info(f"Destroyed actor (CARLA ID: {actor_id})")
-        except RuntimeError as e:
-            self.logger.error(f"Failed to destroy actor: {e}")
-        return self
+    def _resolve_transform(self, tf: carla.Transform | CarlaTransform) -> carla.Transform:
+        """将多种可能的变换输入统一为 carla.Transform
+
+        Args:
+            tf (carla.Transform | CarlaTransform): 变换输入
+
+        Returns:
+            carla.Transform: 确定的 carla.Transform 对象
+        """
+        if isinstance(tf, carla.Transform):
+            return tf
+        elif isinstance(tf, CarlaTransform):
+            return tf.to_carla()
+        else:
+            raise ValueError(f"Invalid transform input: {tf}")
+
+    def _resolve_name(self, name: str | None) -> str:
+        """确定最终的别名
+
+        Args:
+            name (str | None): 名称输入
+
+        Returns:
+            str: 确定的名称
+        """
+        if name is None:
+            return self._id_local
+        else:
+            return name
+
+    def _resolve_attributes(self, **attributes: Unpack[dict[str, Any]]) -> carla.ActorBlueprint:
+        """将属性写入到 carla.ActorBlueprint 中
+
+        Args:
+            attributes (Unpack[dict[str, Any]]): 属性输入
+
+        Returns:
+            carla.ActorBlueprint: 确定的 carla.ActorBlueprint 对象
+        """
+        for key, value in attributes.items():
+            try:
+                self._bp.set_attribute(key, str(value))
+                self.logger.debug(f"Attribute '{key}' set to '{str(value)}'")
+                self._cache_attributes[key] = str(value)
+            except IndexError as e:
+                msg = f"Attribute '{key}' not found in blueprint '{self._bp.id}'"
+                if not self._flag_ignore_attribute_failure:
+                    self.logger.error(msg)
+                    raise e
+                else:
+                    self.logger.warning(msg + ', but ignored')
+
+        # 处理默认别名
+        if self._bp.has_attribute('role_name'):
+            self._bp.set_attribute('role_name', self._name)
+            self.logger.debug(f"Attribute 'role_name' set to '{self._name}'")
+            self._cache_attributes['role_name'] = self._name
+        return self._bp
+
+    @classmethod
+    def from_carla(cls, context: 'CarlaContext', actor: carla.Actor) -> Self:
+        """从 carla.Actor 实例创建 CarlaActor 实例"""
+        instance = cls(
+            context=context,
+            bp=actor.type_id,
+            tf=actor.get_transform(),
+            parent=None,
+            name=actor.attributes.get('role_name', None),
+            ignore_attribute_failure=False,
+            ignore_spawn_failure=False,
+            is_managed_actor=False,
+        )
+        instance._actor_ref[0] = actor
+        return instance

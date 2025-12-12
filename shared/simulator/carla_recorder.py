@@ -3,6 +3,7 @@ import time
 import os
 import re
 import yaml
+from pathlib import Path
 from enum import Enum
 from typing import Callable, List, TYPE_CHECKING
 from contextlib import contextmanager
@@ -30,12 +31,11 @@ class CarlaRecorder:
     def __init__(
         self,
         context: 'CarlaContext',
-        recorder_path: str = './recorders',
     ):
         self.logger = Logging().get_logger('Recorder')
 
         self._work_mode = self.WorkMode.NONE
-        self._recorder_path = recorder_path
+        self._recorder_path = context.project_root / Path(context.configs.recorder.path)
         self._context = context
 
         self._cache_file_path: str = None
@@ -101,7 +101,7 @@ class CarlaRecorder:
         # 记录元数据
         metadata_file_path = f'{self._cache_file_path}{self.METADATA_FILE_EXTENSION}'
         with open(metadata_file_path, 'w') as f:
-            yaml.dump(self._context.actors.serialize(), f)
+            yaml.dump(self._context.actors.serialize_all(), f)
         self.logger.info(f'Recorded metadata to: {metadata_file_path}')
 
         self._record_tick_handler = self._tick_handler
@@ -190,7 +190,7 @@ class CarlaRecorder:
                 parent=self._context.actors.find_by_name(actor_dump['_parent_name']),
                 **actor_dump['_attributes'],
             )
-            sensor.spawn(self._context.world)
+            sensor.spawn()
 
         self._context.tick() # 执行一次 TICK(), 确保传感器对象被 SPAWN
         self._cache_replay_frames += 1
