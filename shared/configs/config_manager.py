@@ -12,6 +12,7 @@ class ConfigManager:
         self._carla_actor_manager_config = CarlaActorManagerConfig()
         self._carla_io_manager_config = CarlaIOManagerConfig()
         self._carla_recorder_config = CarlaRecorderConfig()
+        self._carla_dataset_dumper_config = CarlaDatasetDumperConfig()
 
     @property
     def context(self) -> CarlaContextConfig:
@@ -29,9 +30,14 @@ class ConfigManager:
     def recorder(self) -> CarlaRecorderConfig:
         return self._carla_recorder_config
 
+    @property
+    def dataset(self) -> CarlaDatasetDumperConfig:
+        return self._carla_dataset_dumper_config
+
     def load(self, incoming: Path | ExternalConfigReader) -> Self:
         self._carla_context_config = CarlaContextConfig.load(incoming)
         self._carla_actor_manager_config = CarlaActorManagerConfig.load(incoming)
         self._carla_io_manager_config = CarlaIOManagerConfig.load(incoming)
         self._carla_recorder_config = CarlaRecorderConfig.load(incoming)
+        self._carla_dataset_dumper_config = CarlaDatasetDumperConfig.load(incoming)
         return self
