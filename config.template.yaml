@@ -96,3 +96,5 @@ dataset:
   path: 'export'
   # 安全内存使用阈值
   safe_memory_usage_threshold: 0.95
+  # 日志打印间隔时间
+  log_interval_seconds: 3

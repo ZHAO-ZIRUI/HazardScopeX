@@ -10,3 +10,4 @@ class CarlaDatasetDumperConfig(AbstractConfig):
     """
     path: str = field(default='export', metadata={'route': 'dataset/path'})
     safe_memory_usage_threshold: float = field(default=0.95, metadata={'route': 'dataset/safe_memory_usage_threshold'})
+    log_interval_seconds: float = field(default=3, metadata={'route': 'dataset/log_interval_seconds'})
