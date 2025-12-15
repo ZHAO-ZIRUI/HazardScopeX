@@ -1,6 +1,7 @@
 import carla
 import numpy as np
 from typing import TYPE_CHECKING
+from pathlib import Path
 from typing_extensions import Self
 from io import StringIO
 
@@ -188,19 +189,20 @@ class PointCloud(SimulatorOutput):
 
     def to_file(
         self, 
-        file_path: str,
+        file_path: str | Path,
         *,
         include_extra_fields: bool = False,
     ) -> Self:
-        if file_path.endswith('.pcd'):
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
+        if file_path.suffix == '.pcd':
             content = self.to_pcd(include_extra_fields=include_extra_fields)
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-        elif file_path.endswith('.ply'):
+        elif file_path.suffix == '.ply':
             content = self.to_ply(include_extra_fields=include_extra_fields)
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-        elif file_path.endswith('.npz'):
+        elif file_path.suffix == '.npz':
             if include_extra_fields:
                 # 将结构化数组转换为普通数组
                 points = np.column_stack([self._raw[field] for field in self.format.names])

@@ -1,6 +1,7 @@
 import carla
 import numpy as np
 import cv2
+from pathlib import Path
 from enum import Enum
 from typing import TYPE_CHECKING
 from typing_extensions import Self
@@ -101,6 +102,7 @@ class Image(SimulatorOutput):
             format=cls.Format.BGRA8,
         )
 
-    def to_file(self, file_path: str) -> Self:
+    def to_file(self, file_path: str | Path) -> Self:
+        file_path = Path(file_path) if isinstance(file_path, str) else file_path
         cv2.imwrite(file_path, self._raw)
         return self

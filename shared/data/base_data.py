@@ -4,6 +4,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 from enum import Enum
+from pathlib import Path
 from typing_extensions import Self
 from multiprocessing.shared_memory import SharedMemory
 
@@ -141,6 +142,6 @@ class BaseData(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def to_file(self, file_path: str) -> Self:
+    def to_file(self, file_path: str | Path) -> Self:
         """将数据保存到文件"""
         raise NotImplementedError
