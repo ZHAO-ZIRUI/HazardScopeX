@@ -1,6 +1,7 @@
 import os
 import carla
 import numpy as np
+from pathlib import Path
 from typing import TYPE_CHECKING
 from typing_extensions import Self
 from io import StringIO
@@ -63,11 +64,9 @@ class SemanticKittiDumper(DatasetDumper):
     def __init__(
         self,
         context: 'CarlaContext',
-        folder_path: str,
         *,
         name: str = None,
-        safe_memory_usage_threshold: float = DatasetDumper.SAFE_MEMORY_USAGE_THRESHOLD,
-        create_folder: bool = True
+        path: str | Path | None = None
     ):
         """初始化 SemanticKitti 数据集导出器
 
@@ -75,27 +74,23 @@ class SemanticKittiDumper(DatasetDumper):
 
         Args:
             context (CarlaContext): 仿真上下文
-            folder_path (str): 数据集保存路径
             name (str, optional): 数据集名称. 默认为 None, 将根据时间自动生成.
-            safe_memory_usage_threshold (float, optional): 安全内存使用阈值, 当内存使用率超过该阈值时, 将自动导出数据集到磁盘. 默认为 SAFE_MEMORY_USAGE_THRESHOLD.
-            create_folder (bool, optional): 是否创建数据集文件夹, 如果为 False, 则需要确保数据集文件夹存在. 默认为 True.
+            path (str | Path, optional): 数据集保存路径. 默认为 None, 将根据配置文件自动确定.
         """
         super().__init__(
             context=context,
-            folder_path=folder_path,
             name=name,
-            safe_memory_usage_threshold=safe_memory_usage_threshold,
-            create_folder=create_folder,
+            path=path,
         )
         self._main_camera: CarlaSensor | None = None
         self._main_lidar: CarlaSensor | None = None
         self._other_cameras: list[CarlaSensor] = []
 
-        self._folder_main_lidar_velodyne: str = None
-        self._folder_main_lidar_labels: str = None
-        self._file_timestamp: str = None
-        self._file_calib: str = None
-        self._file_pose: str = None
+        self._folder_main_lidar_velodyne: Path | None = None
+        self._folder_main_lidar_labels: Path | None = None
+        self._file_timestamp: Path | None = None
+        self._file_calib: Path | None = None
+        self._file_pose: Path | None = None
 
         self._timestamp_offset: float = 0.0
         self._pose_offset: np.ndarray | None = None
@@ -111,8 +106,8 @@ class SemanticKittiDumper(DatasetDumper):
         self._context.hook_on_tick.append(self._ensure_main_sensors_ready)
         self._context.hook_on_tick.append(self._tick_cache_timestamp)
         self._context.hook_on_tick.append(self._tick_cache_pose)
-        self.hook_after_main_flush.append(self._calc_and_flush_calib)
-        self.hook_after_main_flush.append(self._flush_readme)
+        self.hook_after_final_flush.append(self._calc_and_flush_calib)
+        self.hook_after_final_flush.append(self._flush_readme)
         return self
 
     def bind_main_camera(self, sensor: CarlaSensor) -> Self:
@@ -168,30 +163,30 @@ class SemanticKittiDumper(DatasetDumper):
         # 调用父类方法
         return super().bind_sensor_output(sensor, folder_path, naming_policy)
 
-    def _flush_data(self, data: BaseData, file_path: str) -> Self:
+    def _flush_data(self, data: BaseData, file_path: Path) -> None:
         """将传感器数据导出到磁盘
 
         Args:
             data (BaseData): 传感器数据
-            file_path (str): 文件路径
+            file_path (Path): 文件路径
 
         Returns:
-            Self: 返回自身
+            None
         """
         if isinstance(data, Image):
             data.to_file(file_path)
-            return self
+            return None
         if isinstance(data, PointCloud):
             raw = data.raw
-            if file_path.endswith('.bin'):
+            if file_path.suffix == '.bin':
                 points = raw[:, :3].astype(np.float32).copy()
                 points[:, 1] *= -1
                 intensity = np.ones((points.shape[0], 1), dtype=np.float32)
                 bin_points = np.hstack((points, intensity))
-                bin_points.tofile(file_path)
-                return self
+                bin_points.tofile(str(file_path))
+                return None
 
-            if file_path.endswith('.label'):
+            if file_path.suffix == '.label':
                 semantic_tags = np.rint(raw[:, 6]).astype(np.int32)
                 object_ids = np.rint(raw[:, 5]).astype(np.int32)
 
@@ -201,23 +196,22 @@ class SemanticKittiDumper(DatasetDumper):
 
                 instance_ids = np.clip(object_ids, 0, np.iinfo(np.uint16).max).astype(np.uint16)
                 labels = np.column_stack((mapped_semantics, instance_ids))
-                labels.tofile(file_path)
-                return self
+                labels.tofile(str(file_path))
+                return None
         if isinstance(data, StringIO):
-            if file_path.endswith(self.FILE_TIMESTAMP) or file_path.endswith(self.FILE_POSE):
+            if file_path.name == self.FILE_TIMESTAMP or file_path.name == self.FILE_POSE:
                 content = data.getvalue()
                 with open(file_path, 'a') as f:
                     f.write(content)
                 data.close()
-                return self
+                return None
             else:
                 raise ValueError(f'Unsupported file type: {file_path}')
         raise ValueError(f'Unsupported sensor data type: {type(data)}')
 
-    def _flush_readme(self) -> Self:
+    def _flush_readme(self) -> None:
         """导出 README.txt 文件"""
-        file_path = os.path.join(self._folder_path, 'README.txt')
-        file_path = os.path.abspath(file_path)
+        file_path = self._path / 'README.txt'
 
         data = StringIO()
         data.write('='*80 + '\n')
@@ -244,7 +238,7 @@ class SemanticKittiDumper(DatasetDumper):
         with open(file_path, 'w') as f:
             f.write(data.getvalue())
         data.close()
-        return self
+        return None
 
     def _ensure_main_sensors_ready(self, _) -> Self:
         """当没有主摄像头和主激光雷达时, 系统退出"""
@@ -260,22 +254,21 @@ class SemanticKittiDumper(DatasetDumper):
         """
         # 首次调用时的初始化
         if self._file_timestamp is None:
-            self._file_timestamp = os.path.join(self._folder_path, self.FILE_TIMESTAMP)
-            self._file_timestamp = os.path.abspath(self._file_timestamp)
+            self._file_timestamp = self._path / self.FILE_TIMESTAMP
             with open(self._file_timestamp, 'w') as f:
                 f.write('')
             self.logger.debug(f'Timestamp file is created: {self._file_timestamp}')
             
-            self._dataset[self._file_timestamp] = StringIO()
+            self._data_buffer[str(self._file_timestamp)] = StringIO()
             self._timestamp_offset = snapshot.timestamp.elapsed_seconds
             self.logger.debug(f'Timestamp offset is set to: {self._timestamp_offset}')
 
         # 缓存时间戳
         timestamp = snapshot.timestamp.elapsed_seconds - self._timestamp_offset
 
-        if self._file_timestamp not in self._dataset.keys():
-            self._dataset[self._file_timestamp] = StringIO()
-        self._dataset[self._file_timestamp].write(f'{timestamp:.6e}\n')
+        if str(self._file_timestamp) not in self._data_buffer.keys():
+            self._data_buffer[str(self._file_timestamp)] = StringIO()
+        self._data_buffer[str(self._file_timestamp)].write(f'{timestamp:.6e}\n')
         
         return self
 
@@ -289,13 +282,12 @@ class SemanticKittiDumper(DatasetDumper):
 
         # 首次调用时的初始化
         if self._file_pose is None:
-            self._file_pose = os.path.join(self._folder_path, self.FILE_POSE)
-            self._file_pose = os.path.abspath(self._file_pose)
+            self._file_pose = self._path / self.FILE_POSE
             with open(self._file_pose, 'w') as f:
                 f.write('')
             self.logger.debug(f'Pose file is created: {self._file_pose}')
             
-            self._dataset[self._file_pose] = StringIO()
+            self._data_buffer[str(self._file_pose)] = StringIO()
             
             # 获取初始帧的位姿并转换为 KITTI 坐标系
             cam_0_tf_init = self._main_camera.tf_now
@@ -320,9 +312,9 @@ class SemanticKittiDumper(DatasetDumper):
         pose_matrix_str = ' '.join([f'{value:.6e}' for value in pose_matrix_flat])
         
         # 缓存到位姿文件
-        if self._file_pose not in self._dataset.keys():
-            self._dataset[self._file_pose] = StringIO()
-        self._dataset[self._file_pose].write(f'{pose_matrix_str}\n')
+        if str(self._file_pose) not in self._data_buffer.keys():
+            self._data_buffer[str(self._file_pose)] = StringIO()
+        self._data_buffer[str(self._file_pose)].write(f'{pose_matrix_str}\n')
         
         return self
 
@@ -389,8 +381,7 @@ class SemanticKittiDumper(DatasetDumper):
             raise SystemExit(429)
 
         # 创建标定文件
-        self._file_calib = os.path.join(self._folder_path, self.FILE_CALIB)
-        self._file_calib = os.path.abspath(self._file_calib)
+        self._file_calib = self._path / self.FILE_CALIB
         with open(self._file_calib, 'w') as f:
             f.write('')
         self.logger.info(f'Calib file is created: {self._file_calib}')
@@ -465,41 +456,42 @@ class SemanticKittiDumper(DatasetDumper):
             f.write('\n')
         
         self.logger.debug(f'Calib file is created: {self._file_calib}')
-        return self
+        return None
 
     def _log_result(self) -> None:
         """记录导出结果"""
         # 检查主文件夹是否存在
-        if not os.path.exists(self._folder_path):
+        if not self._path.exists():
             self.logger.error(f'Dataset export result check: False')
-            self.logger.error(f'Main folder does not exist: "{self._folder_path}"')
+            self.logger.error(f'Main folder does not exist: "{self._path}"')
             return
         
         # 获取所有子文件夹
         subfolders = []
-        for item in os.listdir(self._folder_path):
-            item_path = os.path.join(self._folder_path, item)
-            if os.path.isdir(item_path):
-                subfolders.append(item_path)
+        for item in self._path.iterdir():
+            if item.is_dir():
+                subfolders.append(item)
         
         # 统计每个子文件夹中的文件数量
         file_counts = {}
         for subfolder in subfolders:
-            folder_name = os.path.basename(subfolder)
-            files = [f for f in os.listdir(subfolder) if os.path.isfile(os.path.join(subfolder, f))]
+            folder_name = subfolder.name
+            files = [f for f in subfolder.iterdir() if f.is_file()]
             file_counts[folder_name] = len(files)
 
         # 统计 pose 和 time 的有效行数量
         pose_lines = 0
         time_lines = 0
-        with open(self._file_pose, 'r') as f:
-            for line in f:
-                if line.strip():
-                    pose_lines += 1
-        with open(self._file_timestamp, 'r') as f:
-            for line in f:
-                if line.strip():
-                    time_lines += 1
+        if self._file_pose and self._file_pose.exists():
+            with open(self._file_pose, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        pose_lines += 1
+        if self._file_timestamp and self._file_timestamp.exists():
+            with open(self._file_timestamp, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        time_lines += 1
         
         # 检查文件数量是否一致
         counts = list(file_counts.values()) + [pose_lines, time_lines]
@@ -515,4 +507,4 @@ class SemanticKittiDumper(DatasetDumper):
             self.logger.debug(f'Folder "{folder_name}": {count} file(s)')
         self.logger.debug(f'Pose file lines: {pose_lines}')
         self.logger.debug(f'Time file lines: {time_lines}')
-        return self
+        return None

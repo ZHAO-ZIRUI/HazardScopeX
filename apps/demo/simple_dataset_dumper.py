@@ -1,55 +1,40 @@
-# 简单的数据集导出程序
-# 在 CARLA 中创建一辆车辆, 并为其安装传感器, 然后开始 CARLA AUTOPILOT 自动驾驶
-# 将传感器数据导出为数据集
-
-import threading
-from pathlib import Path
-from shared.simulator import *
+# ==============================================================
+# 简单的数据集导出程序样例
+# 
+# 数据会保存在 export/ 目录下，以时间戳命名. 传感器数据会被导出为数据集格式
+#
+#
+# 逻辑：
+# 1. 创建一辆车辆并为其安装传感器
+# 2. 对车辆启动 CARLA AUTOPILOT
+# 3. 导出传感器数据为数据集
+# ==============================================================
+from shared.simulator import CarlaContext
 from shared.utils import Logging
 from shared.dataset import DatasetDumper
+from shared.prefabs import PlayerVehicle
 
 if __name__ == "__main__":
-    # 基础组件初始化
-    config = Path('config.yaml')                            # 读取配置文件
-    logger = Logging.load(config).get_logger('Main')        # 设置日志记录器
+    logger = Logging.load('config.yaml').get_logger('Main')
+    logger.info('DEMO FOR DATASET DUMPER')
 
-    with CarlaContext(config) as context:
-        vehicle = context.actors.create_vehicle(
-            bp=CarlaBlueprints.VEHICLE_AUDI_A2,
-            tf=context.spawn_points[0],
-        )
+    with CarlaContext() as context:
+        
+        # 创建一辆车辆
+        vehicle = PlayerVehicle(context, context.spawn_points[0])
 
-        cam_front = context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
-            name='CAM_FRONT',
-            tf=CarlaTransform(x=1.6, y=0.0, z=1.7),
-            parent=vehicle,
-        )
-
-        cam_game = context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_CAMERA_RGB,
-            name='CAM_GAME',
-            tf=CarlaTransform(x=-5.5, y=0.0, z=2.5, pitch=-15.0),
-            parent=vehicle,
-        )
-
-        lidar_main = context.actors.create_sensor(
-            bp=CarlaBlueprints.SENSOR_LIDAR_RAY_CAST,
-            name='LIDAR_MAIN',
-            tf=CarlaTransform(x=0.0, y=0.0, z=2.2),
-            parent=vehicle,
-        )
-
+        # 等待车辆稳定
         context.actors.spawn_all()
         context.actors.wait_stable(vehicle)
 
+        # 导出传感器数据为数据集
         vehicle.set_carla_autopilot(enable=True)
-        
+        with DatasetDumper(context) as dumper:
+            dumper.bind_sensor_output(vehicle.cam_front, 'cam_front')
+            dumper.bind_sensor_output(vehicle.cam_game, 'cam_game')
+            dumper.bind_sensor_output(vehicle.lidar, 'lidar_main')
+            context.wait_seconds(10)
 
-        with DatasetDumper(context, './export') as dumper:
-            dumper.bind_sensor_output(cam_front, 'cam_front')
-            dumper.bind_sensor_output(cam_game, 'cam_game')
-            dumper.bind_sensor_output(lidar_main, 'lidar_main')
-            context.wait_seconds(5)
+        context.spin()
 
-    logger.info('Goodbye!')
+    logger.info('GOODBYE!')

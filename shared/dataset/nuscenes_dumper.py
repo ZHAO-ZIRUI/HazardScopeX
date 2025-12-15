@@ -6,6 +6,7 @@ import json
 import time
 import carla
 import numpy as np
+from pathlib import Path
 from typing import TYPE_CHECKING, Tuple, List
 from typing_extensions import Self
 
@@ -1247,11 +1248,9 @@ class NuScenesDumper(DatasetDumper):
     def __init__(
         self,
         context: 'CarlaContext',
-        folder_path: str,
         *,
         name: str = None,
-        safe_memory_usage_threshold: float = DatasetDumper.SAFE_MEMORY_USAGE_THRESHOLD,
-        create_folder: bool = True,
+        path: str | Path | None = None,
         vehicle: str = 'UNKNOWN',
         location: str = 'UNKNOWN',
         map_category: str = 'semantic_prior',
@@ -1262,10 +1261,8 @@ class NuScenesDumper(DatasetDumper):
 
         Args:
             context (CarlaContext): 仿真上下文
-            folder_path (str): 数据集保存路径
             name (str, optional): 数据集名称. 默认为 None, 将根据时间自动生成.
-            safe_memory_usage_threshold (float, optional): 安全内存使用阈值, 当内存使用率超过该阈值时, 将自动导出数据集到磁盘. 默认为 SAFE_MEMORY_USAGE_THRESHOLD.
-            create_folder (bool, optional): 是否创建数据集文件夹, 如果为 False, 则需要确保数据集文件夹存在. 默认为 True.
+            path (str | Path, optional): 数据集保存路径. 默认为 None, 将根据配置文件自动确定.
             vehicle (str, optional): 车辆描述, 如: 'n18'. 默认为 'UNKNOWN'.
             location (str, optional): 数据采集地点描述, 如: 'singapore-onenorth'. 默认为 'UNKNOWN'.
             map_category (str, optional): 地图分类描述, 如: 'semantic_prior'. 默认为 'semantic_prior'.
@@ -1279,14 +1276,12 @@ class NuScenesDumper(DatasetDumper):
         
         super().__init__(
             context=context,
-            folder_path=folder_path,
             name=name,
-            safe_memory_usage_threshold=safe_memory_usage_threshold,
-            create_folder=create_folder,
+            path=path,
         )
         self._sensor_tokens: dict[CarlaSensor, str] = {}
         self._calibrated_sensor_tokens: dict[CarlaSensor, str] = {}
-        self._sensor_folders: dict[CarlaSensor, str] = {}
+        self._sensor_folders: dict[CarlaSensor, Path] = {}
         self._sensor_naming_policies: dict[CarlaSensor, 'DatasetDumper.NamingPolicy'] = {}
         
         self._current_sample_token: str = None
@@ -1327,9 +1322,11 @@ class NuScenesDumper(DatasetDumper):
         )
         self.logger.debug(f'Log token created: {self._log_token}')
         
+        # 获取数据集名称（从路径中提取）
+        dataset_name = self._path.name
         self._scene_token = self._db.add_scene(
             log_token=self._log_token,
-            name=self._name,
+            name=dataset_name,
             description=f'Scene exported from CARLA simulation'
         )
         self.logger.debug(f'Scene token created: {self._scene_token}')
@@ -1340,9 +1337,9 @@ class NuScenesDumper(DatasetDumper):
         self._setup_db_visibility()
         
         # 创建文件夹
-        self._folder_samples = os.path.join(self._folder_path, self.FOLDER_SAMPLES)
-        self._folder_sweeps = os.path.join(self._folder_path, self.FOLDER_SWEEPS)
-        self._folder_maps = os.path.join(self._folder_path, self.FOLDER_MAPS)
+        self._folder_samples = self._path / self.FOLDER_SAMPLES
+        self._folder_sweeps = self._path / self.FOLDER_SWEEPS
+        self._folder_maps = self._path / self.FOLDER_MAPS
         os.makedirs(self._folder_samples, exist_ok=True)
         os.makedirs(self._folder_sweeps, exist_ok=True)
         os.makedirs(self._folder_maps, exist_ok=True)
@@ -1352,8 +1349,8 @@ class NuScenesDumper(DatasetDumper):
         self._context.hook_on_tick.append(self._tick_record_sample)
         
         # 注册 flush 钩子（先恢复缺失的记录，再导出 JSON）
-        self.hook_after_main_flush.append(self._recover_missing_sample_data)
-        self.hook_after_main_flush.append(self._export_json_files)
+        self.hook_after_final_flush.append(self._recover_missing_sample_data)
+        self.hook_after_final_flush.append(self._export_json_files)
         
         return self
     
@@ -1395,22 +1392,22 @@ class NuScenesDumper(DatasetDumper):
             if result:
                 self._default_visibility_token = result[0]
 
-    def bind_sensor_output(self, sensor: CarlaSensor, folder_path: str = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
+    def bind_sensor_output(self, sensor: CarlaSensor, path: str | Path | None = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
         """绑定传感器数据输出到内存缓存, 并创建 sensor 和 calibrated_sensor 记录
         
         Args:
             sensor (CarlaSensor): 传感器
-            folder_path (str): 文件夹路径
+            path (str | Path | None, optional): 文件夹路径. 默认为 None, 将根据传感器名称自动确定.
             naming_policy (NamingPolicy, optional): 命名策略. 默认为 None, 将根据传感器类型自动确定.
         
         Returns:
             Self: 返回自身
         """
-        if folder_path is None:
-            folder_path = sensor.name
+        if path is None:
+            path = sensor.name
         
-        samples_folder_path = os.path.join(self.FOLDER_SAMPLES, folder_path)
-        folder_path_abs = os.path.abspath(os.path.join(self._folder_path, samples_folder_path))
+        samples_folder_path = Path(self.FOLDER_SAMPLES) / path
+        folder_path_abs = (self._path / samples_folder_path).resolve()
         
         if naming_policy is None:
             if sensor.is_camera:
@@ -1650,20 +1647,20 @@ class NuScenesDumper(DatasetDumper):
             return None
         
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
-        sensor_file_path = os.path.abspath(os.path.join(sensor_folder, f"{counter_str}.{naming_policy.extension}"))
+        sensor_file_path = (sensor_folder / f"{counter_str}.{naming_policy.extension}").resolve()
         
-        if sensor_file_path not in self._dataset:
+        if str(sensor_file_path) not in self._data_buffer:
             prev_frame_counter = max(0, self._frame_counter - 1)
             prev_counter_str = str(prev_frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
-            prev_sensor_file_path = os.path.abspath(os.path.join(sensor_folder, f"{prev_counter_str}.{naming_policy.extension}"))
+            prev_sensor_file_path = (sensor_folder / f"{prev_counter_str}.{naming_policy.extension}").resolve()
             
-            if prev_sensor_file_path in self._dataset:
+            if str(prev_sensor_file_path) in self._data_buffer:
                 sensor_file_path = prev_sensor_file_path
-            elif not os.path.exists(sensor_file_path):
+            elif not sensor_file_path.exists():
                 self.logger.debug(f'Sensor {sensor.name} data not found for frame {self._frame_counter}, skipping')
                 return None
         
-        return sensor_file_path
+        return str(sensor_file_path)
     
     def _create_sample_data_record(self, sensor: CarlaSensor, sensor_file_path: str, timestamp: float, ego_pose_token: str) -> str:
         """创建 sample_data 记录
@@ -1684,7 +1681,7 @@ class NuScenesDumper(DatasetDumper):
             height = sensor.bp.get_attribute('image_size_y').as_int()
             width = sensor.bp.get_attribute('image_size_x').as_int()
         
-        relative_path = os.path.relpath(sensor_file_path, self._folder_path)
+        relative_path = os.path.relpath(sensor_file_path, self._path)
         prev_sample_data_token = self._prev_sample_data_tokens.get(sensor, None)
         
         sample_data_token = self._db.get_nuscenes_token()
@@ -1777,20 +1774,20 @@ class NuScenesDumper(DatasetDumper):
             sample_data_token (str): 当前 sample_data 的 token
         """
         counter_str = str(self._frame_counter).rjust(6, '0')
-        sensor_file_path = os.path.abspath(os.path.join(self._sensor_folders[sensor], f"{counter_str}.pcd"))
+        sensor_file_path = (self._sensor_folders[sensor] / f"{counter_str}.pcd").resolve()
         
-        if sensor_file_path not in self._dataset:
+        if str(sensor_file_path) not in self._data_buffer:
             prev_frame_counter = max(0, self._frame_counter - 1)
             prev_counter_str = str(prev_frame_counter).rjust(6, '0')
-            prev_sensor_file_path = os.path.abspath(os.path.join(self._sensor_folders[sensor], f"{prev_counter_str}.pcd"))
+            prev_sensor_file_path = (self._sensor_folders[sensor] / f"{prev_counter_str}.pcd").resolve()
             
-            if prev_sensor_file_path in self._dataset:
+            if str(prev_sensor_file_path) in self._data_buffer:
                 sensor_file_path = prev_sensor_file_path
             else:
                 self.logger.debug(f'Semantic lidar data not found for frame {self._frame_counter}, skipping annotation')
                 return
         
-        point_cloud_data = self._dataset[sensor_file_path]
+        point_cloud_data = self._data_buffer[str(sensor_file_path)]
         if not isinstance(point_cloud_data, PointCloud) or point_cloud_data.format != PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
             return
         
@@ -1870,7 +1867,7 @@ class NuScenesDumper(DatasetDumper):
         
         self.logger.debug(f'Processed {len(unique_object_ids)} objects from semantic lidar data')
 
-    def _flush_data(self, data: BaseData, file_path: str) -> Self:
+    def _flush_data(self, data: BaseData, file_path: Path) -> None:
         """将传感器数据导出到磁盘
 
         Args:
@@ -1882,28 +1879,28 @@ class NuScenesDumper(DatasetDumper):
         """
         if isinstance(data, Image):
             data.to_file(file_path)
-            return self
+            return None
         if isinstance(data, PointCloud):
             # nuScenes 使用 .pcd 格式存储点云
-            if file_path.endswith('.pcd'):
+            if file_path.suffix == '.pcd':
                 data.to_file(file_path)
                 
                 if data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
-                    bin_file_path = file_path.replace('.pcd', '.bin')
+                    bin_file_path = file_path.with_suffix('.bin')
                     semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
                     mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
                     for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
                         mapped_semantics[semantic_tags == carla_id] = nuscenes_id
-                    mapped_semantics.tofile(bin_file_path)
+                    mapped_semantics.tofile(str(bin_file_path))
                 
-                return self
-            if file_path.endswith('.bin') and data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
+                return None
+            if file_path.suffix == '.bin' and data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
                 semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
                 mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
                 for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
                     mapped_semantics[semantic_tags == carla_id] = nuscenes_id
-                mapped_semantics.tofile(file_path)
-                return self
+                mapped_semantics.tofile(str(file_path))
+                return None
         raise ValueError(f'Unsupported sensor data type: {type(data)}')
 
     def _export_json_files(self) -> Self:
@@ -1930,7 +1927,7 @@ class NuScenesDumper(DatasetDumper):
         }
         
         for filename, dump_func in json_files.items():
-            file_path = os.path.join(self._folder_path, filename)
+            file_path = self._path / filename
             json_content = dump_func()
             with open(file_path, 'w') as f:
                 f.write(json_content)
@@ -1979,7 +1976,7 @@ class NuScenesDumper(DatasetDumper):
         sensor_folder = self._sensor_folders.get(sensor)
         naming_policy = self._sensor_naming_policies.get(sensor)
         
-        if not (sensor_folder and naming_policy and os.path.exists(sensor_folder)):
+        if not (sensor_folder and naming_policy and sensor_folder.exists()):
             return 0
         
         calibrated_sensor_token = self._calibrated_sensor_tokens.get(sensor)
@@ -1990,9 +1987,8 @@ class NuScenesDumper(DatasetDumper):
         if not expected_extensions:
             return 0
         
-        files = [f for f in os.listdir(sensor_folder)
-                if os.path.isfile(os.path.join(sensor_folder, f))
-                and any(f.lower().endswith(ext) for ext in expected_extensions)]
+        files = [f.name for f in sensor_folder.iterdir()
+                if f.is_file() and any(f.name.lower().endswith(ext) for ext in expected_extensions)]
         
         self._db._cursor.execute('''
             SELECT filename FROM sample_data WHERE calibrated_sensor_token = ?
@@ -2019,7 +2015,7 @@ class NuScenesDumper(DatasetDumper):
         self,
         sensor: CarlaSensor,
         filename: str,
-        sensor_folder: str,
+        sensor_folder: Path,
         naming_policy: 'DatasetDumper.NamingPolicy',
         calibrated_sensor_token: str,
         existing_files: set,
@@ -2031,7 +2027,7 @@ class NuScenesDumper(DatasetDumper):
         Args:
             sensor (CarlaSensor): 传感器对象
             filename (str): 文件名
-            sensor_folder (str): 传感器文件夹路径
+            sensor_folder (Path): 传感器文件夹路径
             naming_policy (NamingPolicy): 命名策略
             calibrated_sensor_token (str): calibrated_sensor token
             existing_files (set): 已存在的文件集合
@@ -2041,12 +2037,12 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             bool: 是否成功恢复
         """
-        file_path = os.path.abspath(os.path.join(sensor_folder, filename))
+        file_path = (sensor_folder / filename).resolve()
         
-        if not os.path.exists(file_path):
+        if not file_path.exists():
             return False
         
-        relative_path = os.path.relpath(file_path, self._folder_path)
+        relative_path = os.path.relpath(file_path, self._path)
         
         if relative_path in existing_files:
             return False
@@ -2234,7 +2230,7 @@ class NuScenesDumper(DatasetDumper):
         ego_pose_token: str,
         calibrated_sensor_token: str,
         relative_path: str,
-        file_path: str,
+        file_path: Path,
         prev_sample_data_token: str
     ) -> None:
         """创建恢复的 sample_data 记录
@@ -2245,7 +2241,7 @@ class NuScenesDumper(DatasetDumper):
             ego_pose_token (str): ego_pose token
             calibrated_sensor_token (str): calibrated_sensor token
             relative_path (str): 相对路径
-            file_path (str): 文件绝对路径
+            file_path (Path): 文件绝对路径
             prev_sample_data_token (str): 前一个 sample_data token
         """
         fileformat = 'jpg' if sensor.is_camera else 'pcd'
@@ -2278,8 +2274,8 @@ class NuScenesDumper(DatasetDumper):
         
         if sensor.is_lidar and 'semantic' in sensor.bp.id.lower():
             bin_filename = relative_path.replace('.pcd', '.bin')
-            bin_file_path = file_path.replace('.pcd', '.bin')
-            if os.path.exists(bin_file_path):
+            bin_file_path = file_path.with_suffix('.bin')
+            if bin_file_path.exists():
                 self._db.add_lidarseg(
                     token=sample_data_token,
                     sample_data_token=sample_data_token,
@@ -2341,9 +2337,9 @@ class NuScenesDumper(DatasetDumper):
 
     def _log_result(self) -> None:
         """记录导出结果"""
-        if not os.path.exists(self._folder_path):
+        if not self._path.exists():
             self.logger.error(f'Dataset export result check: False')
-            self.logger.error(f'Main folder does not exist: "{self._folder_path}"')
+            self.logger.error(f'Main folder does not exist: "{self._path}"')
             return
         
         entry_counts, missing_files = self._collect_json_entry_counts()
@@ -2368,8 +2364,8 @@ class NuScenesDumper(DatasetDumper):
         entry_counts = {}
         
         for filename in json_files:
-            file_path = os.path.join(self._folder_path, filename)
-            if not os.path.exists(file_path):
+            file_path = self._path / filename
+            if not file_path.exists():
                 missing_files.append(filename)
                 continue
             
@@ -2490,8 +2486,8 @@ class NuScenesDumper(DatasetDumper):
     
     def _load_sample_data_list(self) -> list:
         """加载 sample_data.json 列表"""
-        sample_data_path = os.path.join(self._folder_path, self.FILE_SAMPLE_DATA)
-        if not os.path.exists(sample_data_path):
+        sample_data_path = self._path / self.FILE_SAMPLE_DATA
+        if not sample_data_path.exists():
             return []
         
         with open(sample_data_path, 'r', encoding='utf-8') as f:
@@ -2504,17 +2500,15 @@ class NuScenesDumper(DatasetDumper):
             if not (sensor_folder and os.path.exists(sensor_folder)):
                 continue
             
-            folder_name = os.path.basename(sensor_folder)
+            folder_name = sensor_folder.name
             expected_extensions = ['.jpg'] if sensor.is_camera else ['.pcd'] if sensor.is_lidar else None
             
             if expected_extensions:
-                actual_files = [f for f in os.listdir(sensor_folder)
-                              if os.path.isfile(os.path.join(sensor_folder, f))
-                              and any(f.lower().endswith(ext) for ext in expected_extensions)]
+                actual_files = [f.name for f in sensor_folder.iterdir()
+                              if f.is_file() and any(f.name.lower().endswith(ext) for ext in expected_extensions)]
                 actual_file_count = len(actual_files)
             else:
-                actual_file_count = len([f for f in os.listdir(sensor_folder)
-                                        if os.path.isfile(os.path.join(sensor_folder, f))])
+                actual_file_count = len([f for f in sensor_folder.iterdir() if f.is_file()])
             
             calibrated_sensor_token = self._calibrated_sensor_tokens.get(sensor)
             sensor_sample_data_count = 0
@@ -2538,9 +2532,9 @@ class NuScenesDumper(DatasetDumper):
         lidar_bin_files = []
         for sensor in semantic_lidar_sensors:
             sensor_folder = self._sensor_folders.get(sensor)
-            if sensor_folder and os.path.exists(sensor_folder):
-                folder_name = os.path.basename(sensor_folder)
-                bin_files = [f for f in os.listdir(sensor_folder) if f.endswith('.bin')]
+            if sensor_folder and sensor_folder.exists():
+                folder_name = sensor_folder.name
+                bin_files = [f.name for f in sensor_folder.iterdir() if f.is_file() and f.name.endswith('.bin')]
                 lidar_bin_files.extend(bin_files)
                 self.logger.debug(f'Semantic lidar folder "{folder_name}": {len(bin_files)} .bin file(s)')
         
