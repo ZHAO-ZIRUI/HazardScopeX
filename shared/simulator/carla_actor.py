@@ -65,7 +65,7 @@ class CarlaActor(metaclass=PostInitMeta):
         self._context.actors.add(self)
 
     def __str__(self) -> str:
-        return f"CarlaActor(name='{self.name}', id_local='{self.id_local}', is_alive='{self.is_alive}', is_managed='{self.is_managed_actor}')"
+        return f"{self.__class__.__name__}(name='{self.name}', id_local='{self.id_local}', is_alive='{self.is_alive}', is_managed='{self.is_managed_actor}')"
 
     def __repr__(self) -> str:
         return self.__str__()
