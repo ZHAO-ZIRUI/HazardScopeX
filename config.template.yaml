@@ -89,3 +89,10 @@ io:
 recorder:
   # 基础路径
   path: 'recorders'
+
+# 数据集导出器配置
+dataset:
+  # 储存数据集的根路径
+  path: 'export'
+  # 安全内存使用阈值
+  safe_memory_usage_threshold: 0.95
