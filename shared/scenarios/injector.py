@@ -99,7 +99,7 @@ class Injector(metaclass=PostInitMeta):
                 self._context.wait_ticks(1, no_log=True, raise_interrupted=True)
             except KeyboardInterrupt:
                 self.logger.warning(f'Spin until finished interrupted by user')
-                raise SystemExit(401)
+                raise SystemExit(441)
         
         self.logger.info(f'All {len(factors)} factors finished')
 
@@ -119,7 +119,7 @@ class Injector(metaclass=PostInitMeta):
                 self._context.wait_ticks(1, no_log=True, raise_interrupted=True)
             except KeyboardInterrupt:
                 self.logger.warning(f'Spin until evaluator threshold interrupted by user')
-                raise SystemExit(401)
+                raise SystemExit(441)
         
         self.logger.info(f'Evaluator {evaluator.NAME} threshold reached')
         return
