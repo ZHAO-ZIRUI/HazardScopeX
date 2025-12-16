@@ -1,8 +1,11 @@
 from multiprocessing.shared_memory import SharedMemory
 from typing_extensions import Self
+from typing import TYPE_CHECKING
 
-from shared.simulator import CarlaSensor
 from shared.io import AbstractIOAdapter
+
+if TYPE_CHECKING:
+    from shared.simulator import CarlaSensor
 
 
 class SharedMemoryAdapter(AbstractIOAdapter):
@@ -25,7 +28,7 @@ class SharedMemoryAdapter(AbstractIOAdapter):
         """共享内存的名称, 与对象创建时的 topic 参数一致"""
         return self._topic
 
-    def bind_sensor_output(self, sensor: CarlaSensor) -> Self:
+    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
         sensor.hook_sensor_data_ready.append(
             lambda data: data.to_shm(self.shared_memory_instance)
         )
