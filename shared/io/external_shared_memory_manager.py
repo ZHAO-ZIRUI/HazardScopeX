@@ -23,21 +23,22 @@ class ExternalSharedMemoryManager:
         """
         等待共享内存创建, 如果共享内存不存在, 则等待直到共享内存创建或超时
         """
+        full_topic = f'{domain}_{topic}'
         start_time = time.perf_counter()
         while True:
             try:
-                shm = SharedMemory(f'{domain}_{topic}')
+                shm = SharedMemory(full_topic)
                 Logging.cancel_interval('wait_for_shm')
-                self.logger.info(f'Shared memory "{topic}" found')
+                self.logger.info(f'Shared memory "{full_topic}" found')
                 self._registry.append(shm)
                 return shm
             except FileNotFoundError:
-                msg = f'Waiting for shared memory "{topic}" to be created ...'
+                msg = f'Waiting for shared memory "{full_topic}" to be created ...'
                 Logging.interval(2, self.logger.info, msg, 'wait_for_shm')
                 if timeout == 0.0:
                     continue
                 if time.perf_counter() - start_time > timeout:
-                    raise TimeoutError(f"Shared memory '{topic}' not found after {timeout} seconds")
+                    raise TimeoutError(f"Shared memory '{full_topic}' not found after {timeout} seconds")
                 continue
 
     def try_get_shm(self, domain: str, topic: str) -> SharedMemory | None:
@@ -45,7 +46,11 @@ class ExternalSharedMemoryManager:
         尝试获取共享内存, 如果共享内存不存在, 则返回 None
         """
         try:
-            return SharedMemory(f'{domain}_{topic}')
+            full_topic = f'{domain}_{topic}'
+            shm = SharedMemory(full_topic)
+            self._registry.append(shm)
+            self.logger.info(f'Shared memory "{full_topic}" found')
+            return shm
         except FileNotFoundError:
             return None
 
