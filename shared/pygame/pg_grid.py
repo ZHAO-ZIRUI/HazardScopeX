@@ -12,6 +12,8 @@ class PgGrid(PgWidget):
     # 网格间距
     col_interval: int = Field(default=24, ge=1)  # 列宽
     row_interval: int = Field(default=24, ge=1)  # 行高
+    
+    z_index: int = Field(default=999)
 
     # 网格线颜色
     color_grid: tuple[int, int, int, int] | None = Field(default=None)
@@ -27,15 +29,13 @@ class PgGrid(PgWidget):
         if self.color_grid is None:
             self.color_grid = PgColor.WARNING
 
-        # 提高网格与调试文本的显示层级
-        self.z_index = max(self.z_index, 999)
-
         # 调试文本: 显示当前鼠标所在的行列索引
         debug_rect = PgRect(
             x=self.rect.x,
             y=self.rect.y,
             width=self.col_interval,
             height=self.row_interval,
+            z_index=self.z_index,
         )
         self._debug_text = _PgTextAlias(
             rect=debug_rect,
@@ -46,6 +46,7 @@ class PgGrid(PgWidget):
             overflow_x=PgOverflow.EXTEND,
             border=PgSpacing(value=2),
             color_border=PgColor.WARNING,
+            z_index=self.z_index,
         )
         self.childrens.append(self._debug_text)
 
