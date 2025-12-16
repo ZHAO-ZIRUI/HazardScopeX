@@ -59,7 +59,7 @@ class ExternalSharedMemoryManager:
         关闭共享内存, 如果未指定共享内存, 则关闭所有共享内存
         """
         if shm is None:
-            for shm in self._registry:
+            for shm in list(self._registry):
                 self._close(shm)
             self._registry.clear()
         else:
