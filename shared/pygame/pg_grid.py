@@ -36,6 +36,7 @@ class PgGrid(PgWidget):
             width=self.col_interval,
             height=self.row_interval,
             z_index=self.z_index,
+            show=self.show,
         )
         self._debug_text = _PgTextAlias(
             rect=debug_rect,
@@ -47,6 +48,7 @@ class PgGrid(PgWidget):
             border=PgSpacing(value=2),
             color_border=PgColor.WARNING,
             z_index=self.z_index,
+            show=self.show,
         )
         self.childrens.append(self._debug_text)
 
