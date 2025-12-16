@@ -24,7 +24,7 @@ class PgText(PgWidget):
     ]
 
     # 文本与样式配置
-    text: str = Field()
+    text: str
     color_text: tuple[int, int, int, int] | None = Field(default=None)
     bold: bool = Field(default=False)
     italic: bool = Field(default=False)
