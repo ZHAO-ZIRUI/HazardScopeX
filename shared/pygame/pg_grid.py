@@ -3,7 +3,7 @@ from typing import Any, Tuple
 
 from pydantic import Field, PrivateAttr
 
-from shared.pygame import PgColor, PgPos, PgRect, PgSpacing, PgWidget, PgText
+from shared.pygame import PgColor, PgPos, PgRect, PgSpacing, PgWidget, PgText, PgOverflow
 
 
 class PgGrid(PgWidget):
@@ -43,7 +43,7 @@ class PgGrid(PgWidget):
             bold=True,
             color_text=PgColor.WARNING,
             color_background=PgColor.BLACK,
-            overflow_x=PgText.Overflow.EXTEND,
+            overflow_x=PgOverflow.EXTEND,
             border=PgSpacing(value=2),
             color_border=PgColor.WARNING,
         )
