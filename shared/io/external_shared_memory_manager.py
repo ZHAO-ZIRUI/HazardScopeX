@@ -60,12 +60,16 @@ class ExternalSharedMemoryManager:
         """
         if shm is None:
             for shm in self._registry:
-                shm.close()
-                # 在 Linux 下防止 resource_tracker 清理共享内存, 客户端侧不关心共享内存的销毁
-                # 这里访问了 _name 属性, 由于 SharedMemory 的 _name 和 name 并不一致, 而底层 resource_tracker 需要使用 _name 属性
-                resource_tracker.unregister(shm._name, 'shared_memory')  
+                self._close(shm)
             self._registry.clear()
         else:
-            shm.close()
+            self._close(shm)
+
+    def _close(self, shm: SharedMemory):
+        shm.close()
+        try:
             resource_tracker.unregister(shm._name, 'shared_memory')  
-            self._registry.remove(shm)
+        except KeyError:
+            # 如果共享内存已经被其他进程关闭, 则忽略
+            pass
+        self._registry.remove(shm)
