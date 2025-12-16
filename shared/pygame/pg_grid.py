@@ -50,7 +50,7 @@ class PgGrid(PgWidget):
             z_index=self.z_index,
             show=self.show,
         )
-        self.childrens.append(self._debug_text)
+        self.add_children(self._debug_text)
 
     def get_pos(self, col: int, row: int) -> PgPos:
         """
