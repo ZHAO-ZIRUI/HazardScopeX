@@ -49,7 +49,6 @@ class ExternalSharedMemoryManager:
             full_topic = f'{domain}_{topic}'
             shm = SharedMemory(full_topic)
             self._registry.add(shm)
-            self.logger.info(f'Shared memory "{full_topic}" found')
             return shm
         except FileNotFoundError:
             return None
