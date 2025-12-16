@@ -53,6 +53,17 @@ class ExternalSharedMemoryManager:
         except FileNotFoundError:
             return None
 
+    def is_shm_exists(self, domain: str, topic: str) -> bool:
+        """
+        检查共享内存是否存在
+        """
+        full_topic = f'{domain}_{topic}'
+        try:
+            SharedMemory(full_topic)
+            return True
+        except FileNotFoundError:
+            return False
+
     def close(self, shm: SharedMemory | None = None):
         """
         关闭共享内存, 如果未指定共享内存, 则关闭所有共享内存
