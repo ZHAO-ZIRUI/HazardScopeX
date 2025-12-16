@@ -198,7 +198,8 @@ class PgApp(metaclass=PostInitMeta):
         for root_widget in self._widgets:
             dfs(root_widget)
         
-        return sorted(sorted_widgets, key=lambda x: x.z_index, reverse=True)
+        # 此处是正序排序, 即 z_index 低位的先进行绘制
+        return sorted(sorted_widgets, key=lambda x: x.z_index)
 
 # region: ROS2 播送
 
