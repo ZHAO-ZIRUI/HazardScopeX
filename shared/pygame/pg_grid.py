@@ -72,13 +72,20 @@ class PgGrid(PgWidget):
         Args:
             row: 行索引 (从 0 开始)
             col: 列索引 (从 0 开始)
-            width: 单元格宽度 (默认 1)
-            height: 单元格高度 (默认 1)
+            width: 单元格宽度 (默认 1, 负数表示宽度为父控件宽度)
+            height: 单元格高度 (默认 1, 负数表示高度为父控件高度)
 
         Returns:
             PgRect: 该单元格矩形
         """
-        return PgRect(x=self.rect.x + col * self.col_interval, y=self.rect.y + row * self.row_interval, width=width * self.col_interval, height=height * self.row_interval)
+        rect = PgRect(
+            x=self.rect.x + col * self.col_interval,
+            y=self.rect.y + row * self.row_interval,
+            width=width * self.col_interval if width >= 0 else self.rect.width,
+            height=height * self.row_interval if height >= 0 else self.rect.height,
+        )
+
+        return rect
 
     def _draw_content(self) -> None:
         """绘制网格与调试文本内容"""
