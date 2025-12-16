@@ -19,14 +19,14 @@ class ExternalSharedMemoryManager:
     def logger(self) -> Logger:
         return self._logger
 
-    def wait_for_shm(self, topic: str, timeout: float = 0.0) -> SharedMemory:
+    def wait_for_shm(self, domain: str, topic: str, timeout: float = 0.0) -> SharedMemory:
         """
         等待共享内存创建, 如果共享内存不存在, 则等待直到共享内存创建或超时
         """
         start_time = time.perf_counter()
         while True:
             try:
-                shm = SharedMemory(topic)
+                shm = SharedMemory(f'{domain}_{topic}')
                 Logging.cancel_interval('wait_for_shm')
                 self.logger.info(f'Shared memory "{topic}" found')
                 self._registry.append(shm)
