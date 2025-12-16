@@ -13,7 +13,7 @@ class ExternalSharedMemoryManager:
 
     def __init__(self):
         self._logger = Logging().get_logger('ExtShmManager')
-        self._registry: list[SharedMemory] = []
+        self._registry: set[SharedMemory] = set()
 
     @property
     def logger(self) -> Logger:
@@ -30,7 +30,7 @@ class ExternalSharedMemoryManager:
                 shm = SharedMemory(full_topic)
                 Logging.cancel_interval('wait_for_shm')
                 self.logger.info(f'Shared memory "{full_topic}" found')
-                self._registry.append(shm)
+                self._registry.add(shm)
                 return shm
             except FileNotFoundError:
                 msg = f'Waiting for shared memory "{full_topic}" to be created ...'
@@ -48,7 +48,7 @@ class ExternalSharedMemoryManager:
         try:
             full_topic = f'{domain}_{topic}'
             shm = SharedMemory(full_topic)
-            self._registry.append(shm)
+            self._registry.add(shm)
             self.logger.info(f'Shared memory "{full_topic}" found')
             return shm
         except FileNotFoundError:
