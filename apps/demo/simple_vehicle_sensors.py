@@ -68,7 +68,9 @@ if __name__ == "__main__":
         context.actors.wait_stable(vehicle)
 
         # 绑定传感器输出到共享内存
-        context.io.create_shm(topic='sensor_data').bind_sensor_output(cam_front)
+        context.io.create_shm(topic='cam_front').bind_sensor_output(cam_front)
+        context.io.create_shm(topic='cam_game').bind_sensor_output(cam_game)
+        context.io.create_shm(topic='lidar').bind_sensor_output(lidar_main)
 
         # 绑定传感器输出到 ROS2
         context.io.create_ros2(topic='/harzed_scope/cam/front').bind_sensor_output(cam_front)
