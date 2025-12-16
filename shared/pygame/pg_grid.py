@@ -50,7 +50,7 @@ class PgGrid(PgWidget):
         )
         self.childrens.append(self._debug_text)
 
-    def get_pos(self, row: int, col: int) -> PgPos:
+    def get_pos(self, col: int, row: int) -> PgPos:
         """
         根据行列索引返回该网格单元格左上角位置
 
@@ -63,7 +63,7 @@ class PgGrid(PgWidget):
         """
         return PgPos(x=self.rect.x + col * self.col_interval, y=self.rect.y + row * self.row_interval)
 
-    def get_rect(self, row: int, col: int, width: int = 1, height: int = 1) -> PgRect:
+    def get_rect(self, col: int, row: int, width: int = 1, height: int = 1) -> PgRect:
         """
         根据行列索引返回该网格单元格矩形
 
