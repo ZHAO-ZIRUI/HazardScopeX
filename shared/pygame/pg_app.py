@@ -90,7 +90,7 @@ class PgApp(metaclass=PostInitMeta):
         )
 
     @property
-    def surface(self) -> PgRefSurface:
+    def surface(self) -> pygame.Surface:
         return self._ref_surface()
 
     @property
