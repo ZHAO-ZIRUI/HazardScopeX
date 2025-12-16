@@ -48,7 +48,7 @@ class PgApp(metaclass=PostInitMeta):
             self._ros2_export_publisher: Publisher[Image] | None = None
             self._ros2_export_spin_thread: threading.Thread | None = None
             self._ros2_export_cache_msg: Image | None = None
-            self._init_ros2_export(ros2_topic)
+            self._init_ros2_export()
 
         # 其他成员
         self._frame = 0
