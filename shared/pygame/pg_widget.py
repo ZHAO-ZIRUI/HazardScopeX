@@ -1,7 +1,6 @@
 import pygame
 from abc import abstractmethod
 from typing import Any
-from typing_extensions import Self
 from pydantic import BaseModel, Field, ConfigDict, PrivateAttr
 
 from shared.pygame import PgColor, PgPos, PgRect, PgSpacing, PgRefSurface
@@ -16,8 +15,8 @@ class PgWidget(BaseModel):
 
     # 上下文
     _ref_surface: PgRefSurface = PrivateAttr(default=PgRefSurface(None))
-    parent: Self | None = None
-    childrens: list[Self] = Field(default_factory=list, frozen=True)
+    parent: 'PgWidget' = None
+    childrens: list['PgWidget'] = Field(default_factory=list, frozen=True)
 
     # 基础控件位置
     rect: PgRect                                                                    # 控件基础位置
@@ -72,6 +71,16 @@ class PgWidget(BaseModel):
 
     def set_ref_surface(self, ref_surface: PgRefSurface) -> None:
         self._ref_surface = ref_surface
+
+    def add_children(self, child: 'PgWidget') -> None:
+        self.childrens.append(child)
+        child.parent = self
+        return self
+
+    def add_parent(self, parent: 'PgWidget') -> None:
+        self.parent = parent
+        parent.childrens.append(self)
+        return self
 
     def draw(self) -> None:
         """绘制控件"""
