@@ -148,8 +148,8 @@ class PgColor:
     # 基础主题颜色
     PRIMARY                   = (13, 110, 253, 255)     # Bootstrap Primary Blue
     SECONDARY                 = (108, 117, 125, 255)    # Bootstrap Secondary Gray
-    SUCCESS                   = (25, 135, 84, 255)      # Bootstrap Success Green
-    DANGER                    = (220, 53, 69, 255)      # Bootstrap Danger Red
+    SUCCESS                   = LIME_GREEN              # Bootstrap Success Green
+    DANGER                    = RED                     # Bootstrap Danger Red
     WARNING                   = (255, 193, 7, 255)      # Bootstrap Warning Yellow
     INFO                      = (13, 202, 240, 255)     # Bootstrap Info Cyan
     LIGHT                     = (248, 249, 250, 255)    # Bootstrap Light Gray
