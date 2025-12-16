@@ -40,6 +40,15 @@ class ExternalSharedMemoryManager:
                     raise TimeoutError(f"Shared memory '{topic}' not found after {timeout} seconds")
                 continue
 
+    def try_get_shm(self, domain: str, topic: str) -> SharedMemory | None:
+        """
+        尝试获取共享内存, 如果共享内存不存在, 则返回 None
+        """
+        try:
+            return SharedMemory(f'{domain}_{topic}')
+        except FileNotFoundError:
+            return None
+
     def close(self, shm: SharedMemory | None = None):
         """
         关闭共享内存, 如果未指定共享内存, 则关闭所有共享内存
