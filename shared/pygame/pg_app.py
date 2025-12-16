@@ -48,7 +48,6 @@ class PgApp(metaclass=PostInitMeta):
             self._ros2_export_publisher: Publisher[Image] | None = None
             self._ros2_export_spin_thread: threading.Thread | None = None
             self._ros2_export_cache_msg: Image | None = None
-            self._init_ros2_export()
 
         # 其他成员
         self._frame = 0
@@ -58,9 +57,6 @@ class PgApp(metaclass=PostInitMeta):
 
     def __post_init__(self):
         self.__init_widgets__()
-        
-        if self._flag_ros2_enabled:
-            self._init_ros2_export()
 
     def __init_widgets__(self) -> None:
         """PgWidget 控件的声明与初始化"""
@@ -115,6 +111,10 @@ class PgApp(metaclass=PostInitMeta):
 
         # 主循环
         try:
+
+            if self._flag_ros2_enabled:
+                self._init_ros2_export()
+
             while True:
                 # Tick
                 self._clock.tick(self._window_fps)
@@ -143,7 +143,7 @@ class PgApp(metaclass=PostInitMeta):
 
                 # ROS2 播送
                 if self._flag_ros2_enabled:
-                    view = self._screen.get_view('1')
+                    view = self.surface.get_view('1')
                     mv_src = memoryview(view).cast('B')
                     mv_dst = memoryview(self._ros2_export_cache_msg.data)
                     mv_dst[:len(mv_src)] = mv_src
@@ -200,34 +200,62 @@ class PgApp(metaclass=PostInitMeta):
         
         return sorted(sorted_widgets, key=lambda x: x.z_index, reverse=True)
 
+# region: ROS2 播送
+
     def _init_ros2_export(self):
         """初始化 ROS2 播送节点"""
+        import rclpy
+        from rclpy.node import Node
+        from sensor_msgs.msg import Image
+        from rclpy.publisher import Publisher
+
         if not rclpy.ok():
             rclpy.init()
-        self._ros2_export_node = Node(self.ros2_export_node_name)
+        node_name = f"{self.__class__.__name__}_ros2_export"
+        self._ros2_export_node = Node(node_name)
         self._ros2_export_publisher = self._ros2_export_node.create_publisher(
             Image,
-            self.ros2_export_topic,
-            self.ros2_export_qos
+            self._ros2_export_topic,
+            self._ros2_export_qos
         )
         self._ros2_export_publisher_timer = self._ros2_export_node.create_timer(
-            1.0 / self.ros2_export_fps,
+            1.0 / self._window_fps,
             self._ros2_export_timer_callback
         )
 
-        width, height = self._screen.get_size()
+        width, height = self.width, self.height
 
         # 构建图片缓存
         self._ros2_export_cache_msg = Image()
         self._ros2_export_cache_msg.height = height
         self._ros2_export_cache_msg.width = width
-        self._ros2_export_cache_msg.encoding = "bgra8" if self._screen.get_bytesize() == 4 else "bgr8"
-        self._ros2_export_cache_msg.step = self._screen.get_pitch()
-        self._ros2_export_cache_msg.data = bytearray(height * self._screen.get_pitch())
+        self._ros2_export_cache_msg.encoding = "bgra8" if self.surface.get_bytesize() == 4 else "bgr8"
+        self._ros2_export_cache_msg.step = self.surface.get_pitch()
+        self._ros2_export_cache_msg.data = bytearray(height * self.surface.get_pitch())
 
-        self._logger.debug(f"ROS2 export on topic '{self.ros2_export_topic}' from '{self.ros2_export_node_name}'")
+        self._logger.debug(f"ROS2 export on topic '{self._ros2_export_topic}' from '{node_name}'")
         self._ros2_export_spin_thread = threading.Thread(
             target=self._ros2_export_node_spin,
             daemon=True
         )
         self._ros2_export_spin_thread.start()
+
+    def _ros2_export_node_spin(self):
+        """ROS2 节点循环"""
+        import rclpy
+        self._logger.info("ROS2 export begin")
+        try:
+            rclpy.spin(self._ros2_export_node)
+        except rclpy.executors.ExternalShutdownException:
+            pass
+        finally:
+            self._logger.info("ROS2 export stopped")
+
+    def _ros2_export_timer_callback(self):
+        """ROS2 播送定时器回调, 用于定时发布图像消息"""
+        from sensor_msgs.msg import Image
+
+        self._ros2_export_cache_msg.header.stamp = self._ros2_export_node.get_clock().now().to_msg()
+        self._ros2_export_publisher.publish(self._ros2_export_cache_msg)
+
+# endregion: ROS2 播送
