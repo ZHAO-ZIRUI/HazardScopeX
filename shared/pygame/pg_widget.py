@@ -73,20 +73,6 @@ class PgWidget(BaseModel):
     def set_ref_surface(self, ref_surface: PgRefSurface) -> None:
         self._ref_surface = ref_surface
 
-    def _check_parent_show(self) -> bool:
-        """
-        递归检查父控件链的 show 状态
-
-        Returns:
-            bool: 如果所有父控件都 show=True 返回 True, 否则返回 False
-        """
-        parent = self.parent
-        while parent is not None:
-            if not parent.show:
-                return False
-            parent = parent.parent
-        return True
-
     def draw(self) -> None:
         """绘制控件"""
         if not self.show or not self._check_parent_show():
@@ -103,6 +89,20 @@ class PgWidget(BaseModel):
     def _draw_content(self) -> None:
         """绘制内容"""
         raise NotImplementedError()
+
+    def _check_parent_show(self) -> bool:
+        """
+        递归检查父控件链的 show 状态
+
+        Returns:
+            bool: 如果所有父控件都 show=True 返回 True, 否则返回 False
+        """
+        parent = self.parent
+        while parent is not None:
+            if not parent.show:
+                return False
+            parent = parent.parent
+        return True
 
     @staticmethod
     def _calc_inset_rect(
