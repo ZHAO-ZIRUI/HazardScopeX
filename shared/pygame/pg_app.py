@@ -1,5 +1,6 @@
 import pygame
 import logging
+import threading
 
 from shared.utils import Logging, PostInitMeta
 from shared.pygame import PgColor, PgPos, PgWidget, PgRefSurface
@@ -16,6 +17,7 @@ class PgApp(metaclass=PostInitMeta):
         window_fps: int = 30,
         log_name: str | None = None,
         log_level: int = logging.INFO,
+        ros2_topic: str | None = None,
 
     ):
         self._logger = Logging(level=log_level).get_logger(log_name or self.__class__.__name__)
@@ -30,6 +32,24 @@ class PgApp(metaclass=PostInitMeta):
         self._key_pressed = set[str]()
         self._key_released = set[str]()
 
+        # ROS2 播送
+        self._flag_ros2_enabled = False
+        if ros2_topic:
+            self._flag_ros2_enabled = True
+            # 导入 ROS2 相关模块
+            import rclpy
+            from rclpy.node import Node
+            from sensor_msgs.msg import Image
+            from rclpy.publisher import Publisher
+
+            self._ros2_export_topic = ros2_topic
+            self._ros2_export_qos = 10
+            self._ros2_export_node: Node | None = None
+            self._ros2_export_publisher: Publisher[Image] | None = None
+            self._ros2_export_spin_thread: threading.Thread | None = None
+            self._ros2_export_cache_msg: Image | None = None
+            self._init_ros2_export(ros2_topic)
+
         # 其他成员
         self._frame = 0
         self._clock = pygame.time.Clock()
@@ -38,6 +58,9 @@ class PgApp(metaclass=PostInitMeta):
 
     def __post_init__(self):
         self.__init_widgets__()
+        
+        if self._flag_ros2_enabled:
+            self._init_ros2_export()
 
     def __init_widgets__(self) -> None:
         """PgWidget 控件的声明与初始化"""
@@ -118,6 +141,16 @@ class PgApp(metaclass=PostInitMeta):
                 pygame.display.set_caption(self._window_title)
                 pygame.display.update()
 
+                # ROS2 播送
+                if self._flag_ros2_enabled:
+                    view = self._screen.get_view('1')
+                    mv_src = memoryview(view).cast('B')
+                    mv_dst = memoryview(self._ros2_export_cache_msg.data)
+                    mv_dst[:len(mv_src)] = mv_src
+                    del mv_dst
+                    del mv_src
+                    del view
+
         except KeyboardInterrupt:
             self.logger.warning('Spin stopped by keyboard interrupt')
         finally:
@@ -166,3 +199,35 @@ class PgApp(metaclass=PostInitMeta):
             dfs(root_widget)
         
         return sorted(sorted_widgets, key=lambda x: x.z_index, reverse=True)
+
+    def _init_ros2_export(self):
+        """初始化 ROS2 播送节点"""
+        if not rclpy.ok():
+            rclpy.init()
+        self._ros2_export_node = Node(self.ros2_export_node_name)
+        self._ros2_export_publisher = self._ros2_export_node.create_publisher(
+            Image,
+            self.ros2_export_topic,
+            self.ros2_export_qos
+        )
+        self._ros2_export_publisher_timer = self._ros2_export_node.create_timer(
+            1.0 / self.ros2_export_fps,
+            self._ros2_export_timer_callback
+        )
+
+        width, height = self._screen.get_size()
+
+        # 构建图片缓存
+        self._ros2_export_cache_msg = Image()
+        self._ros2_export_cache_msg.height = height
+        self._ros2_export_cache_msg.width = width
+        self._ros2_export_cache_msg.encoding = "bgra8" if self._screen.get_bytesize() == 4 else "bgr8"
+        self._ros2_export_cache_msg.step = self._screen.get_pitch()
+        self._ros2_export_cache_msg.data = bytearray(height * self._screen.get_pitch())
+
+        self._logger.debug(f"ROS2 export on topic '{self.ros2_export_topic}' from '{self.ros2_export_node_name}'")
+        self._ros2_export_spin_thread = threading.Thread(
+            target=self._ros2_export_node_spin,
+            daemon=True
+        )
+        self._ros2_export_spin_thread.start()
