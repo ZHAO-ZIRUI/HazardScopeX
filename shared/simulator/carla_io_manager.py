@@ -1,5 +1,5 @@
+import time
 from multiprocessing.shared_memory import SharedMemory
-from multiprocessing import resource_tracker
 from typing import TYPE_CHECKING
 from typing_extensions import Self
 from logging import Logger
@@ -66,18 +66,28 @@ class CarlaIOManager:
             topic = topic
 
         # 尝试创建共享内存
-        try:
-            shm = SharedMemory(topic, create=True, size=size * 1024 * 1024)
-            managed = True
-        except FileExistsError:
-            self.logger.warning(f"SharedMemory with topic '{topic}' already exists, using existing one")
-            shm = SharedMemory(topic, create=False)
-            managed = False
+        retry = 0
+        while True:
+            try:
+                shm = SharedMemory(topic, create=True, size=size * 1024 * 1024)
+                break
+            except FileExistsError:
+                if retry == 0:
+                    self.logger.warning(f"SharedMemory with topic '{topic}' already exists, try to destroy it")
+                    shm = SharedMemory(topic, create=False)
+                    shm.close()
+                    shm.unlink()
+                    retry += 1
+                    time.sleep(0.1)
+                    continue
+                else:
+                    self.logger.critical(f"SharedMemory with topic '{topic}' already exists, and failed to destroy it")
+                    raise SystemExit(321)
 
         # 创建适配器并注册到注册表
-        adapter = SharedMemoryAdapter(shm, topic, managed=managed)
+        adapter = SharedMemoryAdapter(shm, topic)
         self._registry_shm.add(adapter)
-        self.logger.info(f"Created shared memory with topic '{topic}', managed={managed}")
+        self.logger.info(f"Created shared memory with topic '{topic}'")
         return adapter
 
     def find_shm_by_topic(self, topic: str) -> SharedMemoryAdapter | None:
@@ -105,16 +115,9 @@ class CarlaIOManager:
         # 销毁共享内存
         topic = adapter.topic
         instance = adapter.shared_memory_instance
-        if adapter.managed:
-            self.logger.info(f"Destroying shared memory with topic '{topic}', managed=True")
-            instance.close()
-            instance.unlink()
-        else:
-            self.logger.info(f"Closing shared memory with topic '{topic}', managed=False")
-            # 在 Linux 下防止 resource_tracker 清理共享内存
-            # 这里访问了 _name 属性, 由于 SharedMemory 的 _name 和 name 并不一致, 而底层 resource_tracker 需要使用 _name 属性
-            resource_tracker.unregister(instance._name, 'shared_memory')  
-            instance.close()
+        self.logger.info(f"Destroying shared memory with topic '{topic}', managed=True")
+        instance.close()
+        instance.unlink()
 
         # 从注册表中移除
         self._registry_shm.remove(adapter)
