@@ -183,6 +183,7 @@ class CarlaContext:
             self.server_teardown()
 
     def server_bringup(self):
+
         # 二次阻止在未启用自管理模式时启动服务端进程
         if not self.configs.context.server_self_managed_enabled:
             return
@@ -215,7 +216,7 @@ class CarlaContext:
                 rpc_port = self._get_random_free_port(20000, 30000)
                 cmd_render = [
                     self.configs.context.server_self_managed_exe_path, 
-                    '-RenderOffscreen', 
+                    # '-RenderOffscreen', 
                     f'-carla-rpc-port={rpc_port}',
                     f'-carla-primary-port={self.configs.context.server_port + self.configs.context.server_multi_gpu_port_offset}',
                     f'-carla-primary-host={self.configs.context.server_host}',
@@ -227,7 +228,7 @@ class CarlaContext:
             # 启动正常进程
             cmd_normal = [
                 self.configs.context.server_self_managed_exe_path, 
-                '-RenderOffscreen', 
+                # '-RenderOffscreen', 
                 f'-carla-rpc-port={self.configs.context.server_port}'
             ]
             self._server_launch(cmd_normal)
@@ -282,6 +283,7 @@ class CarlaContext:
 
     def tick(self, *, force: bool = False):
         """手动 Tick 服务端, 在此处应用 TickBlocker """
+        print("carla_context tick...")
         time_begin = time.perf_counter()
 
         # TickBlocker 阻塞
@@ -474,6 +476,7 @@ class CarlaContext:
         """检测服务端是否存活的线程"""
         self.logger.debug('Server dead detector started')
         
+        # TODO: dead simulator
         check_timeout = 1/self.configs.context.runtime_sync_mode_fps * 5  # 5个帧的周期
         detector_client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
         detector_client.set_timeout(check_timeout)

@@ -3,8 +3,8 @@ from typing_extensions import Self, Unpack
 from logging import Logger
 
 from shared.simulator import CarlaContext, CarlaTickBlocker
-from shared.scenarios import Factor, Evaluator
 from shared.utils import Logging, PostInitMeta
+from . import Factor, Evaluator
 
 class Injector(metaclass=PostInitMeta):
     """
@@ -60,6 +60,7 @@ class Injector(metaclass=PostInitMeta):
         self.logger.info(f'All {len(self._factors)} factors brought up')
 
     def tick(self, _: carla.WorldSnapshot) -> None:
+        print("Injector tick...")
         self._tick_blocker.set()
 
         for factor in self._factors:
