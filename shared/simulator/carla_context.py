@@ -34,7 +34,7 @@ class CarlaContext:
         self._thread_dead_detector: None | threading.Thread = None
         self._tick_blockers: list[CarlaTickBlocker] = []
 
-        self._evnet_server_dead: threading.Event = threading.Event()
+        self._event_server_dead: threading.Event = threading.Event()
         self._event_shutdown: threading.Event = threading.Event()
         self._event_heavy_operation: threading.Event = threading.Event()
 
@@ -46,6 +46,7 @@ class CarlaContext:
         self._time_last_tick: float = 0.0
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
+        self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
         self.__post_init__()
 
@@ -280,7 +281,13 @@ class CarlaContext:
         self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.info('CARLA server is available now')
 
-    def tick(self, *, force: bool = False):
+    def tick(
+        self, 
+        *, 
+        force: bool = False,
+        no_hook_before_next_tick: bool = False,
+        no_hook_on_tick: bool = False,
+    ):
         """手动 Tick 服务端, 在此处应用 TickBlocker """
         time_begin = time.perf_counter()
 
@@ -309,6 +316,11 @@ class CarlaContext:
         except KeyboardInterrupt:
             raise SystemExit(100)
 
+        # 执行钩子
+        if not no_hook_before_next_tick:
+            for hook in self._hook_befre_next_tick:
+                hook(self.world.get_snapshot())
+
         # 执行 TICK
         self.world.tick()
         self._time_last_tick = time.perf_counter()
@@ -319,14 +331,15 @@ class CarlaContext:
                 blocker.set()
 
         # 执行钩子
-        for hook in self._hook_on_tick:
-            hook(self.world.get_snapshot())
+        if not no_hook_on_tick:
+            for hook in self._hook_on_tick:
+                hook(self.world.get_snapshot())
 
     def spin(self):
         """自动 Tick 服务端"""
         self.logger.info('Context begin to spin ...')
         try:
-            while not self._event_shutdown.is_set() and not self._evnet_server_dead.is_set():
+            while not self._event_shutdown.is_set() and not self._event_server_dead.is_set():
                 self.tick()
                 try:
                     time.sleep(self._calc_tick_wait_time())
@@ -343,7 +356,9 @@ class CarlaContext:
         seconds: float, 
         *, 
         force: bool = False, 
-        no_log: bool = False, 
+        no_log: bool = False,
+        no_hook_before_next_tick: bool = False,
+        no_hook_on_tick: bool = False,
         raise_interrupted: bool = False,
     ):
         """等待指定秒数
@@ -358,7 +373,7 @@ class CarlaContext:
             self.logger.info(f'Waiting {seconds} seconds ...')
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
-            self.tick(force=force)
+            self.tick(force=force, no_hook_before_next_tick=no_hook_before_next_tick, no_hook_on_tick=no_hook_on_tick)
             try:
                 time.sleep(self._calc_tick_wait_time())
             except KeyboardInterrupt as e:
@@ -377,6 +392,8 @@ class CarlaContext:
         *,
         force: bool = False,
         no_log: bool = False,
+        no_hook_before_next_tick: bool = False,
+        no_hook_on_tick: bool = False,
         raise_interrupted: bool = False,
     ):
         """等待指定帧数
@@ -391,7 +408,7 @@ class CarlaContext:
             self.logger.info(f'Waiting {ticks} ticks ...')
         tick_counter = 0
         while tick_counter < ticks:
-            self.tick(force=force)
+            self.tick(force=force, no_hook_before_next_tick=no_hook_before_next_tick, no_hook_on_tick=no_hook_on_tick)
             tick_counter += 1
             try:
                 time.sleep(self._calc_tick_wait_time())
@@ -479,7 +496,7 @@ class CarlaContext:
         detector_client.set_timeout(check_timeout)
         
         try:
-            while not self._evnet_server_dead.is_set() and not self._event_shutdown.is_set():
+            while not self._event_server_dead.is_set() and not self._event_shutdown.is_set():
                 try:
                     if not self._event_heavy_operation.is_set():
                         detector_client.get_server_version()
@@ -487,7 +504,7 @@ class CarlaContext:
                 except Exception as e:
                     msg = f'CARLA server is DEAD, detected by detector thread: {type(e).__name__}'
                     self.logger.critical(msg)
-                    self._evnet_server_dead.set()
+                    self._event_server_dead.set()
                     raise RuntimeError(msg)
         finally:
             del detector_client
@@ -496,3 +513,7 @@ class CarlaContext:
     @property
     def hook_on_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
         return self._hook_on_tick
+
+    @property
+    def hook_befre_next_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
+        return self._hook_befre_next_tick
