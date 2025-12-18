@@ -219,7 +219,6 @@ class DatasetDumper(metaclass=PostInitMeta):
         """
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         file_path = path / f"{counter_str}.{naming_policy.extension}"
-        # self.logger.debug(f'Cached sensor data to buffer: {file_path}')
         file_path = file_path.resolve()
         self._data_buffer[file_path] = data
         return None
