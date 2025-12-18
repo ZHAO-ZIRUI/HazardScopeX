@@ -7,17 +7,15 @@ import time
 import carla
 import numpy as np
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, List,Iterable
+from typing import Tuple, List
 from typing_extensions import Self
 
 from pyquaternion import Quaternion
 from shared.dataset import DatasetDumper
-from shared.simulator import CarlaSensor
+from shared.simulator import CarlaSensor, CarlaContext
 from shared.data import BaseData, Image, PointCloud
 from shared.utils import PostInitMeta
 
-if TYPE_CHECKING:
-    from shared.simulator import CarlaContext
 
 class NuScenesDB(metaclass=PostInitMeta):
 
