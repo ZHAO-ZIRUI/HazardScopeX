@@ -47,6 +47,8 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._data_buffer: dict[str, BaseData] = {}
 
         self._cached_sensor_hooks: dict[CarlaSensor, Callable] = {}
+        self._cached_sensor_hooks_befre_next_tick: list[Callable] = []
+        self._cached_sensor_hooks_on_tick: list[Callable] = []
 
         self._hook_after_final_flush: list[Callable[[], None]] = []
 
@@ -184,6 +186,16 @@ class DatasetDumper(metaclass=PostInitMeta):
             self.logger.info(f'Memory usage is safe, continue')
         
         return None
+
+    def _append_hook_befre_next_tick(self, hook: Callable) -> Self:
+        self._context.hook_befre_next_tick.append(hook)
+        self._cached_sensor_hooks_befre_next_tick.append(hook)
+        return self
+
+    def _append_hook_on_tick(self, hook: Callable) -> Self:
+        self._context.hook_on_tick.append(hook)
+        self._cached_sensor_hooks_on_tick.append(hook)
+        return self
 
     def _cache_sensor_data_to_buffer(self, data: BaseData, path: Path, naming_policy: NamingPolicy) -> None:
         """缓存传感器数据到内存缓存
