@@ -168,20 +168,18 @@ class DatasetDumper(metaclass=PostInitMeta):
 
         self.tick_blocker.set()
         with self._context.heavy_operation():
-            pass
+            # 执行写入
+            count = 0
+            total = len(self._data_buffer)
+            for file_path, data in self._data_buffer.items():
+                self._flush_data(data, file_path)
+                count += 1
+                percentage = count / total * 100
+                msg = f'Flushed {percentage:.2f}%: {count}/{total} files'
+                Logging().interval(self._context.configs.dataset.log_interval_seconds, self.logger.info, msg, 'dataset_dumper_flush')
+
         self.tick_blocker.clear()
-
         self.logger.info(f'Flushed dataset to disk ... Count: {len(self._data_buffer)} files')
-
-        # 执行写入
-        count = 0
-        total = len(self._data_buffer)
-        for file_path, data in self._data_buffer.items():
-            self._flush_data(data, file_path)
-            count += 1
-            percentage = count / total * 100
-            msg = f'Flushed {percentage:.2f}%: {count}/{total} files'
-            Logging().interval(self._context.configs.dataset.log_interval_seconds, self.logger.info, msg, 'dataset_dumper_flush')
 
         Logging().cancel_interval('dataset_dumper_flush')
         self._data_buffer.clear()
