@@ -1474,7 +1474,7 @@ class NuScenesDumper(DatasetDumper):
             sensor_folder = self._sensor_folders.get(sensor)
             if not sensor_folder:
                 # 理论上不会出现，如果出现可以选择直接 return False 或者跳过
-                self.logger.debug(f"[NUSC] Sensor {sensor.name} has no folder configured, treat as not ready.")
+                self.logger.debug(f"Sensor {sensor.name} has no folder configured, treat as not ready.")
                 return False
             folder_abs = os.path.abspath(sensor_folder)
             prefix = folder_abs + os.sep
@@ -1487,7 +1487,7 @@ class NuScenesDumper(DatasetDumper):
                 return False
             # 走到这里说明所有 required_sensors 都在 _dataset 里出现过至少一次
             self._all_sensors_ready = True
-            self.logger.info("[NUSC] All sensors have produced at least one frame. Start recording samples.")
+            self.logger.info("All sensors have produced at least one frame. Start recording samples.")
             return True
 
     def bind_sensor_output(self, sensor: CarlaSensor, path: str | Path | None = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
@@ -1776,7 +1776,7 @@ class NuScenesDumper(DatasetDumper):
             if prev_sensor_file_path in self._data_buffer:
                 sensor_file_path = prev_sensor_file_path
             elif not sensor_file_path.exists():
-                self.logger.debug(f'Sensor {sensor.name} data not found for frame {self._frame_counter}, skipping')
+                self.logger.warning(f'Sensor {sensor.name} data not found for frame {self._frame_counter}, skipping')
                 return None
         
         return str(sensor_file_path)
@@ -1971,7 +1971,7 @@ class NuScenesDumper(DatasetDumper):
             if prev_sensor_file_path in self._data_buffer:
                 sensor_file_path = prev_sensor_file_path
             else:
-                self.logger.debug(f'Semantic lidar data not found for frame {self._frame_counter}, skipping annotation')
+                self.logger.warning(f'Semantic lidar data not found for frame {self._frame_counter}, skipping annotation')
                 return
         
         point_cloud_data = self._data_buffer[sensor_file_path]
@@ -2046,7 +2046,6 @@ class NuScenesDumper(DatasetDumper):
                 annotation_token=annotation_token,)
             else:
                 continue
-        self.logger.debug(f'Processed {len(unique_object_ids)} objects from semantic lidar data')
 
     def _flush_data(self, data: BaseData, file_path: Path) -> None:
         """将传感器数据导出到磁盘
