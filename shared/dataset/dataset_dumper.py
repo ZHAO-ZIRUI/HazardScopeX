@@ -160,7 +160,7 @@ class DatasetDumper(metaclass=PostInitMeta):
 
         return self
 
-    def flush(self, *, final: bool = False) -> None:
+    def flush(self, *, final: bool = True) -> None:
         """将数据集写入到磁盘"""
         # 在最终写入前额外执行一次 tick, 以保证 hook_before_next_tick 被执行
         if final:
@@ -309,7 +309,7 @@ class DatasetDumper(metaclass=PostInitMeta):
         """当内存使用率过高时, 将数据集写入到磁盘"""
         if not self.is_memory_safe:
             self.logger.warning(f'Memory usage is too high: {psutil.virtual_memory().percent:.2f}%, flushing dataset to disk immediately')
-            self.flush()
+            self.flush(final=False)
         return self
 
     @property
