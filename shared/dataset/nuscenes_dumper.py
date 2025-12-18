@@ -7,7 +7,6 @@ import time
 import carla
 import numpy as np
 from pathlib import Path
-from typing import Tuple, List
 from typing_extensions import Self
 
 from pyquaternion import Quaternion
@@ -197,7 +196,7 @@ class NuScenesDumper(DatasetDumper):
         self._default_visibility_token: str = None
         self._default_attribute_token: str = None
         
-        self._prev_can_bus_vel: List[float] = [0.0, 0.0, 0.0]
+        self._prev_can_bus_vel: list[float] = [0.0, 0.0, 0.0]
         self._prev_can_bus_timestamp: float = 0.0
         self._timestamp_offset: float = 0.0
 
@@ -428,7 +427,7 @@ class NuScenesDumper(DatasetDumper):
             if result:
                 self._default_visibility_token = result[0]
 
-    def _split_vehicle_sensor(self,name: str) -> Tuple[str, str]:
+    def _split_vehicle_sensor(self,name: str) -> tuple[str, str]:
         sensors = sorted(set(self._ego_vehicle.VEHICLE_SENSORS), key=len, reverse=True)  # 先匹配最长的，避免前缀冲突
         for sensor in sensors:
             suffix = "_" + sensor
@@ -1221,7 +1220,7 @@ class NuScenesDB(metaclass=PostInitMeta):
         """
         return int(timestamp * NuScenesDumper.TIMESTAMP_TO_MICROSECONDS)   
 
-    def _decode_json_list(self, json_str: str) -> List[float]:
+    def _decode_json_list(self, json_str: str) -> list[float]:
         return json.loads(json_str)
     
     def _format_json(self, obj) -> str:
@@ -1235,7 +1234,7 @@ class NuScenesDB(metaclass=PostInitMeta):
         """
         return json.dumps(obj, indent='\t', ensure_ascii=False)
     
-    def _create_database(self) -> Tuple[sqlite3.Connection, sqlite3.Cursor]:
+    def _create_database(self) -> tuple[sqlite3.Connection, sqlite3.Cursor]:
         is_memory_db = self._db_path == ":memory:"
         
         if not is_memory_db and os.path.exists(self._db_path):
@@ -1594,9 +1593,9 @@ class NuScenesDB(metaclass=PostInitMeta):
     
     def add_calibrated_sensor(self, *,
                                sensor_token: str,
-                               translation: List[float],
-                               rotation: List[float],
-                               camera_intrinsic: List[float] = list()) -> str:
+                               translation: list[float],
+                               rotation: list[float],
+                               camera_intrinsic: list[float] = list()) -> str:
         """增加一条 calibrated_sensor 记录
 
         Args:
@@ -1625,8 +1624,8 @@ class NuScenesDB(metaclass=PostInitMeta):
     def add_ego_pose(self, *,
                      token: str,
                      timestamp: float = time.time(),
-                     translation: List[float],
-                     rotation: List[float]) -> str:
+                     translation: list[float],
+                     rotation: list[float]) -> str:
         """增加一条 ego_pose 记录
 
         Args:
@@ -1834,11 +1833,11 @@ class NuScenesDB(metaclass=PostInitMeta):
                                token: str,
                                sample_token: str,
                                visibility_token: str,
-                               attribute_tokens: List[str] = [],
+                               attribute_tokens: list[str] = [],
                                instance_token: str,
-                               translation: List[float],
-                               size: List[float],
-                               rotation: List[float],
+                               translation: list[float],
+                               size: list[float],
+                               rotation: list[float],
                                num_lidar_pts: int,
                                num_radar_pts: int,
                                prev: str = None) -> str:
@@ -1918,9 +1917,9 @@ class NuScenesDB(metaclass=PostInitMeta):
     def add_can_bus_pose(self, *,
                      token: str,
                      utime: float = time.time(),
-                     vel: List[float],
-                     accel: List[float],
-                     rotation_rate: List[float]) -> str:
+                     vel: list[float],
+                     accel: list[float],
+                     rotation_rate: list[float]) -> str:
         """增加一条 can_bus_pose 记录
 
         Args:
