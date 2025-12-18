@@ -126,13 +126,28 @@ class PointCloud(SimulatorOutput):
         if isinstance(carla_input, carla.SemanticLidarMeasurement):
             points_per_channel = [carla_input.get_point_count(i) for i in range(carla_input.channels)]
             count_point = sum(points_per_channel)
-            raw = np.frombuffer(carla_input.raw_data, dtype=np.float32).reshape(count_point, 6).copy()
 
+            buf = carla_input.raw_data
+            point_dtype = np.dtype([
+                        ('x',  np.float32),
+                        ('y',  np.float32),
+                        ('z',  np.float32),
+                        ('cos_inc', np.float32),  # 或强度，按你的语义来叫
+                        ('obj_id',  np.uint32),
+                        ('sem_tag', np.uint32),
+                        ])
+            bytes_per_point = point_dtype.itemsize  # 应该是 24
+            count_point = len(buf) // bytes_per_point
+            assert len(buf) % bytes_per_point == 0, "raw_data 长度不是点大小的整数倍，布局可能不对"
+            points = np.frombuffer(buf, dtype=point_dtype, count=count_point).copy()
+            xyz = np.stack([points['x'], points['y'], points['z']], axis=1)          # (N,3) float32
+            cos_inc_angle = points['cos_inc'].reshape(-1, 1)                          # (N,1)
+            object_id = points['obj_id'].reshape(-1, 1).astype(np.int32)             # (N,1)
+            
+            semantic_tag = points['sem_tag'].reshape(-1, 1).astype(np.int32)         # (N,1)
+            
             channel_col = np.repeat(np.arange(carla_input.channels), points_per_channel).astype(np.float32).reshape(-1, 1)
-            xyz = raw[:, :3]
-            cos_inc_angle = raw[:, 3:4]
-            object_id = raw[:, 4:5]
-            semantic_tag = raw[:, 5:6]
+            
             point_cloud = np.hstack((xyz, channel_col, cos_inc_angle, object_id, semantic_tag))
 
             return cls(
@@ -196,6 +211,8 @@ class PointCloud(SimulatorOutput):
                 f.write(content)
         elif file_path.endswith('.npz'):
             np.savez(file_path, points=self._raw)
+        elif file_path.endswith('.bin'):
+            self.to_pcdbin(file_path)
         else:
             raise ValueError(f'Unsupported file extension: {file_path}')
         return self
@@ -259,6 +276,19 @@ class PointCloud(SimulatorOutput):
         buffer = StringIO()
         np.savetxt(buffer, points, fmt=fmt)
         return '\n'.join(header_lines) + '\n' + buffer.getvalue()
+
+    def to_pcdbin(self,file_path) -> None:
+        '''
+         将点云数据写为bin文件格式
+        '''
+        points = self.raw.copy()
+         # 1) 基本检查：至少要有 XYZ，且我们需要前 5 列
+        if points.ndim != 2 or points.shape[1] < 5:
+            raise ValueError('PCD BIN export requires at least 5 columns: x, y, z, channel_col, cos_inc_angle')
+        # 2) 确保是我们期望的格式：
+        points_5 = points[:, :5].astype(np.float32).copy() # (N,5)
+        with open(file_path, "wb") as f:
+            points_5.tofile(f)
 
     def to_ply(self) -> str:
         if self._raw.ndim != 2 or self._raw.shape[1] < 3:
