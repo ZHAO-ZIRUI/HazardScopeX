@@ -46,6 +46,7 @@ class CarlaContext:
         self._time_last_tick: float = 0.0
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
+        self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
         self.__post_init__()
 
@@ -309,6 +310,11 @@ class CarlaContext:
         except KeyboardInterrupt:
             raise SystemExit(100)
 
+        # 执行钩子
+        if not no_hook_before_next_tick:
+            for hook in self._hook_befre_next_tick:
+                hook(self.world.get_snapshot())
+
         # 执行 TICK
         self.world.tick()
         self._time_last_tick = time.perf_counter()
@@ -496,3 +502,7 @@ class CarlaContext:
     @property
     def hook_on_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
         return self._hook_on_tick
+
+    @property
+    def hook_befre_next_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
+        return self._hook_befre_next_tick
