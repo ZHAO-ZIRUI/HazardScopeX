@@ -38,7 +38,6 @@ class DatasetDumper:
         create_folder: bool = True
     ):
         """初始化数据集导出器
-
         Args:
             context (CarlaContext): 仿真上下文
             folder_path (str): 数据集保存路径
@@ -139,12 +138,19 @@ class DatasetDumper:
         # 复制数据集快照，避免在 flush 过程中新数据添加导致迭代器问题
         dataset_snapshot = dict(self._dataset)
         self.logger.info(f'Flushing dataset to disk ... ({len(dataset_snapshot)} files)')
-
         total = len(dataset_snapshot)
         count = 0
         log_token = 'flush_dataset'
-
-        for file_path, data in dataset_snapshot.items():
+        drop_last_n = 7
+        items = list(dataset_snapshot.items())
+        if len(items) <= drop_last_n:
+            self.logger.warning(
+                f"dataset_snapshot 只有 {len(items)} 个元素，小于或等于 {drop_last_n}，本次不写入任何文件"
+            )
+            return 
+        # 需要写入的部分：去掉最后 7 个
+        items_to_flush = items[:-drop_last_n]
+        for file_path, data in items_to_flush:
             self._flush_data(data, file_path)
             count += 1
             percentage = count / total * 100
@@ -196,7 +202,8 @@ class DatasetDumper:
             if sensor.bp.id.lower().startswith('sensor.camera.'):
                 naming_policy = self.NamingPolicy(extension='jpg')
             elif sensor.bp.id.lower().startswith('sensor.lidar.'):
-                naming_policy = self.NamingPolicy(extension='pcd')
+                # naming_policy = self.NamingPolicy(extension='pcd')
+                naming_policy = self.NamingPolicy(extension='bin')
             else:
                 raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
         
@@ -261,18 +268,21 @@ class DatasetDumper:
             folder_path (str): 文件夹路径
             naming_policy (NamingPolicy): 命名策略
         """
+
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         file_path = os.path.join(folder_path, f"{counter_str}.{naming_policy.extension}")
         file_path = os.path.abspath(file_path)
+
         self._dataset[file_path] = data
         return None
 
     def _update_frame_counter(self, _) -> Self:
+        # old = self._frame_counter
         self._frame_counter += 1
         return self
 
     def _tick_log(self, _) -> Self:
-        Logging().interval(3, self.logger.info, f'Frame counter: {self._frame_counter}, memory usage: {self._get_memory_usage() * 100:.0f}% / {self._safe_memory_usage_threshold * 100:.0f}%', 'frame_counter_log')
+        Logging().interval(1, self.logger.info, f'Frame counter: {self._frame_counter}, memory usage: {self._get_memory_usage() * 100:.0f}% / {self._safe_memory_usage_threshold * 100:.0f}%', 'frame_counter_log')
 
     def _flash_on_memory_usage_high(self, _) -> Self:
         """当内存使用率过高时, 将数据导出到磁盘"""

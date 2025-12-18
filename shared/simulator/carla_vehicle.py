@@ -1,6 +1,7 @@
 import carla
 from typing_extensions import Self
 from enum import Enum
+import numpy as np
 
 from .carla_actor import CarlaActor
 from .carla_vehicle_wheel_info import VehicleWheelFactory
@@ -25,9 +26,6 @@ class CarlaVehicle(CarlaActor):
         super().__init__(bp=bp, name=name, actor=actor)
         self._control_mode = self.ControlMode.NONE
         
-       
-
-
     @property
     def control_mode(self) -> ControlMode:
         return self._control_mode
@@ -46,27 +44,24 @@ class CarlaVehicle(CarlaActor):
             self.control_mode = self.ControlMode.NONE
             self.actor.set_autopilot(False)
         return self
-    @property
-    def get_vehicle_wheels(self) -> list[carla.Location,carla.Location]:
+    
+    def get_vehicle_center_to_rear_transform_matrix(self) -> np.ndarray:
         '''
-        获取车辆车轮以计算后轮中心点
+        获取车辆车轮以计算后轮中心点,对应于自车坐标系(x向前，y向右，z向上,左手坐标系) 此处 转换与y轴坐标系方向无关，故不需考虑左右手坐标系
         '''
         vehicle_name = self.actor.type_id
-        print("the self.vehicle_name is: ",vehicle_name)
         vehicle_wheels_info = VehicleWheelFactory[vehicle_name]
-        print("the vehicle_wheels_info.REAR_OVERHANG is: ",vehicle_wheels_info.REAR_OVERHANG.value)
-        return []
-        # wheels = self.actor.get_physics_control().wheels # 前左、前右、后左、后右
-        # try:
-        #     if len(wheels) >= 2 :
-        #         wheels_sorted = sorted(wheels, key=lambda w: w.location.x)
-        #         rear_left_local = wheels_sorted[0].location
-        #         rear_right_local = wheels_sorted[1].location
-
-        # except RuntimeError as e:
-        #     self.logger.error(f"Failed to disable autopilot before destroy: {e}")
-
-
+        vehicle_length = vehicle_wheels_info.VEHICLE_LENGTH.value
+        # 计算车辆后轮的位置 车辆中心后移一定位置至后轮中心
+        vehicle_rear_wheel_center_x = -vehicle_length / 2.0 + vehicle_wheels_info.REAR_OVERHANG.value
+        dx = -vehicle_rear_wheel_center_x
+        vehicle_rear_wheel_center_z_offset = -(vehicle_wheels_info.VEHICLE_HEIGHT.value / 2.0 - vehicle_wheels_info.WHEEL_RADIUS.value)
+        dz = -vehicle_rear_wheel_center_z_offset
+        # 构造 4x4 齐次矩阵
+        T_R_C = np.eye(4,dtype=float)
+        T_R_C[0,3] = dx # 方向平移
+        T_R_C[2,3] = dz# z 方向平移
+        return T_R_C
 
     def destroy(self) -> Self:
         if self._actor is None:
