@@ -1377,7 +1377,6 @@ class NuScenesDumper(DatasetDumper):
         self._all_sensors_ready = False  # 所有传感器是否已经至少有一帧数据
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self._context.hook_on_tick.remove(self._tick_record_sample)
         result = super().__exit__(exc_type, exc_value, traceback)
         if self._db:
             self._db.close()
