@@ -151,7 +151,7 @@ class NuScenesDumper(DatasetDumper):
 
     def __init__(
         self,
-        context: 'CarlaContext',
+        context: CarlaContext,
         *,
         name: str = None,
         path: str | Path | None = None,
