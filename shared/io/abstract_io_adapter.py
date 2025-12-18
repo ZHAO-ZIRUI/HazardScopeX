@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing_extensions import Self
+from typing import TYPE_CHECKING
 
-from shared.simulator import CarlaSensor
+if TYPE_CHECKING:
+    from shared.simulator import CarlaSensor
 
 
 class AbstractIOAdapter(ABC):
@@ -10,5 +12,5 @@ class AbstractIOAdapter(ABC):
     """
 
     @abstractmethod
-    def bind_sensor_output(self, sensor: CarlaSensor) -> Self:
+    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
         pass

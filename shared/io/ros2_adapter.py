@@ -6,10 +6,12 @@ from typing import TYPE_CHECKING
 from multiprocessing import Process
 
 from shared.io import AbstractIOAdapter
-from shared.simulator import CarlaSensor
 from shared.data import TimestampSource, BaseData
 from shared.utils import Logging, IdGenerator
 from shared.io import SharedMemoryAdapter
+
+if TYPE_CHECKING:
+    from shared.simulator import CarlaSensor
 
 
 class ROS2Adapter(AbstractIOAdapter):
@@ -51,7 +53,7 @@ class ROS2Adapter(AbstractIOAdapter):
         self._worker_process: None | Process = None
         self._sensor_type: str | None = None
 
-    def bind_sensor_output(self, sensor: CarlaSensor) -> Self:
+    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
         # Bind SHM, 令其开始工作
         self._shm_adapter.bind_sensor_output(sensor)
 
