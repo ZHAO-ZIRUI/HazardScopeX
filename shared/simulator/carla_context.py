@@ -236,15 +236,23 @@ class CarlaContext:
                 time.sleep(1/self._sync_mode_fps)
         except KeyboardInterrupt:
             raise SystemExit(100)
+        
+        # self.logger.info("==== [CTX] tick() start: call world.tick() ====")
         self.world.tick()
+
+        # 获取 snapshot（本帧固定的一份）
+        snapshot = self.world.get_snapshot()
+        # self.logger.info(f"[CTX] world.tick() done, snapshot.frame={snapshot.frame}")
 
         # 自动设置阻塞器
         for name, (blocker, auto_set) in self._tick_blockers.items():
             if auto_set:
                 blocker.set()
+                # self.logger.debug(f"[CTX] auto_set blocker '{name}' -> set()")
 
         # 执行钩子
         for hook in self._hook_on_tick:
+            # self.logger.info(f"[CTX] calling hook {hook.__qualname__} for snapshot.frame={snapshot.frame}")
             hook(self.world.get_snapshot())
 
     def bringup(self):
@@ -349,6 +357,9 @@ class CarlaContext:
         self.logger.info(f'Waiting finished')
         return self
 
+    @property
+    def map_name(self) -> str:
+        return self.world.get_map().name
     def start_dead_detector_thread(self):
         """启动服务端死亡检测线程"""
         # 等待旧进程退出
