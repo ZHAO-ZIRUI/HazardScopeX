@@ -1410,6 +1410,126 @@ class NuScenesDumper(DatasetDumper):
         
         
         return self
+
+    def bind_sensor_output(self, sensor: CarlaSensor, path: str | Path | None = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
+        """绑定传感器数据输出到内存缓存, 并创建 sensor 和 calibrated_sensor 记录
+        
+        Args:
+            sensor (CarlaSensor): 传感器
+            path (str | Path | None, optional): 文件夹路径. 默认为 None, 将根据传感器名称自动确定.
+            naming_policy (NamingPolicy, optional): 命名策略. 默认为 None, 将根据传感器类型自动确定.
+        
+        Returns:
+            Self: 返回自身
+        """
+        sensor_name = self._split_vehicle_sensor(sensor.name)
+        
+        if path is None:
+            path = sensor.name
+        
+        samples_folder_path = Path(self.FOLDER_SAMPLES) / path
+        folder_path_abs = (self._path / samples_folder_path).resolve()
+        
+        if naming_policy is None:
+            if sensor.is_camera:
+                naming_policy = self.NamingPolicy(extension='jpg')
+            elif sensor.is_lidar:
+                naming_policy = self.NamingPolicy(extension='bin')
+            else:
+                raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
+        
+        self._sensor_folders[sensor] = folder_path_abs
+        self._sensor_naming_policies[sensor] = naming_policy
+        super().bind_sensor_output(sensor, samples_folder_path, naming_policy)
+        
+        modality = 'camera' if sensor.is_camera else 'lidar'
+        sensor_token = self._db.add_sensor(channel=sensor_name, modality=modality)
+        self.logger.debug(f'Sensor created: {sensor_name}')
+        self._sensor_tokens[sensor] = sensor_token
+        self.logger.debug(f'Sensor token created for {sensor_name}: {sensor_token}')
+        
+        # 获取carla传感器到nuscenes车体右手坐标系下lidar(x右, y前, z上) camera(x右, y下, z前)到车体后轮中心（x向前，y向左，z向上）的外参
+        sensor_vehicle_rear_center_matrix_nus = self.sensor_tf[sensor_name]
+        translation = sensor_vehicle_rear_center_matrix_nus[:3, 3].tolist()
+        rotation_matrix = sensor_vehicle_rear_center_matrix_nus[:3, :3]
+        rotation_quaternion = self._rotation_matrix_to_quaternion(rotation_matrix)
+        rotation = rotation_quaternion.tolist()
+
+        camera_intrinsic = []
+        if sensor.is_camera:
+            K = sensor.get_camera_intrinsics_matrix()
+            camera_intrinsic = K.tolist()
+        
+        calibrated_sensor_token = self._db.add_calibrated_sensor(
+            sensor_token=sensor_token,
+            translation=translation,
+            rotation=rotation,
+            camera_intrinsic=camera_intrinsic
+        )
+        self._calibrated_sensor_tokens[sensor] = calibrated_sensor_token
+        self.logger.debug(f'Calibrated sensor token created for {sensor.name}: {calibrated_sensor_token}')
+        
+        return self
+
+    def _flush_data(self, data: BaseData, file_path: Path) -> None:
+        """将传感器数据导出到磁盘
+
+        Args:
+            data (BaseData): 传感器数据
+            file_path (str): 文件路径
+
+        Returns:
+            Self: 返回自身
+        """
+        if isinstance(data, Image):
+            data.to_file(file_path)
+            return None
+        if isinstance(data, PointCloud):
+            # nuScenes 使用 .pcd 格式存储点云
+            if file_path.suffix == '.bin':
+                points = data.raw
+                points_x = np.asarray(points[PointCloud.FIELD_X])
+                points_y = np.asarray(points[PointCloud.FIELD_Y])
+                points_z = np.asarray(points[PointCloud.FIELD_Z])
+                points_xyz_carla = np.stack([points_x, points_y, points_z], axis=1)
+                # 将点云从 carla 的坐标系转换成 nuscenes 的坐标系
+                points_xyz_nus = self._carla_lidar_points_nus_lidar(points_xyz_carla)
+                # 确认点数一致
+                assert points_xyz_nus.shape[0] == points.shape[0]
+                points_xyz_nus = points_xyz_nus.astype(points[PointCloud.FIELD_X].dtype, copy=False)
+                # 按字段写回结构化数组
+                points[PointCloud.FIELD_X] = points_xyz_nus[:, 0]
+                points[PointCloud.FIELD_Y] = points_xyz_nus[:, 1]
+                points[PointCloud.FIELD_Z] = points_xyz_nus[:, 2]
+                data.to_file(file_path)
+                
+                if data.format == self._carla_vehicle.POINT_FORMAT:
+                    
+                    lidarseg_bin_file_name = str(file_path).split('/')[-1]
+                    lidarseg_bin_file_path = self._folder_lidarseg / Path(lidarseg_bin_file_name)
+                    semantic_tags = np.asarray(points[PointCloud.FIELD_OBJECT_SEMANTIC_TAG])
+                    mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
+                    for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
+                        mapped_semantics[semantic_tags == carla_id] = nuscenes_id
+                    mapped_semantics.tofile(str(lidarseg_bin_file_path))
+                
+                return None
+        raise ValueError(f'Unsupported sensor data type: {type(data)}')
+
+    def _log_result(self) -> None:
+        """记录导出结果"""
+        if not self._path.exists():
+            self.logger.error(f'Dataset export result check: False')
+            self.logger.error(f'Main folder does not exist: "{self._path}"')
+            return
+        
+        entry_counts, missing_files = self._collect_json_entry_counts()
+        sample_data_list = self._load_sample_data_list()
+        warnings, has_errors = self._validate_json_entry_counts(entry_counts, missing_files, sample_data_list)
+        warnings, has_errors = self._validate_file_counts(entry_counts, warnings, has_errors, sample_data_list)
+        self._report_validation_results(warnings, missing_files, has_errors, entry_counts)
+        
+        return self
     
     def _setup_db_category(self) -> None:
         """初始化 category 表，填充 nuScenes 标准类别定义"""
@@ -1490,66 +1610,6 @@ class NuScenesDumper(DatasetDumper):
             self._all_sensors_ready = True
             self.logger.info("All sensors have produced at least one frame. Start recording samples.")
             return True
-
-    def bind_sensor_output(self, sensor: CarlaSensor, path: str | Path | None = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
-        """绑定传感器数据输出到内存缓存, 并创建 sensor 和 calibrated_sensor 记录
-        
-        Args:
-            sensor (CarlaSensor): 传感器
-            path (str | Path | None, optional): 文件夹路径. 默认为 None, 将根据传感器名称自动确定.
-            naming_policy (NamingPolicy, optional): 命名策略. 默认为 None, 将根据传感器类型自动确定.
-        
-        Returns:
-            Self: 返回自身
-        """
-        sensor_name = self._split_vehicle_sensor(sensor.name)
-        
-        if path is None:
-            path = sensor.name
-        
-        samples_folder_path = Path(self.FOLDER_SAMPLES) / path
-        folder_path_abs = (self._path / samples_folder_path).resolve()
-        
-        if naming_policy is None:
-            if sensor.is_camera:
-                naming_policy = self.NamingPolicy(extension='jpg')
-            elif sensor.is_lidar:
-                naming_policy = self.NamingPolicy(extension='bin')
-            else:
-                raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
-        
-        self._sensor_folders[sensor] = folder_path_abs
-        self._sensor_naming_policies[sensor] = naming_policy
-        super().bind_sensor_output(sensor, samples_folder_path, naming_policy)
-        
-        modality = 'camera' if sensor.is_camera else 'lidar'
-        sensor_token = self._db.add_sensor(channel=sensor_name, modality=modality)
-        self.logger.debug(f'Sensor created: {sensor_name}')
-        self._sensor_tokens[sensor] = sensor_token
-        self.logger.debug(f'Sensor token created for {sensor_name}: {sensor_token}')
-        
-        # 获取carla传感器到nuscenes车体右手坐标系下lidar(x右, y前, z上) camera(x右, y下, z前)到车体后轮中心（x向前，y向左，z向上）的外参
-        sensor_vehicle_rear_center_matrix_nus = self.sensor_tf[sensor_name]
-        translation = sensor_vehicle_rear_center_matrix_nus[:3, 3].tolist()
-        rotation_matrix = sensor_vehicle_rear_center_matrix_nus[:3, :3]
-        rotation_quaternion = self._rotation_matrix_to_quaternion(rotation_matrix)
-        rotation = rotation_quaternion.tolist()
-
-        camera_intrinsic = []
-        if sensor.is_camera:
-            K = sensor.get_camera_intrinsics_matrix()
-            camera_intrinsic = K.tolist()
-        
-        calibrated_sensor_token = self._db.add_calibrated_sensor(
-            sensor_token=sensor_token,
-            translation=translation,
-            rotation=rotation,
-            camera_intrinsic=camera_intrinsic
-        )
-        self._calibrated_sensor_tokens[sensor] = calibrated_sensor_token
-        self.logger.debug(f'Calibrated sensor token created for {sensor.name}: {calibrated_sensor_token}')
-        
-        return self
 
     def _rotation_matrix_to_quaternion(self, rotation_matrix: np.ndarray) -> np.ndarray:
         """将旋转矩阵转换为四元数，格式为 w, x, y, z
@@ -2045,51 +2105,6 @@ class NuScenesDumper(DatasetDumper):
             else:
                 continue
 
-    def _flush_data(self, data: BaseData, file_path: Path) -> None:
-        """将传感器数据导出到磁盘
-
-        Args:
-            data (BaseData): 传感器数据
-            file_path (str): 文件路径
-
-        Returns:
-            Self: 返回自身
-        """
-        if isinstance(data, Image):
-            data.to_file(file_path)
-            return None
-        if isinstance(data, PointCloud):
-            # nuScenes 使用 .pcd 格式存储点云
-            if file_path.suffix == '.bin':
-                points = data.raw
-                points_x = np.asarray(points[PointCloud.FIELD_X])
-                points_y = np.asarray(points[PointCloud.FIELD_Y])
-                points_z = np.asarray(points[PointCloud.FIELD_Z])
-                points_xyz_carla = np.stack([points_x, points_y, points_z], axis=1)
-                # 将点云从 carla 的坐标系转换成 nuscenes 的坐标系
-                points_xyz_nus = self._carla_lidar_points_nus_lidar(points_xyz_carla)
-                # 确认点数一致
-                assert points_xyz_nus.shape[0] == points.shape[0]
-                points_xyz_nus = points_xyz_nus.astype(points[PointCloud.FIELD_X].dtype, copy=False)
-                # 按字段写回结构化数组
-                points[PointCloud.FIELD_X] = points_xyz_nus[:, 0]
-                points[PointCloud.FIELD_Y] = points_xyz_nus[:, 1]
-                points[PointCloud.FIELD_Z] = points_xyz_nus[:, 2]
-                data.to_file(file_path)
-                
-                if data.format == self._carla_vehicle.POINT_FORMAT:
-                    
-                    lidarseg_bin_file_name = str(file_path).split('/')[-1]
-                    lidarseg_bin_file_path = self._folder_lidarseg / Path(lidarseg_bin_file_name)
-                    semantic_tags = np.asarray(points[PointCloud.FIELD_OBJECT_SEMANTIC_TAG])
-                    mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
-                    for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
-                        mapped_semantics[semantic_tags == carla_id] = nuscenes_id
-                    mapped_semantics.tofile(str(lidarseg_bin_file_path))
-                
-                return None
-        raise ValueError(f'Unsupported sensor data type: {type(data)}')
-
     def _export_json_files(self) -> Self:
         """导出所有 JSON 文件"""
         self.logger.info('Exporting NuScenes JSON files...')
@@ -2305,21 +2320,6 @@ class NuScenesDumper(DatasetDumper):
                 return result[0]
         
         return None
-
-    def _log_result(self) -> None:
-        """记录导出结果"""
-        if not self._path.exists():
-            self.logger.error(f'Dataset export result check: False')
-            self.logger.error(f'Main folder does not exist: "{self._path}"')
-            return
-        
-        entry_counts, missing_files = self._collect_json_entry_counts()
-        sample_data_list = self._load_sample_data_list()
-        warnings, has_errors = self._validate_json_entry_counts(entry_counts, missing_files, sample_data_list)
-        warnings, has_errors = self._validate_file_counts(entry_counts, warnings, has_errors, sample_data_list)
-        self._report_validation_results(warnings, missing_files, has_errors, entry_counts)
-        
-        return self
     
     def _collect_json_entry_counts(self) -> tuple[dict[str, int], list[str]]:
         """收集 JSON 文件的条目数量"""
