@@ -35,7 +35,7 @@ if __name__ == "__main__":
         another_vehicle.set_carla_autopilot(enable=True)
         vehicle.set_carla_autopilot(enable=True)
 
-        with NuScenesDumper(context,carla_vehicle=vehicle) as dumper:
+        with NuScenesDumper(context, ego_vehicle=vehicle) as dumper:
             # 绑定所有相机传感器
             dumper.bind_sensor_output(vehicle.cam_front, vehicle.cam_front.name)
             dumper.bind_sensor_output(vehicle.cam_front_left, vehicle.cam_front_left.name)
