@@ -603,34 +603,7 @@ class NuScenesDB(metaclass=PostInitMeta):
         
         self._conn.commit()
         return token
-
-    # def add_instance(self, *,
-    #                  category_token: str,
-    #                  first_annotation_token: str = None) -> str:
-    #     """增加一条 instance 记录
-
-    #     Args:
-    #         category_token (str): 指向的 category 记录的 token
-    #         first_annotation_token (str, optional): 指向的第一个 sample_annotation 记录的 token, 默认为 None
-
-    #     Returns:
-    #         str: 插入数据库的 token
-    #     """
-    #     token = self.get_nuscenes_token()
         
-    #     # # 如果提供了 first_annotation_token，则 last_annotation_token 也应该设置为相同的值
-    #     # last_annotation_token = first_annotation_token if first_annotation_token else ""
-    #     # 初始时先不设 first/last，由 update_instance_annotation_links 统一维护
-    #     first_token = ""
-    #     last_token = ""
-        
-    #     self._cursor.execute('''
-    #         INSERT INTO instance (token, category_token, first_annotation_token, last_annotation_token) VALUES (?, ?, ?, ?)
-    #     ''', (token, category_token, first_annotation_token or "", last_annotation_token))
-        
-    #     self._conn.commit()
-    #     return token
-
     def add_instance(self, *,
                  category_token: str,
                  first_annotation_token: str | None = None) -> str:
@@ -1535,9 +1508,7 @@ class NuScenesDumper(DatasetDumper):
             path = sensor.name
         
         samples_folder_path = Path(self.FOLDER_SAMPLES) / path
-        # self.logger.debug(f'Sensor folder path is : {samples_folder_path}')
         folder_path_abs = (self._path / samples_folder_path).resolve()
-        # self.logger.debug(f'folder_path_abs is : {samples_folder_path}')
         
         if naming_policy is None:
             if sensor.is_camera:
@@ -1625,7 +1596,7 @@ class NuScenesDumper(DatasetDumper):
         Args:
             snapshot (carla.WorldSnapshot): CARLA 世界快照
         """
-        # 在创建 sample 之前检查 sensors 是否已经 warm-up 完成
+        # 在创建 sample 之前检查 sensors 是否已经 warm-up 完成  # TODO 错帧问题解决后可将此函数删掉
         if not self._all_sensors_warmed_up():
             self.logger.debug(
             f"[NUSC] Sensors not warmed up yet at frame_counter={self._frame_counter}, "
@@ -1787,15 +1758,12 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             str: 文件路径，如果未找到返回 None
         """
-        # self.logger.debug(f'the keys of self._data_buffer is : {self._data_buffer.keys()}')
-
         sensor_folder = self._sensor_folders.get(sensor)
-        # self.logger.debug(f'Sensor folder is set to: {sensor_folder}')
         naming_policy = self._sensor_naming_policies.get(sensor)
         
         if sensor_folder is None or naming_policy is None:
             return None
-        # the original is self._frame_counter
+        # the original is self._frame_counter TODO 错帧问题 fix method
         counter_str = str(self._frame_counter - 1).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         # counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         sensor_file_path = (sensor_folder / f"{counter_str}.{naming_policy.extension}").resolve()
