@@ -66,9 +66,9 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._context.tick_blockers.append(self._tick_blocker)
 
         # 注册钩子
-        self._context.hook_on_tick.append(self._update_frame_counter)
-        self._context.hook_on_tick.append(self._log_on_tick)
-        self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
+        self._append_hook_on_tick(self._update_frame_counter)
+        self._append_hook_on_tick(self._log_on_tick)
+        self._append_hook_on_tick(self._flash_on_memory_usage_high)
         
         # self._hook_after_final_flush.append(self._log_result)
         return self
@@ -106,14 +106,13 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._context.tick_blockers.remove(self._tick_blocker)
 
         # 移除钩子
-        self._context.hook_on_tick.remove(self._update_frame_counter)
-        self._context.hook_on_tick.remove(self._log_on_tick)
-        self._context.hook_on_tick.remove(self._flash_on_memory_usage_high)
+        for hook in self._cached_sensor_hooks_befre_next_tick:
+            self._context.hook_befre_next_tick.remove(hook)
+        self._cached_sensor_hooks_befre_next_tick.clear()
 
-        # 移除传感器钩子
-        for sensor, hook in self._cached_sensor_hooks.items():
-            sensor.hook_sensor_data_ready.remove(hook)
-        self._cached_sensor_hooks.clear()
+        for hook in self._cached_sensor_hooks_on_tick:
+            self._context.hook_on_tick.remove(hook)
+        self._cached_sensor_hooks_on_tick.clear()
 
         # 移除自身钩子
         self._hook_after_final_flush.clear()
