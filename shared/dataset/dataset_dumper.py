@@ -162,6 +162,10 @@ class DatasetDumper(metaclass=PostInitMeta):
 
     def flush(self, *, final: bool = False) -> None:
         """将数据集写入到磁盘"""
+        # 在最终写入前额外执行一次 tick, 以保证 hook_before_next_tick 被执行
+        if final:
+            self._context.wait_ticks(1, no_hook_on_tick=True)
+
         self.tick_blocker.set()
         with self._context.heavy_operation():
             pass
