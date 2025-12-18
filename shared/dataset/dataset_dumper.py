@@ -98,6 +98,12 @@ class DatasetDumper(metaclass=PostInitMeta):
         return memory_usage < self._context.configs.dataset.safe_memory_usage_threshold
 
     def close(self) -> None:
+        # 移除传感器钩子
+        # 先移除传感器钩子以避免额外一次的写入
+        for sensor, hook in self._cached_sensor_hooks.items():
+            sensor.hook_sensor_data_ready.remove(hook)
+        self._cached_sensor_hooks.clear()
+
         # 执行最终写入
         self.flush(final=True)
 
