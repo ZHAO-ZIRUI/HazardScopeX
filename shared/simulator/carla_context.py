@@ -504,7 +504,7 @@ class CarlaContext:
                 except Exception as e:
                     msg = f'CARLA server is DEAD, detected by detector thread: {type(e).__name__}'
                     self.logger.critical(msg)
-                    self._event_server_dead_.set()
+                    self._event_server_dead.set()
                     raise RuntimeError(msg)
         finally:
             del detector_client
