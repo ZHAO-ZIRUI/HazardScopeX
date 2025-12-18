@@ -1445,7 +1445,7 @@ class NuScenesDumper(DatasetDumper):
             if result:
                 self._default_visibility_token = result[0]
 
-    def split_vehicle_sensor(self,name: str) -> Tuple[str, str]:
+    def _split_vehicle_sensor(self,name: str) -> Tuple[str, str]:
         sensors = sorted(set(self._carla_vehicle.VEHICLE_SENSORS), key=len, reverse=True)  # 先匹配最长的，避免前缀冲突
         for sensor in sensors:
             suffix = "_" + sensor
@@ -1498,7 +1498,7 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             Self: 返回自身
         """
-        sensor_name = self.split_vehicle_sensor(sensor.name)
+        sensor_name = self._split_vehicle_sensor(sensor.name)
         
         if path is None:
             path = sensor.name
@@ -1880,7 +1880,7 @@ class NuScenesDumper(DatasetDumper):
         except Exception as e:
             self.logger.warning(f'Failed to record CAN bus data: {e}')
     
-    def get_attribute_token(self, name: str) -> str | None:
+    def _get_attribute_token(self, name: str) -> str | None:
         """根据 attribute.name 拿 token，带缓存"""
         if name in self._attribute_token_cache:
             return self._attribute_token_cache[name]
@@ -1892,7 +1892,7 @@ class NuScenesDumper(DatasetDumper):
         self._attribute_token_cache[name] = token
         return token
 
-    def carla_lidar_points_nus_lidar(self,points_carla: np.ndarray)-> np.ndarray:
+    def _carla_lidar_points_nus_lidar(self,points_carla: np.ndarray)-> np.ndarray:
         '''
         将点云从 carla 的坐标系转换成 nuscenes 的坐标系
         carla lidar 坐标系   x向前 y向右 z向上，左手坐标系
@@ -1916,7 +1916,7 @@ class NuScenesDumper(DatasetDumper):
         points_nusc[:, :3] = xyz_nusc.T
         return points_nusc
     
-    def get_actor_info(self,actor: carla.Actor) -> dict:
+    def _get_actor_info(self,actor: carla.Actor) -> dict:
         '''
         利用carla的actor接口获取目标在carla地图的位置，并转化为nuscenes地图坐标系下的位置
         '''
@@ -2001,7 +2001,7 @@ class NuScenesDumper(DatasetDumper):
                     self._known_objects[object_id] = instance_token
                 else:
                     instance_token = self._known_objects[object_id]
-                actor_info = self.get_actor_info(actual_actor)
+                actor_info = self._get_actor_info(actual_actor)
                 actor_velocity = actor_info['velocity'] # 目标速度
                 # 框内点的个数
                 num_lidar_pts = len(object_points)
@@ -2014,9 +2014,9 @@ class NuScenesDumper(DatasetDumper):
                 vehicle_category_ids = [17, 21, 23]
                 if nuscenes_category_id in vehicle_category_ids:
                     if actor_velocity.x > self.VEHICLE_SPEED_THRESHOLD or actor_velocity.y > self.VEHICLE_SPEED_THRESHOLD:
-                        token = self.get_attribute_token("vehicle.moving")
+                        token = self._get_attribute_token("vehicle.moving")
                     else:
-                        token = self.get_attribute_token("vehicle.stopped")
+                        token = self._get_attribute_token("vehicle.stopped")
                     if token:
                         attribute_tokens.append(token)
                 if not attribute_tokens and self._default_attribute_token:
@@ -2063,7 +2063,7 @@ class NuScenesDumper(DatasetDumper):
                 points_z = np.asarray(points[PointCloud.FIELD_Z])
                 points_xyz_carla = np.stack([points_x, points_y, points_z], axis=1)
                 # 将点云从 carla 的坐标系转换成 nuscenes 的坐标系
-                points_xyz_nus = self.carla_lidar_points_nus_lidar(points_xyz_carla)
+                points_xyz_nus = self._carla_lidar_points_nus_lidar(points_xyz_carla)
                 # 确认点数一致
                 assert points_xyz_nus.shape[0] == points.shape[0]
                 points_xyz_nus = points_xyz_nus.astype(points[PointCloud.FIELD_X].dtype, copy=False)
