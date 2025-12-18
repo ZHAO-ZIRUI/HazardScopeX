@@ -1763,12 +1763,10 @@ class NuScenesDumper(DatasetDumper):
         
         if sensor_folder is None or naming_policy is None:
             return None
-        # the original is self._frame_counter TODO 错帧问题 fix method
+        # TODO 错帧问题 fix method
         counter_str = str(self._frame_counter - 1).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         # counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         sensor_file_path = (sensor_folder / f"{counter_str}.{naming_policy.extension}").resolve()
-        # self.logger.debug(f'the sensor_file_path in _find_sensor_file_path is: {type(sensor_file_path)}')
-        # self.logger.debug(f'the self._data_buffer is: {self._data_buffer.keys()}')
         if sensor_file_path not in self._data_buffer:
             prev_frame_counter = max(0, self._frame_counter - 1)
             prev_counter_str = str(prev_frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
@@ -1779,8 +1777,6 @@ class NuScenesDumper(DatasetDumper):
             elif not sensor_file_path.exists():
                 self.logger.debug(f'Sensor {sensor.name} data not found for frame {self._frame_counter}, skipping')
                 return None
-        # else:
-        #     self.logger.debug(f'Sensor {sensor.name} data already exists for frame {self._frame_counter}')
         
         return str(sensor_file_path)
     
@@ -1823,9 +1819,7 @@ class NuScenesDumper(DatasetDumper):
         # 语义lidar用bin表示
         if sensor.is_lidar and 'semantic' in sensor.bp.id.lower():
             bin_filename = relative_path.split('/')[-1]
-            # self.logger.debug(f"bin_filename is: {bin_filename}")
             lidarseg_bin_filename = Path(self.FOLDER_LIDARSEG) / bin_filename
-            # self.logger.debug(f"lidarseg_bin_filename is: {lidarseg_bin_filename}")
             self._db.add_lidarseg(
                 token=sample_data_token,
                 sample_data_token=sample_data_token,
@@ -1933,14 +1927,12 @@ class NuScenesDumper(DatasetDumper):
         actor_info = {}
         actor_transform = actor.get_transform()
         loc = actor_transform.location
-        # self.logger.debug(f"the location of transform is: {loc.x,loc.y,loc.z}")
         rot = actor_transform.rotation
         yaw_c = rot.yaw
         bbox = actor.bounding_box
         bbox_loc_local = bbox.location
         bbox_tf_world = actor_transform
         bbox_center_world = bbox_tf_world.transform(bbox_loc_local)
-        # self.logger.debug(f"the location of bbox is: {bbox.location.x,bbox.location.y,bbox.location.z}")
         extents = bbox.extent
         center_translation_nus = [bbox_center_world.x, -bbox_center_world.y, bbox_center_world.z] #  y轴取反
         w = 2 * extents.y # 左右方向
@@ -1966,6 +1958,7 @@ class NuScenesDumper(DatasetDumper):
             sample_token (str): 当前 sample 的 token
             sample_data_token (str): 当前 sample_data 的 token
         """
+        # TODO 错帧问题 fix method
         counter_str = str(self._frame_counter - 1).rjust(6, '0')
         # counter_str = str(self._frame_counter).rjust(6, '0')
         sensor_file_path = (self._sensor_folders[sensor] / f"{counter_str}.bin").resolve()
@@ -1999,7 +1992,6 @@ class NuScenesDumper(DatasetDumper):
             if actual_actor.type_id == 'vehicle.tesla.model3':
                 continue
             if 'vehicle' in actual_actor.type_id or 'box' in actual_actor.type_id:
-                self.logger.debug(f'the actual_actor.type_id is {actual_actor.type_id}')
                 object_mask = object_ids == object_id
                 object_points = points[object_mask]
                 object_semantic_tag = int(semantic_tags[object_mask][0]) 
@@ -2091,10 +2083,7 @@ class NuScenesDumper(DatasetDumper):
                 if data.format == self._carla_vehicle.POINT_FORMAT:
                     
                     lidarseg_bin_file_name = str(file_path).split('/')[-1]
-                    # self.logger.debug(f'bin_file_name is {lidarseg_bin_file_name}')
                     lidarseg_bin_file_path = self._folder_lidarseg / Path(lidarseg_bin_file_name)
-                    # self.logger.debug(f'bin_file_path is {lidarseg_bin_file_path}')
-                    # semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
                     semantic_tags = np.asarray(points[PointCloud.FIELD_OBJECT_SEMANTIC_TAG])
                     mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
                     for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
@@ -2102,13 +2091,6 @@ class NuScenesDumper(DatasetDumper):
                     mapped_semantics.tofile(str(lidarseg_bin_file_path))
                 
                 return None
-            # if file_path.suffix == '.bin' and data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
-            #     semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
-            #     mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
-            #     for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
-            #         mapped_semantics[semantic_tags == carla_id] = nuscenes_id
-            #     mapped_semantics.tofile(str(file_path))
-            #     return None
         raise ValueError(f'Unsupported sensor data type: {type(data)}')
 
     def _export_json_files(self) -> Self:
@@ -2572,9 +2554,7 @@ class NuScenesDumper(DatasetDumper):
         entry_counts = {}
         
         for filename in json_files:
-            # self.logger.debug(f'self._path is {self._path}')
             file_path = self._path / filename
-            # self.logger.debug(f'file_path is {file_path}')
             if not file_path.exists():
                 missing_files.append(filename)
                 continue
