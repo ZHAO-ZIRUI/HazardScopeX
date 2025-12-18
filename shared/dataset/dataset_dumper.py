@@ -68,7 +68,7 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._context.hook_on_tick.append(self._log_on_tick)
         self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
         
-        self._hook_after_final_flush.append(self._log_result)
+        # self._hook_after_final_flush.append(self._log_result)
         return self
 
     def __enter__(self) -> Self:
@@ -198,6 +198,7 @@ class DatasetDumper(metaclass=PostInitMeta):
         """
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         file_path = path / f"{counter_str}.{naming_policy.extension}"
+        # self.logger.debug(f'Cached sensor data to buffer: {file_path}')
         file_path = file_path.resolve()
         self._data_buffer[file_path] = data
         return None

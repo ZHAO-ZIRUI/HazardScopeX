@@ -7,17 +7,19 @@ import time
 import carla
 import numpy as np
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, List
+from typing import TYPE_CHECKING, Tuple, List,Iterable
 from typing_extensions import Self
 
+from pyquaternion import Quaternion
 from shared.dataset import DatasetDumper
 from shared.simulator import CarlaSensor
 from shared.data import BaseData, Image, PointCloud
+from shared.utils import PostInitMeta
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
 
-class NuScenesDB:
+class NuScenesDB(metaclass=PostInitMeta):
 
     def __init__(self, db_path: str = ":memory:"):
         """初始化 NuScenes 数据库
@@ -27,7 +29,7 @@ class NuScenesDB:
         """
         self._db_path = db_path
         self._conn, self._cursor = self._create_database()
-        self._post_init()
+        
     
     @property
     def is_memory_db(self) -> bool:
@@ -38,7 +40,7 @@ class NuScenesDB:
         """
         return self._db_path == ":memory:"
 
-    def _post_init(self) -> Self:
+    def __post_init__(self) -> Self:
         self._create_tables()
         return self
 
@@ -551,8 +553,7 @@ class NuScenesDB:
         Returns:
             str: 插入数据库的 token
         """
-        token = token or self.get_nuscenes_token()
-        
+         # token = token or self.get_nuscenes_token()
         self._cursor.execute('''
             INSERT INTO visibility (token, description, level) VALUES (?, ?, ?)
         ''', (token, description, level))
@@ -603,29 +604,101 @@ class NuScenesDB:
         self._conn.commit()
         return token
 
+    # def add_instance(self, *,
+    #                  category_token: str,
+    #                  first_annotation_token: str = None) -> str:
+    #     """增加一条 instance 记录
+
+    #     Args:
+    #         category_token (str): 指向的 category 记录的 token
+    #         first_annotation_token (str, optional): 指向的第一个 sample_annotation 记录的 token, 默认为 None
+
+    #     Returns:
+    #         str: 插入数据库的 token
+    #     """
+    #     token = self.get_nuscenes_token()
+        
+    #     # # 如果提供了 first_annotation_token，则 last_annotation_token 也应该设置为相同的值
+    #     # last_annotation_token = first_annotation_token if first_annotation_token else ""
+    #     # 初始时先不设 first/last，由 update_instance_annotation_links 统一维护
+    #     first_token = ""
+    #     last_token = ""
+        
+    #     self._cursor.execute('''
+    #         INSERT INTO instance (token, category_token, first_annotation_token, last_annotation_token) VALUES (?, ?, ?, ?)
+    #     ''', (token, category_token, first_annotation_token or "", last_annotation_token))
+        
+    #     self._conn.commit()
+    #     return token
+
     def add_instance(self, *,
-                     category_token: str,
-                     first_annotation_token: str = None) -> str:
+                 category_token: str,
+                 first_annotation_token: str | None = None) -> str:
         """增加一条 instance 记录
 
         Args:
             category_token (str): 指向的 category 记录的 token
-            first_annotation_token (str, optional): 指向的第一个 sample_annotation 记录的 token, 默认为 None
+            first_annotation_token (str, optional): 可以忽略，通常让系统自动维护
 
         Returns:
             str: 插入数据库的 token
         """
         token = self.get_nuscenes_token()
-        
-        # 如果提供了 first_annotation_token，则 last_annotation_token 也应该设置为相同的值
-        last_annotation_token = first_annotation_token if first_annotation_token else ""
-        
-        self._cursor.execute('''
-            INSERT INTO instance (token, category_token, first_annotation_token, last_annotation_token) VALUES (?, ?, ?, ?)
-        ''', (token, category_token, first_annotation_token or "", last_annotation_token))
-        
+
+        # 初始时先不设 first/last，由 update_instance_annotation_links 统一维护
+        first_token = ""
+        last_token = ""
+
+        self._cursor.execute(
+            '''
+            INSERT INTO instance (
+                token,
+                category_token,
+                first_annotation_token,
+                last_annotation_token
+            ) VALUES (?, ?, ?, ?)
+            ''',
+            (token, category_token, first_token, last_token)
+        )
+
         self._conn.commit()
         return token
+    
+    def update_instance_annotation_links(self, instance_token: str, annotation_token: str) -> None:
+        """
+        根据新的 sample_annotation，更新 instance 表中的
+        first_annotation_token / last_annotation_token 字段。
+
+        - 如果 instance 目前还没有 first_annotation_token（为空字符串或 NULL），
+        则把 first 和 last 都设为当前 annotation。
+        - 否则，只更新 last_annotation_token 为当前 annotation。
+        """
+        # 1. 查询当前 instance 的 first / last
+        self._cursor.execute(
+            'SELECT first_annotation_token, last_annotation_token FROM instance WHERE token = ?',
+            (instance_token,)
+        )
+        row = self._cursor.fetchone()
+        if not row:
+            # 理论上不会发生：instance 不存在
+            return
+        first_token, last_token = row
+        # 注意：first_token 可能是 None 或 ""，表示还没设置
+        if not first_token:  # None 或 空字符串 都视为未设置
+            new_first = annotation_token
+            new_last = annotation_token
+        else:
+            new_first = first_token
+            new_last = annotation_token
+        self._cursor.execute(
+            '''
+            UPDATE instance
+            SET first_annotation_token = ?, last_annotation_token = ?
+            WHERE token = ?
+            ''',
+            (new_first, new_last, instance_token)
+        )
+        self._conn.commit()
     
     def add_sample_annotation(self, *,
                                token: str,
@@ -1126,6 +1199,7 @@ class NuScenesDumper(DatasetDumper):
     FOLDER_SAMPLES = 'samples'
     FOLDER_SWEEPS = 'sweeps'
     FOLDER_MAPS = 'maps'
+    FOLDER_LIDARSEG = 'lidarseg/carla_nuscenes_meta'
     
     # JSON 文件名
     FILE_LOG = 'log.json'
@@ -1148,45 +1222,46 @@ class NuScenesDumper(DatasetDumper):
     # 常量
     TIMESTAMP_INCREMENT_MICROSECONDS = 50000  # 恢复缺失 sample 时的时间戳增量（微秒）
     TIMESTAMP_TO_MICROSECONDS = 1_000_000  # 秒到微秒的转换因子
-    VEHICLE_SPEED_THRESHOLD = 0.1  # 判断车辆是否移动的速度阈值（m/s）
+    VEHICLE_SPEED_THRESHOLD = 0.5  # 判断车辆是否移动的速度阈值（m/s）
+    PEDESTRIAN_SPEED_THRESH = 0.1 # 判断行人是否移动的速度阈值（m/s）
     STEER_ANGLE_MULTIPLIER = 70.0  # 转向角转换倍数
     STEER_ANGLE_MIN = -7.7  # 转向角最小值（度）
     STEER_ANGLE_MAX = 6.3  # 转向角最大值（度）
 
     # nuScenes 标准类别定义 (index, name, description)
     NUSCENES_CATEGORIES = [
-        (0, "noise", "Points that are not labeled or cannot be labeled."),
-        (1, "animal", "All animals (excluding humans)."),
-        (2, "human.pedestrian.adult", "An adult human pedestrian."),
-        (3, "human.pedestrian.child", "A child human pedestrian."),
-        (4, "human.pedestrian.construction_worker", "A construction worker."),
-        (5, "human.pedestrian.personal_mobility", "A personal mobility device (e.g., scooter, wheelchair)."),
-        (6, "human.pedestrian.police_officer", "A police officer."),
-        (7, "human.pedestrian.stroller", "A stroller."),
-        (8, "human.pedestrian.wheelchair", "A wheelchair."),
-        (9, "movable_object.barrier", "A barrier (e.g., traffic cones, construction barriers)."),
-        (10, "movable_object.debris", "Debris or movable objects."),
-        (11, "movable_object.pushable_pullable", "Objects that can be pushed or pulled."),
-        (12, "movable_object.traffic_cone", "Traffic cones."),
-        (13, "static_object.bicycle_rack", "Bicycle racks."),
-        (14, "vehicle.bicycle", "A bicycle."),
-        (15, "vehicle.bus.bendy", "A bendy bus."),
-        (16, "vehicle.bus.rigid", "A rigid bus."),
-        (17, "vehicle.car", "A car."),
-        (18, "vehicle.construction", "Construction vehicles."),
-        (19, "vehicle.emergency.ambulance", "An ambulance."),
-        (20, "vehicle.emergency.police", "A police vehicle."),
-        (21, "vehicle.motorcycle", "A motorcycle."),
-        (22, "vehicle.trailer", "A trailer."),
-        (23, "vehicle.truck", "A truck."),
-        (24, "flat.driveable_surface", "Driveable surfaces (roads, parking areas)."),
-        (25, "flat.other", "Other flat surfaces."),
-        (26, "flat.sidewalk", "Sidewalks."),
-        (27, "flat.terrain", "Terrain (grass, soil, sand, gravel)."),
-        (28, "static.manmade", "Man-made structures (buildings, walls, poles, etc.)."),
-        (29, "static.other", "Other static objects."),
-        (30, "static.vegetation", "Vegetation (trees, bushes, plants)."),
-        (31, "vehicle.ego", "The ego vehicle."),
+        (0, "noise", "Any lidar return that does not correspond to a physical object, such as dust, vapor, noise, fog, raindrops, smoke and reflections."),
+        (1, "animal", "All animals, e.g. cats, rats, dogs, deer, birds."),
+        (2, "human.pedestrian.adult", "Adult subcategory."),
+        (3, "human.pedestrian.child", "Child subcategory."),
+        (4, "human.pedestrian.construction_worker", "Construction worker"),
+        (5, "human.pedestrian.personal_mobility", "A small electric or self-propelled vehicle, e.g. skateboard, segway, or scooters, on which the person typically travels in a upright position. Driver and (if applicable) rider should be included in the bounding box along with the vehicle."),
+        (6, "human.pedestrian.police_officer", "Police officer."),
+        (7, "human.pedestrian.stroller", "Strollers. If a person is in the stroller, include in the annotation."),
+        (8, "human.pedestrian.wheelchair", "Wheelchairs. If a person is in the wheelchair, include in the annotation."),
+        (9, "movable_object.barrier", "Temporary road barrier placed in the scene in order to redirect traffic. Commonly used at construction sites. This includes concrete barrier, metal barrier and water barrier. No fences."),
+        (10, "movable_object.debris", "Movable object that is left on the driveable surface that is too large to be driven over safely, e.g tree branch, full trash bag etc."),
+        (11, "movable_object.pushable_pullable", "Objects that a pedestrian may push or pull. For example dolleys, wheel barrows, garbage-bins, or shopping carts."),
+        (12, "movable_object.trafficcone", "All types of traffic cone."),
+        (13, "static_object.bicycle_rack", "Area or device intended to park or secure the bicycles in a row. It includes all the bikes parked in it and any empty slots that are intended for parking bikes."),
+        (14, "vehicle.bicycle", "Human or electric powered 2-wheeled vehicle designed to travel at lower speeds either on road surface, sidewalks or bike paths."),
+        (15, "vehicle.bus.bendy", "Bendy bus subcategory. Annotate each section of the bendy bus individually."),
+        (16, "vehicle.bus.rigid", "Rigid bus subcategory."),
+        (17, "vehicle.car", "Vehicle designed primarily for personal use, e.g. sedans, hatch-backs, wagons, vans, mini-vans, SUVs and jeeps. If the vehicle is designed to carry more than 10 people use vehicle.bus. If it is primarily designed to haul cargo use vehicle.truck."),
+        (18, "vehicle.construction", "Vehicles primarily designed for construction. Typically very slow moving or stationary. Cranes and extremities of construction vehicles are only included in annotations if they interfere with traffic. Trucks used to haul rocks or building materials are considered vehicle.truck rather than construction vehicles."),
+        (19, "vehicle.emergency.ambulance", "All types of ambulances."),
+        (20, "vehicle.emergency.police", "All types of police vehicles including police bicycles and motorcycles."),
+        (21, "vehicle.motorcycle", "Gasoline or electric powered 2-wheeled vehicle designed to move rapidly (at the speed of standard cars) on the road surface. This category includes all motorcycles, vespas and scooters."),
+        (22, "vehicle.trailer", "Any vehicle trailer, both for trucks, cars and bikes."),
+        (23, "vehicle.truck", "Vehicles primarily designed to haul cargo including pick-ups, lorrys, trucks and semi-tractors. Trailers hauled after a semi-tractor should be labeled as vehicle.trailer"),
+        (24, "flat.driveable_surface", "All paved or unpaved surfaces that a car can drive on with no concern of traffic rules."),
+        (25, "flat.other", "All other forms of horizontal ground-level structures that do not belong to any of driveable_surface, curb, sidewalk and terrain. Includes elevated parts of traffic islands, delimiters, rail tracks, stairs with at most 3 steps and larger bodies of water (lakes, rivers)."),
+        (26, "flat.sidewalk", "Sidewalk, pedestrian walkways, bike paths, etc. Part of the ground designated for pedestrians or cyclists. Sidewalks do **not** have to be next to a road."),
+        (27, "flat.terrain", "Natural horizontal surfaces such as ground level horizontal vegetation (< 20 cm tall), grass, rolling hills, soil, sand and gravel."),
+        (28, "static.manmade", "Includes man-made structures but not limited to: buildings, walls, guard rails, fences, poles, drainages, hydrants, flags, banners, street signs, electric circuit boxes, traffic lights, parking meters and stairs with more than 3 steps."),
+        (29, "static.other", "Points in the background that are not distinguishable, or objects that do not match any of the above labels."),
+        (30, "static.vegetation", "Any vegetation in the frame that is higher than the ground, including bushes, plants, potted plants, trees, etc. Only tall grass (> 20cm) is part of this, ground level grass is part of `terrain`."),
+        (31, "vehicle.ego", "The vehicle on which the cameras, radar and lidar are mounted, that is sometimes visible at the bottom of the image."),
     ]
     
     # nuScenes 标准属性定义 (name, description)
@@ -1202,14 +1277,14 @@ class NuScenesDumper(DatasetDumper):
         ("default", "Default attribute."),
     ]
     
-    # nuScenes 标准可见性定义 (description, level)
+    
+    # nuScenes 标准可见性定义 ('description', 'token','level')
     NUSCENES_VISIBILITIES = [
-        ("fully_visible", "full"),
-        ("mostly_visible", "most"),
-        ("partly_visible", "part"),
-        ("barely_visible", "bare"),
-        ("not_visible", "none"),
-    ]
+        ("visibility of whole object is between 0 and 40%",    "1",  "v0-40"),
+        ("visibility of whole object is between 40 and 60%",   "2", "v40-60"),
+        ("visibility of whole object is between 60 and 80%",   "3", "v60-80"),
+        ("visibility of whole object is between 80 and 100%",  "4",    "v80-100"),
+    ]    
     
     # CARLA 语义标签到 nuScenes 类别的映射
     CARLA_NUSCENES_MAPPING = {
@@ -1296,6 +1371,11 @@ class NuScenesDumper(DatasetDumper):
         self._prev_can_bus_timestamp: float = 0.0
         self._timestamp_offset: float = 0.0
 
+        self.sensor_tf = self._carla_vehicle.get_sensor_vehicle_rear_wheels_center_tf() # nuscenes车体右手坐标系下的各传感器外参
+        # attribute.name -> token 的缓存，避免每一帧都查数据库
+        self._attribute_token_cache: dict[str, str] = {}
+        self._all_sensors_ready = False  # 所有传感器是否已经至少有一帧数据
+
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self._context.hook_on_tick.remove(self._tick_record_sample)
         result = super().__exit__(exc_type, exc_value, traceback)
@@ -1303,9 +1383,9 @@ class NuScenesDumper(DatasetDumper):
             self._db.close()
         return result
 
-    def _post_init(self) -> Self:
-        super()._post_init()
+    def __post_init__(self) -> Self:
         
+        super().__post_init__()
         self._db = NuScenesDB(db_path=":memory:")
         self.logger.info(f'NuScenes database created (in-memory)')
         
@@ -1340,17 +1420,21 @@ class NuScenesDumper(DatasetDumper):
         self._folder_samples = self._path / self.FOLDER_SAMPLES
         self._folder_sweeps = self._path / self.FOLDER_SWEEPS
         self._folder_maps = self._path / self.FOLDER_MAPS
+        self._folder_lidarseg = self._path / self.FOLDER_LIDARSEG #lidarseg路径
         os.makedirs(self._folder_samples, exist_ok=True)
         os.makedirs(self._folder_sweeps, exist_ok=True)
         os.makedirs(self._folder_maps, exist_ok=True)
-        self.logger.debug(f'Created folders: samples, sweeps, maps')
+        os.makedirs(self._folder_lidarseg, exist_ok=True)
+        self.logger.debug(f'Created folders: samples, sweeps, maps, lidarseg')
         
         # 注册 tick 钩子
         self._context.hook_on_tick.append(self._tick_record_sample)
         
         # 注册 flush 钩子（先恢复缺失的记录，再导出 JSON）
-        self.hook_after_final_flush.append(self._recover_missing_sample_data)
+        # self.hook_after_final_flush.append(self._recover_missing_sample_data)
         self.hook_after_final_flush.append(self._export_json_files)
+        self._hook_after_final_flush.append(self._log_result)
+        
         
         return self
     
@@ -1378,9 +1462,9 @@ class NuScenesDumper(DatasetDumper):
     
     def _setup_db_visibility(self) -> None:
         """初始化 visibility 表，填充 nuScenes 标准可见性定义"""
-        for description, level in self.NUSCENES_VISIBILITIES:
-            token = self._db.add_visibility(description=description, level=level)
-            if description == "fully_visible":
+        for description, token,level in self.NUSCENES_VISIBILITIES:
+            token = self._db.add_visibility(token=token,description=description, level=level)
+            if description == "4":
                 self._default_visibility_token = token
         self.logger.debug(f'Initialized {len(self.NUSCENES_VISIBILITIES)} visibility levels')
         
@@ -1391,6 +1475,48 @@ class NuScenesDumper(DatasetDumper):
             result = self._db._cursor.fetchone()
             if result:
                 self._default_visibility_token = result[0]
+
+    def split_vehicle_sensor(self,name: str) -> Tuple[str, str]:
+        sensors = sorted(set(self._carla_vehicle.VEHICLE_SENSORS), key=len, reverse=True)  # 先匹配最长的，避免前缀冲突
+        for sensor in sensors:
+            suffix = "_" + sensor
+            if name.endswith(suffix):
+                vehicle = name[:-len(suffix)]
+                if not vehicle:
+                    raise ValueError(f"车辆名为空：{name!r}")
+                return sensor
+        raise ValueError(f"无法从字符串识别传感器后缀：{name!r}")
+
+    def _all_sensors_warmed_up(self) -> bool:
+        '''
+        判断所有需要导出的传感器是否至少产出过一帧数据
+        返回 True 之后，就不会再退回 False（用 _all_sensors_ready 记住结果）。
+        '''
+        # 已经确认过一次，就不用每帧都重新扫，提高一点效率
+        if self._all_sensors_ready:
+            return True
+        # 这里定义“哪些传感器必须有数据之后才开始录”
+        # 默认用所有在 self._sensor_tokens 里的传感器
+        required_sensors = list(self._sensor_tokens.keys())
+        for sensor in required_sensors:
+            sensor_folder = self._sensor_folders.get(sensor)
+            if not sensor_folder:
+                # 理论上不会出现，如果出现可以选择直接 return False 或者跳过
+                self.logger.debug(f"[NUSC] Sensor {sensor.name} has no folder configured, treat as not ready.")
+                return False
+            folder_abs = os.path.abspath(sensor_folder)
+            prefix = folder_abs + os.sep
+            # 检查 _dataset 里是否有以该目录开头的 key
+            has_any_data = any(
+                str(path).startswith(prefix) for path in self._data_buffer.keys()
+            )
+            if not has_any_data:
+                # 这个传感器至今一个数据帧都没有
+                return False
+            # 走到这里说明所有 required_sensors 都在 _dataset 里出现过至少一次
+            self._all_sensors_ready = True
+            self.logger.info("[NUSC] All sensors have produced at least one frame. Start recording samples.")
+            return True
 
     def bind_sensor_output(self, sensor: CarlaSensor, path: str | Path | None = None, naming_policy: 'DatasetDumper.NamingPolicy' = None) -> Self:
         """绑定传感器数据输出到内存缓存, 并创建 sensor 和 calibrated_sensor 记录
@@ -1403,17 +1529,21 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             Self: 返回自身
         """
+        sensor_name = self.split_vehicle_sensor(sensor.name)
+        
         if path is None:
             path = sensor.name
         
         samples_folder_path = Path(self.FOLDER_SAMPLES) / path
+        # self.logger.debug(f'Sensor folder path is : {samples_folder_path}')
         folder_path_abs = (self._path / samples_folder_path).resolve()
+        # self.logger.debug(f'folder_path_abs is : {samples_folder_path}')
         
         if naming_policy is None:
             if sensor.is_camera:
                 naming_policy = self.NamingPolicy(extension='jpg')
             elif sensor.is_lidar:
-                naming_policy = self.NamingPolicy(extension='pcd')
+                naming_policy = self.NamingPolicy(extension='bin')
             else:
                 raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
         
@@ -1422,21 +1552,22 @@ class NuScenesDumper(DatasetDumper):
         super().bind_sensor_output(sensor, samples_folder_path, naming_policy)
         
         modality = 'camera' if sensor.is_camera else 'lidar'
-        sensor_token = self._db.add_sensor(channel=sensor.name, modality=modality)
+        sensor_token = self._db.add_sensor(channel=sensor_name, modality=modality)
+        self.logger.debug(f'Sensor created: {sensor_name}')
         self._sensor_tokens[sensor] = sensor_token
-        self.logger.debug(f'Sensor token created for {sensor.name}: {sensor_token}')
+        self.logger.debug(f'Sensor token created for {sensor_name}: {sensor_token}')
         
-        sensor_tf = sensor.tf_now
-        sensor_matrix = np.array(sensor_tf.get_matrix())
-        translation = sensor_matrix[:3, 3].tolist()
-        rotation_matrix = sensor_matrix[:3, :3]
+        # 获取carla传感器到nuscenes车体右手坐标系下lidar(x右, y前, z上) camera(x右, y下, z前)到车体后轮中心（x向前，y向左，z向上）的外参
+        sensor_vehicle_rear_center_matrix_nus = self.sensor_tf[sensor_name]
+        translation = sensor_vehicle_rear_center_matrix_nus[:3, 3].tolist()
+        rotation_matrix = sensor_vehicle_rear_center_matrix_nus[:3, :3]
         rotation_quaternion = self._rotation_matrix_to_quaternion(rotation_matrix)
         rotation = rotation_quaternion.tolist()
-        
+
         camera_intrinsic = []
         if sensor.is_camera:
             K = sensor.get_camera_intrinsics_matrix()
-            camera_intrinsic = K.flatten().tolist()
+            camera_intrinsic = K.tolist()
         
         calibrated_sensor_token = self._db.add_calibrated_sensor(
             sensor_token=sensor_token,
@@ -1494,6 +1625,12 @@ class NuScenesDumper(DatasetDumper):
         Args:
             snapshot (carla.WorldSnapshot): CARLA 世界快照
         """
+        # 在创建 sample 之前检查 sensors 是否已经 warm-up 完成
+        if not self._all_sensors_warmed_up():
+            self.logger.debug(
+            f"[NUSC] Sensors not warmed up yet at frame_counter={self._frame_counter}, "
+            f"skip sample recording for this tick.")
+            return self
         timestamp = self._initialize_timestamp(snapshot)
         if timestamp is None:
             return self
@@ -1593,13 +1730,22 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             str: ego_pose token
         """
-        vehicle_tf = vehicle.tf_now
-        vehicle_matrix = np.array(vehicle_tf.get_matrix())
-        ego_translation = vehicle_matrix[:3, 3].tolist()
-        ego_rotation_matrix = vehicle_matrix[:3, :3]
+        vehicle_tf = vehicle.tf_now # 车辆当前timestamp在地图中的rotation和translation
+        # 获取ego_pose  carla左手坐标系下（x向前，y向右，z向上）
+        vehicle_center_world_matrix_carla = np.array(vehicle_tf.get_matrix())
+        # 获取「车体中心 → 后轮中心」的转换矩阵 (在 CARLA 车体坐标系下)
+        vehicle_to_vehicle_rear_tf_carla = self.sensor_tf["vehicle_to_vehicle_rear"]
+        # 计算「后轮中心 → 车体中心」的逆变换：
+        vehicle_rear_to_vehicle_tf_carla = np.linalg.inv(vehicle_to_vehicle_rear_tf_carla)
+        # 在 CARLA 世界坐标下，计算「后轮中心」的位姿：
+        vehicle_rear_world_matrix_carla = vehicle_center_world_matrix_carla @ vehicle_rear_to_vehicle_tf_carla
+        #  将 CARLA 左手系下的 T_W_R 转换到 nuScenes 右手系：
+        vehicle_rear_world_matrix_nus = self._carla_vehicle.carla_ego_to_nuscenes_ego_extrinsic(vehicle_rear_world_matrix_carla)
+        ego_translation = vehicle_rear_world_matrix_nus[:3, 3].tolist()
+        ego_rotation_matrix = vehicle_rear_world_matrix_nus[:3, :3]
         ego_rotation_quaternion = self._rotation_matrix_to_quaternion(ego_rotation_matrix)
         ego_rotation = ego_rotation_quaternion.tolist()
-        
+
         ego_pose_token = self._db.get_nuscenes_token()
         self._db.add_ego_pose(
             token=ego_pose_token,
@@ -1617,6 +1763,7 @@ class NuScenesDumper(DatasetDumper):
             ego_pose_token (str): ego_pose token
         """
         for sensor in self._sensor_tokens.keys():
+            
             sensor_file_path = self._find_sensor_file_path(sensor)
             if sensor_file_path is None:
                 continue
@@ -1640,25 +1787,32 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             str: 文件路径，如果未找到返回 None
         """
+        # self.logger.debug(f'the keys of self._data_buffer is : {self._data_buffer.keys()}')
+
         sensor_folder = self._sensor_folders.get(sensor)
+        # self.logger.debug(f'Sensor folder is set to: {sensor_folder}')
         naming_policy = self._sensor_naming_policies.get(sensor)
         
         if sensor_folder is None or naming_policy is None:
             return None
-        
-        counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
+        # the original is self._frame_counter
+        counter_str = str(self._frame_counter - 1).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
+        # counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         sensor_file_path = (sensor_folder / f"{counter_str}.{naming_policy.extension}").resolve()
-        
-        if str(sensor_file_path) not in self._data_buffer:
+        # self.logger.debug(f'the sensor_file_path in _find_sensor_file_path is: {type(sensor_file_path)}')
+        # self.logger.debug(f'the self._data_buffer is: {self._data_buffer.keys()}')
+        if sensor_file_path not in self._data_buffer:
             prev_frame_counter = max(0, self._frame_counter - 1)
             prev_counter_str = str(prev_frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
             prev_sensor_file_path = (sensor_folder / f"{prev_counter_str}.{naming_policy.extension}").resolve()
             
-            if str(prev_sensor_file_path) in self._data_buffer:
+            if prev_sensor_file_path in self._data_buffer:
                 sensor_file_path = prev_sensor_file_path
             elif not sensor_file_path.exists():
                 self.logger.debug(f'Sensor {sensor.name} data not found for frame {self._frame_counter}, skipping')
                 return None
+        # else:
+        #     self.logger.debug(f'Sensor {sensor.name} data already exists for frame {self._frame_counter}')
         
         return str(sensor_file_path)
     
@@ -1674,7 +1828,7 @@ class NuScenesDumper(DatasetDumper):
         Returns:
             str: sample_data token
         """
-        fileformat = 'jpg' if sensor.is_camera else 'pcd'
+        fileformat = 'jpg' if sensor.is_camera else 'bin'
         height = 0
         width = 0
         if sensor.is_camera:
@@ -1698,13 +1852,16 @@ class NuScenesDumper(DatasetDumper):
             filename=relative_path,
             prev=prev_sample_data_token
         )
-        
+        # 语义lidar用bin表示
         if sensor.is_lidar and 'semantic' in sensor.bp.id.lower():
-            bin_filename = relative_path.replace('.pcd', '.bin')
+            bin_filename = relative_path.split('/')[-1]
+            # self.logger.debug(f"bin_filename is: {bin_filename}")
+            lidarseg_bin_filename = Path(self.FOLDER_LIDARSEG) / bin_filename
+            # self.logger.debug(f"lidarseg_bin_filename is: {lidarseg_bin_filename}")
             self._db.add_lidarseg(
                 token=sample_data_token,
                 sample_data_token=sample_data_token,
-                filename=bin_filename
+                filename=str(lidarseg_bin_filename)
             )
             self._process_semantic_lidar_annotations(
                 sensor=sensor,
@@ -1765,6 +1922,74 @@ class NuScenesDumper(DatasetDumper):
         except Exception as e:
             self.logger.warning(f'Failed to record CAN bus data: {e}')
     
+    def get_attribute_token(self, name: str) -> str | None:
+        """根据 attribute.name 拿 token，带缓存"""
+        if name in self._attribute_token_cache:
+            return self._attribute_token_cache[name]
+        self._db._cursor.execute('SELECT token FROM attribute WHERE name = ?', (name,))
+        row = self._db._cursor.fetchone()
+        if not row:
+            return None
+        token = row[0]
+        self._attribute_token_cache[name] = token
+        return token
+
+    def carla_lidar_points_nus_lidar(self,points_carla: np.ndarray)-> np.ndarray:
+        '''
+        将点云从 carla 的坐标系转换成 nuscenes 的坐标系
+        carla lidar 坐标系   x向前 y向右 z向上，左手坐标系
+        nuscenes lidar 坐标系  x向右 y向前 z向上，右手坐标系
+        '''
+        assert points_carla.ndim == 2 and points_carla.shape[1] >= 3
+        points_nusc = points_carla.copy()
+        xyz_c = points_carla[:, :3].T # (3,N)
+        # 1 y 取反 （右手系）
+        S = np.array([
+        [1.0,  0.0, 0.0],
+        [0.0, -1.0, 0.0],
+        [0.0,  0.0, 1.0],], dtype=float)
+        # 2  绕 z 轴 +90°（右手系）
+        Rz_90 = np.array([
+        [0.0, -1.0, 0.0],
+        [1.0,  0.0, 0.0],
+        [0.0,  0.0, 1.0],], dtype=float)
+        xyz_step1 = S @ xyz_c          # 先反射
+        xyz_nusc  = Rz_90 @ xyz_step1  # 再旋转
+        points_nusc[:, :3] = xyz_nusc.T
+        return points_nusc
+    
+    def get_actor_info(self,actor: carla.Actor) -> dict:
+        '''
+        利用carla的actor接口获取目标在carla地图的位置，并转化为nuscenes地图坐标系下的位置
+        '''
+        actor_info = {}
+        actor_transform = actor.get_transform()
+        loc = actor_transform.location
+        # self.logger.debug(f"the location of transform is: {loc.x,loc.y,loc.z}")
+        rot = actor_transform.rotation
+        yaw_c = rot.yaw
+        bbox = actor.bounding_box
+        bbox_loc_local = bbox.location
+        bbox_tf_world = actor_transform
+        bbox_center_world = bbox_tf_world.transform(bbox_loc_local)
+        # self.logger.debug(f"the location of bbox is: {bbox.location.x,bbox.location.y,bbox.location.z}")
+        extents = bbox.extent
+        center_translation_nus = [bbox_center_world.x, -bbox_center_world.y, bbox_center_world.z] #  y轴取反
+        w = 2 * extents.y # 左右方向
+        l = 2 * extents.x   # 前后方向
+        h = 2 * extents.z
+        size_nus = [w, l, h]
+        yaw_nu = - np.deg2rad(yaw_c)  # 取反 + 角度转弧度
+        q_nu = Quaternion(axis=[0, 0, 1], angle=yaw_nu)
+        rotation_nu = [q_nu.w, q_nu.x, q_nu.y, q_nu.z]   # 写进 json 的顺序
+        actor_velocity = actor.get_velocity()
+        actor_info["size_nus"] = size_nus
+        actor_info["center_translation_nus"] = center_translation_nus
+        actor_info["rotation_nu"] = rotation_nu
+        actor_info["velocity"] = actor_velocity
+        return actor_info
+
+
     def _process_semantic_lidar_annotations(self, sensor: CarlaSensor, sample_token: str, sample_data_token: str) -> None:
         """处理语义激光雷达数据，创建 instance 和 sample_annotation 记录
         
@@ -1773,98 +1998,94 @@ class NuScenesDumper(DatasetDumper):
             sample_token (str): 当前 sample 的 token
             sample_data_token (str): 当前 sample_data 的 token
         """
-        counter_str = str(self._frame_counter).rjust(6, '0')
-        sensor_file_path = (self._sensor_folders[sensor] / f"{counter_str}.pcd").resolve()
+        counter_str = str(self._frame_counter - 1).rjust(6, '0')
+        # counter_str = str(self._frame_counter).rjust(6, '0')
+        sensor_file_path = (self._sensor_folders[sensor] / f"{counter_str}.bin").resolve()
         
-        if str(sensor_file_path) not in self._data_buffer:
+        if sensor_file_path not in self._data_buffer:
             prev_frame_counter = max(0, self._frame_counter - 1)
             prev_counter_str = str(prev_frame_counter).rjust(6, '0')
-            prev_sensor_file_path = (self._sensor_folders[sensor] / f"{prev_counter_str}.pcd").resolve()
+            prev_sensor_file_path = (self._sensor_folders[sensor] / f"{prev_counter_str}.bin").resolve()
             
-            if str(prev_sensor_file_path) in self._data_buffer:
+            if prev_sensor_file_path in self._data_buffer:
                 sensor_file_path = prev_sensor_file_path
             else:
                 self.logger.debug(f'Semantic lidar data not found for frame {self._frame_counter}, skipping annotation')
                 return
         
-        point_cloud_data = self._data_buffer[str(sensor_file_path)]
-        if not isinstance(point_cloud_data, PointCloud) or point_cloud_data.format != PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
+        point_cloud_data = self._data_buffer[sensor_file_path]
+        if not isinstance(point_cloud_data, PointCloud) or point_cloud_data.format != self._carla_vehicle.POINT_FORMAT:
             return
         
-        points = point_cloud_data.raw
-        object_ids = np.rint(points[:, 5]).astype(np.int32)
-        semantic_tags = np.rint(points[:, 6]).astype(np.int32)
-        
-        unique_object_ids = np.unique(object_ids)
-        unique_object_ids = unique_object_ids[unique_object_ids > 0]
+        points = point_cloud_data.raw.copy() # copy操作，不会更改raw内容
+        object_ids = np.asarray(points[PointCloud.FIELD_OBJECT_ID]) # 目标id
+        semantic_tags = np.asarray(points[PointCloud.FIELD_OBJECT_SEMANTIC_TAG]) # 目标语义标签id     
+        unique_object_ids = np.unique(object_ids) # 得到所有不同的 object id
+        unique_object_ids = unique_object_ids[unique_object_ids > 0] # 过滤掉 <=0 的 id（可能 0 代表背景 / 无效）。
         
         if len(unique_object_ids) == 0:
             return
         
         for object_id in unique_object_ids:
-            object_mask = object_ids == object_id
-            object_points = points[object_mask]
-            object_semantic_tag = int(semantic_tags[object_mask][0])
-            
-            nuscenes_category_id = self.CARLA_NUSCENES_MAPPING.get(object_semantic_tag, 0)
-            
-            self._db._cursor.execute('SELECT token FROM category WHERE seg_index = ?', (nuscenes_category_id,))
-            category_result = self._db._cursor.fetchone()
-            if not category_result:
-                self.logger.warning(f'Category not found for seg_index {nuscenes_category_id}, skipping object {object_id}')
+            actual_actor = self._context.world.get_actor(int(object_id))
+            if actual_actor.type_id == 'vehicle.tesla.model3':
                 continue
-            category_token = category_result[0]
-            
-            if object_id not in self._known_objects:
-                instance_token = self._db.add_instance(category_token=category_token, first_annotation_token=None)
-                self._known_objects[object_id] = instance_token
-            else:
-                instance_token = self._known_objects[object_id]
-            
-            xyz = object_points[:, :3]
-            min_xyz = np.min(xyz, axis=0)
-            max_xyz = np.max(xyz, axis=0)
-            
-            translation = ((min_xyz + max_xyz) / 2.0).tolist()
-            size = (max_xyz - min_xyz).tolist()
-            rotation = [1.0, 0.0, 0.0, 0.0]
-            num_lidar_pts = len(object_points)
-            num_radar_pts = 0
-            visibility_token = self._default_visibility_token
-            
-            attribute_tokens = []
-            # 车辆类别：car (17), motorcycle (21), truck (23)
-            vehicle_category_ids = [17, 21, 23]
-            if nuscenes_category_id in vehicle_category_ids:
-                if self._carla_vehicle and self._carla_vehicle.actor:
-                    try:
-                        velocity = self._carla_vehicle.actor.get_velocity()
-                        speed = np.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
-                        if speed > self.VEHICLE_SPEED_THRESHOLD:
-                            self._db._cursor.execute('SELECT token FROM attribute WHERE name = ?', ('vehicle.moving',))
-                            attr_result = self._db._cursor.fetchone()
-                            if attr_result:
-                                attribute_tokens.append(attr_result[0])
-                    except Exception:
-                        pass
-            
-            if not attribute_tokens:
-                attribute_tokens = [self._default_attribute_token] if self._default_attribute_token else []
-            
-            annotation_token = self._db.get_nuscenes_token()
-            self._db.add_sample_annotation(
-                token=annotation_token,
-                sample_token=sample_token,
-                visibility_token=visibility_token,
-                attribute_tokens=attribute_tokens,
+            if 'vehicle' in actual_actor.type_id or 'box' in actual_actor.type_id:
+                self.logger.debug(f'the actual_actor.type_id is {actual_actor.type_id}')
+                object_mask = object_ids == object_id
+                object_points = points[object_mask]
+                object_semantic_tag = int(semantic_tags[object_mask][0]) 
+                nuscenes_category_id = self.CARLA_NUSCENES_MAPPING.get(object_semantic_tag, 0)
+                self._db._cursor.execute('SELECT token FROM category WHERE "seg_index" = ?', (nuscenes_category_id,))
+                category_result = self._db._cursor.fetchone()
+                if not category_result:
+                    self.logger.warning(f'Category not found for index {nuscenes_category_id}, skipping object {object_id}')
+                    continue
+                category_token = category_result[0]
+                if object_id not in self._known_objects:
+                    instance_token = self._db.add_instance(category_token=category_token, first_annotation_token=None)
+                    self._known_objects[object_id] = instance_token
+                else:
+                    instance_token = self._known_objects[object_id]
+                actor_info = self.get_actor_info(actual_actor)
+                actor_velocity = actor_info['velocity'] # 目标速度
+                # 框内点的个数
+                num_lidar_pts = len(object_points)
+                num_radar_pts = 0
+                # 可视程度
+                visibility_token = '4'
+                #  获取属性（attribute） 基于该 object 自己的速度
+                attribute_tokens = []
+                # 车辆类别：car (17), motorcycle (21), truck (23) 行人类别: rider: pedestrian (1) ,pedestrian:pedestrian
+                vehicle_category_ids = [17, 21, 23]
+                if nuscenes_category_id in vehicle_category_ids:
+                    if actor_velocity.x > self.VEHICLE_SPEED_THRESHOLD or actor_velocity.y > self.VEHICLE_SPEED_THRESHOLD:
+                        token = self.get_attribute_token("vehicle.moving")
+                    else:
+                        token = self.get_attribute_token("vehicle.stopped")
+                    if token:
+                        attribute_tokens.append(token)
+                if not attribute_tokens and self._default_attribute_token:
+                    attribute_tokens = [self._default_attribute_token]
+                # 创建 sample_annotation 记录
+                annotation_token = self._db.get_nuscenes_token()
+                self._db.add_sample_annotation(
+                    token=annotation_token,
+                    sample_token=sample_token,
+                    visibility_token=visibility_token,
+                    attribute_tokens=attribute_tokens,
+                    instance_token=instance_token,
+                    translation=actor_info['center_translation_nus'],
+                    size=actor_info["size_nus"],
+                    rotation=actor_info["rotation_nu"],
+                    num_lidar_pts=num_lidar_pts,
+                    num_radar_pts=num_radar_pts
+                )
+                self._db.update_instance_annotation_links(
                 instance_token=instance_token,
-                translation=translation,
-                size=size,
-                rotation=rotation,
-                num_lidar_pts=num_lidar_pts,
-                num_radar_pts=num_radar_pts
-            )
-        
+                annotation_token=annotation_token,)
+            else:
+                continue
         self.logger.debug(f'Processed {len(unique_object_ids)} objects from semantic lidar data')
 
     def _flush_data(self, data: BaseData, file_path: Path) -> None:
@@ -1882,25 +2103,44 @@ class NuScenesDumper(DatasetDumper):
             return None
         if isinstance(data, PointCloud):
             # nuScenes 使用 .pcd 格式存储点云
-            if file_path.suffix == '.pcd':
+            if file_path.suffix == '.bin':
+                points = data.raw
+                points_x = np.asarray(points[PointCloud.FIELD_X])
+                points_y = np.asarray(points[PointCloud.FIELD_Y])
+                points_z = np.asarray(points[PointCloud.FIELD_Z])
+                points_xyz_carla = np.stack([points_x, points_y, points_z], axis=1)
+                # 将点云从 carla 的坐标系转换成 nuscenes 的坐标系
+                points_xyz_nus = self.carla_lidar_points_nus_lidar(points_xyz_carla)
+                # 确认点数一致
+                assert points_xyz_nus.shape[0] == points.shape[0]
+                points_xyz_nus = points_xyz_nus.astype(points[PointCloud.FIELD_X].dtype, copy=False)
+                # 按字段写回结构化数组
+                points[PointCloud.FIELD_X] = points_xyz_nus[:, 0]
+                points[PointCloud.FIELD_Y] = points_xyz_nus[:, 1]
+                points[PointCloud.FIELD_Z] = points_xyz_nus[:, 2]
                 data.to_file(file_path)
                 
-                if data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
-                    bin_file_path = file_path.with_suffix('.bin')
-                    semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
+                if data.format == self._carla_vehicle.POINT_FORMAT:
+                    
+                    lidarseg_bin_file_name = str(file_path).split('/')[-1]
+                    # self.logger.debug(f'bin_file_name is {lidarseg_bin_file_name}')
+                    lidarseg_bin_file_path = self._folder_lidarseg / Path(lidarseg_bin_file_name)
+                    # self.logger.debug(f'bin_file_path is {lidarseg_bin_file_path}')
+                    # semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
+                    semantic_tags = np.asarray(points[PointCloud.FIELD_OBJECT_SEMANTIC_TAG])
                     mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
                     for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
                         mapped_semantics[semantic_tags == carla_id] = nuscenes_id
-                    mapped_semantics.tofile(str(bin_file_path))
+                    mapped_semantics.tofile(str(lidarseg_bin_file_path))
                 
                 return None
-            if file_path.suffix == '.bin' and data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
-                semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
-                mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
-                for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
-                    mapped_semantics[semantic_tags == carla_id] = nuscenes_id
-                mapped_semantics.tofile(str(file_path))
-                return None
+            # if file_path.suffix == '.bin' and data.format == PointCloud.Format.XYZ_Channel_Agnle_Id_SemTag:
+            #     semantic_tags = np.rint(data.raw[:, 6]).astype(np.int32)
+            #     mapped_semantics = np.zeros_like(semantic_tags, dtype=np.uint8)
+            #     for carla_id, nuscenes_id in self.CARLA_NUSCENES_MAPPING.items():
+            #         mapped_semantics[semantic_tags == carla_id] = nuscenes_id
+            #     mapped_semantics.tofile(str(file_path))
+            #     return None
         raise ValueError(f'Unsupported sensor data type: {type(data)}')
 
     def _export_json_files(self) -> Self:
@@ -1983,7 +2223,7 @@ class NuScenesDumper(DatasetDumper):
         if not calibrated_sensor_token:
             return 0
         
-        expected_extensions = ['.jpg'] if sensor.is_camera else ['.pcd'] if sensor.is_lidar else None
+        expected_extensions = ['.jpg'] if sensor.is_camera else ['.bin'] if sensor.is_lidar else None
         if not expected_extensions:
             return 0
         
@@ -2244,7 +2484,7 @@ class NuScenesDumper(DatasetDumper):
             file_path (Path): 文件绝对路径
             prev_sample_data_token (str): 前一个 sample_data token
         """
-        fileformat = 'jpg' if sensor.is_camera else 'pcd'
+        fileformat = 'jpg' if sensor.is_camera else 'bin'
         height = 0
         width = 0
         if sensor.is_camera:
@@ -2273,8 +2513,8 @@ class NuScenesDumper(DatasetDumper):
         )
         
         if sensor.is_lidar and 'semantic' in sensor.bp.id.lower():
-            bin_filename = relative_path.replace('.pcd', '.bin')
-            bin_file_path = file_path.with_suffix('.bin')
+            bin_filename = relative_path.split('/')[-1]
+            bin_file_path = Path(self.FOLDER_LIDARSEG) / bin_filename
             if bin_file_path.exists():
                 self._db.add_lidarseg(
                     token=sample_data_token,
@@ -2364,7 +2604,9 @@ class NuScenesDumper(DatasetDumper):
         entry_counts = {}
         
         for filename in json_files:
+            # self.logger.debug(f'self._path is {self._path}')
             file_path = self._path / filename
+            # self.logger.debug(f'file_path is {file_path}')
             if not file_path.exists():
                 missing_files.append(filename)
                 continue
@@ -2446,7 +2688,7 @@ class NuScenesDumper(DatasetDumper):
                                 lidar_top_sample_data_count = len([
                                     d for d in sample_data_list
                                     if d.get('calibrated_sensor_token') == calibrated_sensor_token
-                                    and d.get('filename', '').endswith('.pcd')
+                                    and d.get('filename', '').endswith('.bin')
                                 ])
                                 break
                 if lidar_top_sample_data_count > 0:
@@ -2496,12 +2738,13 @@ class NuScenesDumper(DatasetDumper):
     def _validate_sensor_file_counts(self, entry_counts: dict[str, int], sample_data_list: list, warnings: list[str]) -> list[str]:
         """验证传感器文件数量"""
         for sensor in self._sensor_tokens.keys():
+            self.logger.debug(f"the sensor in _validate_sensor_file_counts is {sensor}")
             sensor_folder = self._sensor_folders.get(sensor)
             if not (sensor_folder and os.path.exists(sensor_folder)):
                 continue
             
             folder_name = sensor_folder.name
-            expected_extensions = ['.jpg'] if sensor.is_camera else ['.pcd'] if sensor.is_lidar else None
+            expected_extensions = ['.jpg'] if sensor.is_camera else ['.bin'] if sensor.is_lidar else None
             
             if expected_extensions:
                 actual_files = [f.name for f in sensor_folder.iterdir()

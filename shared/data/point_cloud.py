@@ -214,9 +214,29 @@ class PointCloud(SimulatorOutput):
                     self._raw[self.FIELD_Z]
                 ])
                 np.savez(file_path, points=xyz)
+        elif file_path.suffix == '.bin':
+            self.to_pcdbin(file_path)
         else:
             raise ValueError(f'Unsupported file extension: {file_path}')
         return self
+
+    def to_pcdbin(self,file_path) -> None:
+        '''
+         将点云数据写为bin文件格式
+        '''
+        points = self.raw.copy()
+        points_x = np.asarray(points[PointCloud.FIELD_X])
+        points_y = np.asarray(points[PointCloud.FIELD_Y])
+        points_z = np.asarray(points[PointCloud.FIELD_Z])
+        points_cos = np.asarray(points[PointCloud.FIELD_COS_INC_ANGLE])
+        points_save = np.stack([points_x, points_y, points_z,points_cos,points_cos], axis=1)  
+         # 1) 基本检查：至少要有 XYZ，且我们需要前 5 列
+        if points_save.ndim != 2 or points_save.shape[1] < 5:
+            raise ValueError('PCD BIN export requires at least 5 columns: x, y, z, channel_col, cos_inc_angle')
+        # 2) 确保是我们期望的格式：
+        points_5 = points_save.copy() # (N,5)
+        with open(file_path, "wb") as f:
+            points_5.tofile(f)
 
     def to_pcd(self, *, include_extra_fields: bool = False) -> str:
         # 确定要导出的字段
