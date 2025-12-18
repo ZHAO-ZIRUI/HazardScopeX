@@ -1427,7 +1427,7 @@ class NuScenesDumper(DatasetDumper):
         self.logger.debug(f'Created folders: samples, sweeps, maps, lidarseg')
         
         # 注册 tick 钩子
-        self._context.hook_on_tick.append(self._tick_record_sample)
+        self._append_hook_befre_next_tick(self._tick_record_sample)
         
         # 注册 flush 钩子（先恢复缺失的记录，再导出 JSON）
         # self.hook_after_final_flush.append(self._recover_missing_sample_data)
