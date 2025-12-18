@@ -12,7 +12,7 @@ from typing_extensions import Self
 
 from pyquaternion import Quaternion
 from shared.dataset import DatasetDumper
-from shared.simulator import CarlaSensor, CarlaContext
+from shared.simulator import CarlaSensor, CarlaContext, CarlaVehicle
 from shared.data import BaseData, Image, PointCloud
 from shared.utils import PostInitMeta
 
@@ -159,7 +159,7 @@ class NuScenesDumper(DatasetDumper):
         location: str = 'UNKNOWN',
         map_category: str = 'semantic_prior',
         map_filename: str = 'maps/sample.png',
-        carla_vehicle = None  # CarlaVehicle 实例，用于获取 CAN bus 数据
+        ego_vehicle: CarlaVehicle | None = None
     ):
         """初始化 NuScenes 数据集导出器
 
@@ -171,12 +171,13 @@ class NuScenesDumper(DatasetDumper):
             location (str, optional): 数据采集地点描述, 如: 'singapore-onenorth'. 默认为 'UNKNOWN'.
             map_category (str, optional): 地图分类描述, 如: 'semantic_prior'. 默认为 'semantic_prior'.
             map_filename (str, optional): 地图文件名, 如: 'maps/sample.png'. 默认为 'maps/sample.png'.
+            ego_vehicle (CarlaVehicle | None, optional):  ego 车辆实例，用于获取 CAN bus 数据. 默认为 None.
         """
         self._vehicle = vehicle
         self._location = location
         self._map_category = map_category
         self._map_filename = map_filename
-        self._carla_vehicle = carla_vehicle  # CarlaVehicle 实例，用于获取 CAN bus 数据
+        self._ego_vehicle = ego_vehicle  # CarlaVehicle 实例，用于获取 CAN bus 数据
         
         super().__init__(
             context=context,
@@ -200,7 +201,7 @@ class NuScenesDumper(DatasetDumper):
         self._prev_can_bus_timestamp: float = 0.0
         self._timestamp_offset: float = 0.0
 
-        self.sensor_tf = self._carla_vehicle.get_sensor_vehicle_rear_wheels_center_tf() # nuscenes车体右手坐标系下的各传感器外参
+        self.sensor_tf = self._ego_vehicle.get_sensor_vehicle_rear_wheels_center_tf() # nuscenes车体右手坐标系下的各传感器外参
         # attribute.name -> token 的缓存，避免每一帧都查数据库
         self._attribute_token_cache: dict[str, str] = {}
         self._all_sensors_ready = False  # 所有传感器是否已经至少有一帧数据
@@ -361,7 +362,7 @@ class NuScenesDumper(DatasetDumper):
                 points[PointCloud.FIELD_Z] = points_xyz_nus[:, 2]
                 data.to_file(file_path)
                 
-                if data.format == self._carla_vehicle.POINT_FORMAT:
+                if data.format == self._ego_vehicle.POINT_FORMAT:
                     
                     lidarseg_bin_file_name = str(file_path).split('/')[-1]
                     lidarseg_bin_file_path = self._folder_lidarseg / Path(lidarseg_bin_file_name)
@@ -428,7 +429,7 @@ class NuScenesDumper(DatasetDumper):
                 self._default_visibility_token = result[0]
 
     def _split_vehicle_sensor(self,name: str) -> Tuple[str, str]:
-        sensors = sorted(set(self._carla_vehicle.VEHICLE_SENSORS), key=len, reverse=True)  # 先匹配最长的，避免前缀冲突
+        sensors = sorted(set(self._ego_vehicle.VEHICLE_SENSORS), key=len, reverse=True)  # 先匹配最长的，避免前缀冲突
         for sensor in sensors:
             suffix = "_" + sensor
             if name.endswith(suffix):
@@ -500,7 +501,7 @@ class NuScenesDumper(DatasetDumper):
         self._record_sensor_sample_data(timestamp, current_ego_pose_token)
         self._prev_sample_token = self._current_sample_token
         
-        if self._carla_vehicle and self._carla_vehicle.actor:
+        if self._ego_vehicle and self._ego_vehicle.actor:
             self._record_can_bus_data(timestamp)
         
         return self
@@ -595,7 +596,7 @@ class NuScenesDumper(DatasetDumper):
         # 在 CARLA 世界坐标下，计算「后轮中心」的位姿：
         vehicle_rear_world_matrix_carla = vehicle_center_world_matrix_carla @ vehicle_rear_to_vehicle_tf_carla
         #  将 CARLA 左手系下的 T_W_R 转换到 nuScenes 右手系：
-        vehicle_rear_world_matrix_nus = self._carla_vehicle.carla_ego_to_nuscenes_ego_extrinsic(vehicle_rear_world_matrix_carla)
+        vehicle_rear_world_matrix_nus = self._ego_vehicle.carla_ego_to_nuscenes_ego_extrinsic(vehicle_rear_world_matrix_carla)
         ego_translation = vehicle_rear_world_matrix_nus[:3, 3].tolist()
         ego_rotation_matrix = vehicle_rear_world_matrix_nus[:3, :3]
         ego_rotation_quaternion = self._rotation_matrix_to_quaternion(ego_rotation_matrix)
@@ -721,12 +722,12 @@ class NuScenesDumper(DatasetDumper):
         Args:
             timestamp (float): 当前时间戳
         """
-        if not (self._carla_vehicle and self._carla_vehicle.actor):
+        if not (self._ego_vehicle and self._ego_vehicle.actor):
             return
         
         try:
-            velocity = self._carla_vehicle.actor.get_velocity()
-            angular_velocity = self._carla_vehicle.actor.get_angular_velocity()
+            velocity = self._ego_vehicle.actor.get_velocity()
+            angular_velocity = self._ego_vehicle.actor.get_angular_velocity()
             
             vel = [velocity.x, -velocity.y, velocity.z]
             rotation_rate = [angular_velocity.x, -angular_velocity.y, angular_velocity.z]
@@ -753,7 +754,7 @@ class NuScenesDumper(DatasetDumper):
                 rotation_rate=rotation_rate
             )
             
-            control = self._carla_vehicle.actor.get_control()
+            control = self._ego_vehicle.actor.get_control()
             steer_angle = control.steer if hasattr(control, 'steer') else 0.0
             steer_angle_deg = max(self.STEER_ANGLE_MIN, min(self.STEER_ANGLE_MAX, steer_angle * self.STEER_ANGLE_MULTIPLIER))
             
@@ -855,7 +856,7 @@ class NuScenesDumper(DatasetDumper):
                 return
         
         point_cloud_data = self._data_buffer[sensor_file_path]
-        if not isinstance(point_cloud_data, PointCloud) or point_cloud_data.format != self._carla_vehicle.POINT_FORMAT:
+        if not isinstance(point_cloud_data, PointCloud) or point_cloud_data.format != self._ego_vehicle.POINT_FORMAT:
             return
         
         points = point_cloud_data.raw.copy() # copy操作，不会更改raw内容
