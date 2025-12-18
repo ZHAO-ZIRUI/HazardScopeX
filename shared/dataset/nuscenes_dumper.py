@@ -1761,8 +1761,6 @@ class NuScenesDumper(DatasetDumper):
         
         if sensor_folder is None or naming_policy is None:
             return None
-        # the original is self._frame_counter
-        # counter_str = str(self._frame_counter - 1).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         sensor_file_path = (sensor_folder / f"{counter_str}.{naming_policy.extension}").resolve()
         if sensor_file_path not in self._data_buffer:
@@ -1956,7 +1954,6 @@ class NuScenesDumper(DatasetDumper):
             sample_token (str): 当前 sample 的 token
             sample_data_token (str): 当前 sample_data 的 token
         """
-        # counter_str = str(self._frame_counter - 1).rjust(6, '0')
         counter_str = str(self._frame_counter).rjust(6, '0')
         sensor_file_path = (self._sensor_folders[sensor] / f"{counter_str}.bin").resolve()
         
