@@ -1402,7 +1402,11 @@ class NuScenesDumper(DatasetDumper):
         
         # 注册 flush 钩子（先恢复缺失的记录，再导出 JSON）
         self.hook_after_final_flush.append(self._export_json_files)
-        self._hook_after_final_flush.append(self._log_result)
+
+        # 确保 _log_result 在最后执行
+        if self._log_result in self._hook_after_final_flush:
+            self._hook_after_final_flush.remove(self._log_result)
+            self._hook_after_final_flush.append(self._log_result)
         
         
         return self
