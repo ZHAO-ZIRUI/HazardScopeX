@@ -1628,11 +1628,11 @@ class NuScenesDumper(DatasetDumper):
         if self._frame_counter == 0:
             return self
         # 在创建 sample 之前检查 sensors 是否已经 warm-up 完成
-        if not self._all_sensors_warmed_up():
-            self.logger.debug(
-            f"[NUSC] Sensors not warmed up yet at frame_counter={self._frame_counter}, "
-            f"skip sample recording for this tick.")
-            return self
+        # if not self._all_sensors_warmed_up():
+        #     self.logger.debug(
+        #     f"[NUSC] Sensors not warmed up yet at frame_counter={self._frame_counter}, "
+        #     f"skip sample recording for this tick.")
+        #     return self
         timestamp = self._initialize_timestamp(snapshot)
         if timestamp is None:
             return self
@@ -1798,8 +1798,8 @@ class NuScenesDumper(DatasetDumper):
         if sensor_folder is None or naming_policy is None:
             return None
         # the original is self._frame_counter
-        counter_str = str(self._frame_counter - 1).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
-        # counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
+        # counter_str = str(self._frame_counter - 1).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
+        counter_str = str(self._frame_counter).rjust(naming_policy.zfill_length, naming_policy.zfill_char)
         sensor_file_path = (sensor_folder / f"{counter_str}.{naming_policy.extension}").resolve()
         # self.logger.debug(f'the sensor_file_path in _find_sensor_file_path is: {type(sensor_file_path)}')
         # self.logger.debug(f'the self._data_buffer is: {self._data_buffer.keys()}')
@@ -2000,8 +2000,8 @@ class NuScenesDumper(DatasetDumper):
             sample_token (str): 当前 sample 的 token
             sample_data_token (str): 当前 sample_data 的 token
         """
-        counter_str = str(self._frame_counter - 1).rjust(6, '0')
-        # counter_str = str(self._frame_counter).rjust(6, '0')
+        # counter_str = str(self._frame_counter - 1).rjust(6, '0')
+        counter_str = str(self._frame_counter).rjust(6, '0')
         sensor_file_path = (self._sensor_folders[sensor] / f"{counter_str}.bin").resolve()
         
         if sensor_file_path not in self._data_buffer:
