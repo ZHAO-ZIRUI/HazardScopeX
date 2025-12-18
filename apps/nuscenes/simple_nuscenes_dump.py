@@ -10,11 +10,45 @@ if __name__ == "__main__":
     logger = Logging.from_config(config).get_logger('Main') # 设置日志记录器
 
     with CarlaContext.from_config(config) as context:
-        vehicle = NuScenesVehicle(context, context.spawn_points[0])
+        vehicle = NuScenesVehicle(context, context.spawn_points[93])
+
+        v1 = context.actors.create_vehicle(
+            bp=CarlaBlueprints.VEHICLE_AUDI_A2,
+            tf=context.spawn_points[53],
+        )
+        v2 = context.actors.create_vehicle(
+            bp=CarlaBlueprints.VEHICLE_BMW_GRANDTOURER,
+            tf=context.spawn_points[101],
+        )
+        v3 = context.actors.create_vehicle(
+            bp=CarlaBlueprints.VEHICLE_CARLAMOTORS_FIRETRUCK,
+            tf=context.spawn_points[55],
+        )
+
+        v4 = context.actors.create_vehicle(
+            bp=CarlaBlueprints.VEHICLE_CARLAMOTORS_FIRETRUCK,
+            tf=context.spawn_points[57],
+        )
+
+        v5 = context.actors.create_vehicle(
+            bp=CarlaBlueprints.VEHICLE_CARLAMOTORS_FIRETRUCK,
+            tf=context.spawn_points[119],
+        )
+
+        v6 = context.actors.create_vehicle(
+            bp=CarlaBlueprints.VEHICLE_CARLAMOTORS_FIRETRUCK,
+            tf=context.spawn_points[59],
+        )
 
         context.actors.spawn_all()
         context.actors.wait_stable()
 
+        v1.set_carla_autopilot(enable=True)
+        v2.set_carla_autopilot(enable=True)
+        v3.set_carla_autopilot(enable=True)
+        v4.set_carla_autopilot(enable=True)
+        v5.set_carla_autopilot(enable=True)
+        v6.set_carla_autopilot(enable=True)
         vehicle.set_carla_autopilot(enable=True)
 
         with NuScenesDumper(context, './export', carla_vehicle=vehicle) as dumper:
