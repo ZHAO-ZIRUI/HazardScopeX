@@ -281,7 +281,13 @@ class CarlaContext:
         self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.info('CARLA server is available now')
 
-    def tick(self, *, force: bool = False):
+    def tick(
+        self, 
+        *, 
+        force: bool = False,
+        no_hook_before_next_tick: bool = False,
+        no_hook_on_tick: bool = False,
+    ):
         """手动 Tick 服务端, 在此处应用 TickBlocker """
         time_begin = time.perf_counter()
 
@@ -325,8 +331,9 @@ class CarlaContext:
                 blocker.set()
 
         # 执行钩子
-        for hook in self._hook_on_tick:
-            hook(self.world.get_snapshot())
+        if not no_hook_on_tick:
+            for hook in self._hook_on_tick:
+                hook(self.world.get_snapshot())
 
     def spin(self):
         """自动 Tick 服务端"""
@@ -349,7 +356,9 @@ class CarlaContext:
         seconds: float, 
         *, 
         force: bool = False, 
-        no_log: bool = False, 
+        no_log: bool = False,
+        no_hook_before_next_tick: bool = False,
+        no_hook_on_tick: bool = False,
         raise_interrupted: bool = False,
     ):
         """等待指定秒数
@@ -364,7 +373,7 @@ class CarlaContext:
             self.logger.info(f'Waiting {seconds} seconds ...')
         begin = time.perf_counter()
         while time.perf_counter() - begin < seconds:
-            self.tick(force=force)
+            self.tick(force=force, no_hook_before_next_tick=no_hook_before_next_tick, no_hook_on_tick=no_hook_on_tick)
             try:
                 time.sleep(self._calc_tick_wait_time())
             except KeyboardInterrupt as e:
@@ -383,6 +392,8 @@ class CarlaContext:
         *,
         force: bool = False,
         no_log: bool = False,
+        no_hook_before_next_tick: bool = False,
+        no_hook_on_tick: bool = False,
         raise_interrupted: bool = False,
     ):
         """等待指定帧数
@@ -397,7 +408,7 @@ class CarlaContext:
             self.logger.info(f'Waiting {ticks} ticks ...')
         tick_counter = 0
         while tick_counter < ticks:
-            self.tick(force=force)
+            self.tick(force=force, no_hook_before_next_tick=no_hook_before_next_tick, no_hook_on_tick=no_hook_on_tick)
             tick_counter += 1
             try:
                 time.sleep(self._calc_tick_wait_time())
