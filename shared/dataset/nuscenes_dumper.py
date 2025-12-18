@@ -1625,6 +1625,8 @@ class NuScenesDumper(DatasetDumper):
         Args:
             snapshot (carla.WorldSnapshot): CARLA 世界快照
         """
+        if self._frame_counter == 0:
+            return self
         # 在创建 sample 之前检查 sensors 是否已经 warm-up 完成
         if not self._all_sensors_warmed_up():
             self.logger.debug(
