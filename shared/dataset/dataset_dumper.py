@@ -98,12 +98,8 @@ class DatasetDumper(metaclass=PostInitMeta):
         return memory_usage < self._context.configs.dataset.safe_memory_usage_threshold
 
     def close(self) -> None:
-        # 移除传感器钩子
-        # 先移除传感器钩子以避免额外一次的写入
-        for sensor, hook in self._cached_sensor_hooks.items():
-            sensor.hook_sensor_data_ready.remove(hook)
-        self._cached_sensor_hooks.clear()
-
+        # 在最后一次 tick 后移除传感器钩子, 以避免额外一次的写入, 或者过早的移除钩子导致数据丢失
+        self._append_hook_befre_next_tick(self._remove_sensor_hooks)
         # 执行最终写入
         self.flush(final=True)
 
@@ -311,6 +307,13 @@ class DatasetDumper(metaclass=PostInitMeta):
             self.logger.warning(f'Memory usage is too high: {psutil.virtual_memory().percent:.2f}%, flushing dataset to disk immediately')
             self.flush(final=False)
         return self
+
+    def _remove_sensor_hooks(self, _) -> None:
+        """移除传感器钩子"""
+        for sensor, hook in self._cached_sensor_hooks.items():
+            sensor.hook_sensor_data_ready.remove(hook)
+        self._cached_sensor_hooks.clear()
+        return None
 
     @property
     def hook_after_final_flush(self) -> list[Callable[[], None]]:
