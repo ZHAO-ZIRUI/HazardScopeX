@@ -1193,7 +1193,7 @@ class NuScenesDumper(DatasetDumper):
     导出为 NuScenes 数据集格式
     """
 
-    DATASET_CLASS = 'nuScenes'
+    DATASET_TYPE = 'nuScenes'
     
     # 文件夹名称
     FOLDER_SAMPLES = 'samples'
