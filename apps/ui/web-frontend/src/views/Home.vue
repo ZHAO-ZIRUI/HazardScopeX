@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import MainMenuTop from '@/views/home/MainMenuTop.vue';
-import MainMenuBottom from '@/views/home/MainMenuBottom.vue';
+import HomeMenuTop from '@/views/home/HomeMenuTop.vue';
+import HomeMenuBottom from '@/views/home/HomeMenuBottom.vue';
 </script>
   
 <template>
   <div class="layout-root-container">
-    <MainMenuTop />
+    <HomeMenuTop />
     <div class="layout-main-container">
       <div class="layout-main-container left-sidebar">Left Sidebar</div>
       <div class="layout-main-container content">
@@ -13,7 +13,7 @@ import MainMenuBottom from '@/views/home/MainMenuBottom.vue';
       </div>
       <div class="layout-main-container right-sidebar">Right Sidebar</div>
     </div>
-    <MainMenuBottom />
+    <HomeMenuBottom />
   </div>
 </template>
 
