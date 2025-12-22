@@ -128,8 +128,9 @@ const updateWeightsForToggle = () => {
         newWeights[index] = COLLAPSED_WEIGHT;
     });
     
-    // 处理展开的容器
+    // 如果所有容器都折叠了，将所有权重设置为折叠权重并返回
     if (openIndices.length === 0) {
+        weights.value = newWeights;
         return;
     }
     
@@ -279,7 +280,9 @@ onBeforeUnmount(() => {
             :key="index"
             class="resizable-container-item"
             :style="{ 
-                flex: weights[index] ?? getWeight(vnode),
+                flex: weights[index] != null 
+                    ? (weights[index] <= COLLAPSED_WEIGHT ? '0 0 auto' : weights[index])
+                    : getWeight(vnode),
                 transition: dragState ? 'none' : `flex ${TRANSITION_DURATION} ease-out`
             }"
         >
@@ -308,6 +311,7 @@ onBeforeUnmount(() => {
 .resizable-container.column {
   flex-direction: column;
   height: 100%;
+  align-items: stretch;
 }
 
 .resizable-container-item {
