@@ -2,6 +2,7 @@
 :root {
   --color-background: rgb(0, 0, 0);
   --color-text: rgb(255, 255, 255);
+  --color-text-secondary: rgb(144, 144, 144);
 
   --color-layout-border: rgb(70, 70, 70);
   --section-gap: 160px;
