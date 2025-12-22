@@ -15,5 +15,6 @@ import MenuItem from '../menu/MenuItem.vue';
 .bottom{
   padding-left: 0px !important;
   background-color: brown;
+  border-top: 1px solid var(--color-menu-border);
 }
 </style>

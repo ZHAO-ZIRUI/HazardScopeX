@@ -5,7 +5,7 @@
   --color-menu-background-hover: rgb(100, 100, 100);
   --color-menu-text: rgb(255, 255, 255);
   --color-menu-text-divider: rgb(144, 144, 144);
-  --color-menu-border: rgb(100, 100, 100);
+  --color-menu-border: var(--color-layout-border);
 
   --layout-menu-item-padding-x: 8px;
   --layout-submenu-width: 200px;

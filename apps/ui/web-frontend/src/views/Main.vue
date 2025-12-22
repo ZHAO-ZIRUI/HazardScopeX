@@ -31,16 +31,18 @@ import MainMenuBottom from '../components/layout/MainMenuBottom.vue';
 
 .layout-main-container.left-sidebar {
   flex: 1;
-  background-color: rgb(141, 90, 134);
+  border-right: 1px solid var(--color-layout-border);
+  /* background-color: rgb(141, 90, 134); */
 }
 
 .layout-main-container.content {
   flex: 4;
-  background-color: rgb(125, 137, 131);
+  /* background-color: rgb(125, 137, 131); */
 }
 
 .layout-main-container.right-sidebar {
   flex: 1;
-  background-color: rgb(109, 180, 144);
+  border-left: 1px solid var(--color-layout-border);
+  /* background-color: rgb(109, 180, 144); */
 }
 </style>
