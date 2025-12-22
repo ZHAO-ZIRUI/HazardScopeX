@@ -28,4 +28,8 @@ import MenuItem from '../menu/MenuItem.vue';
   flex: 1;
 }
 
+.top {
+  border-bottom: 1px solid var(--color-menu-border);
+}
+
 </style>
