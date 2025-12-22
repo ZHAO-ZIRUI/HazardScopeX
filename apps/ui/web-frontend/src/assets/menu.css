@@ -1,0 +1,62 @@
+@import './base.css';
+
+.menu {  
+  --color-menu-background: rgb(50, 50, 50);
+  --color-menu-background-hover: rgb(100, 100, 100);
+  --color-menu-text: rgb(255, 255, 255);
+  --color-menu-text-divider: rgb(144, 144, 144);
+
+  --layout-menu-item-padding-x: 8px;
+  --layout-submenu-width: 200px;
+  --layout-submenu-padding-y: 8px;
+
+  background-color: var(--color-menu-background);
+  display: flex;
+}
+
+.menu.container {
+  padding-left: var(--layout-menu-padding-x);
+  padding-right: var(--layout-menu-padding-x);
+}
+
+.menu.menu-item {
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-menu-background-hover);
+  }
+}
+
+.menu.menu-group .menu-item {
+  padding-left: var(--layout-menu-item-padding-x);
+  padding-right: var(--layout-menu-item-padding-x);
+
+  &.active {
+    background-color: var(--color-menu-background-hover);
+  }
+}
+
+.menu .menu-group-items {
+  width: var(--layout-submenu-width);
+  padding-top: var(--layout-submenu-padding-y);
+  padding-bottom: var(--layout-submenu-padding-y);
+  background-color: var(--color-menu-background);
+}
+
+
+.menu.menu-item.is-divider {
+  cursor: default;
+
+  &:hover {
+    background-color: var(--color-menu-background);
+  }
+}
+
+.menu.menu-item.is-divider::before {
+  content: '';
+  display: block;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  width: 100%;
+  border-bottom: 1px solid var(--color-menu-text-divider);
+}
