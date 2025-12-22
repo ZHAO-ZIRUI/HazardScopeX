@@ -1,17 +1,24 @@
 <script setup lang="ts">
 import HomeMenuTop from '@/views/home/HomeMenuTop.vue';
 import HomeMenuBottom from '@/views/home/HomeMenuBottom.vue';
+import HomeJobSidebar from '@/views/home/HomeJobSidebar.vue';
+import HomePropsSidebar from '@/views/home/HomePropsSidebar.vue';
+import HomeFlow from '@/views/home/HomeFlow.vue';
 </script>
   
 <template>
   <div class="layout-root-container">
     <HomeMenuTop />
     <div class="layout-main-container">
-      <div class="layout-main-container left-sidebar">Left Sidebar</div>
-      <div class="layout-main-container content">
-        <Flow />
+      <div class="layout-main-container left-sidebar">
+        <HomeJobSidebar />
       </div>
-      <div class="layout-main-container right-sidebar">Right Sidebar</div>
+      <div class="layout-main-container content">
+        <HomeFlow />
+      </div>
+      <div class="layout-main-container right-sidebar">
+        <HomePropsSidebar />
+      </div>
     </div>
     <HomeMenuBottom />
   </div>
