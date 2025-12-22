@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import MenuContainer from '../menu/MenuContainer.vue';
-import MenuItem from '../menu/MenuItem.vue';
+import MenuContainer from '@/components/menu/MenuContainer.vue';
 
 </script>
 <template>
@@ -10,7 +9,7 @@ import MenuItem from '../menu/MenuItem.vue';
 </template>
 
 <style scoped>
-@import '../../assets/menu.css';
+@import '@/assets/menu.css';
 
 .bottom{
   padding-left: 0px !important;

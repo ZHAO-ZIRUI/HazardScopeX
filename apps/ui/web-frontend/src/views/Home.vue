@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import MainMenuTop from '../components/layout/MainMenuTop.vue';
-import MainMenuBottom from '../components/layout/MainMenuBottom.vue';
+import MainMenuTop from '@/views/home/MainMenuTop.vue';
+import MainMenuBottom from '@/views/home/MainMenuBottom.vue';
 </script>
   
 <template>
@@ -8,7 +8,9 @@ import MainMenuBottom from '../components/layout/MainMenuBottom.vue';
     <MainMenuTop />
     <div class="layout-main-container">
       <div class="layout-main-container left-sidebar">Left Sidebar</div>
-      <div class="layout-main-container content">Main Content</div>
+      <div class="layout-main-container content">
+        <Flow />
+      </div>
       <div class="layout-main-container right-sidebar">Right Sidebar</div>
     </div>
     <MainMenuBottom />

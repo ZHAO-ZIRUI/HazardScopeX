@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, provide, ref } from 'vue';
-import type { MenuGroupId, MenuContext } from './menu.ts';
+import type { MenuGroupId, MenuContext } from '@/components/menu/menu.ts';
 
 const activeGroupId = ref<MenuGroupId | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
@@ -49,5 +49,5 @@ onBeforeUnmount(() => {
   </div>
 </template>
 <style scoped>
-@import '../../assets/menu.css';
+@import '@/assets/menu.css';
 </style>

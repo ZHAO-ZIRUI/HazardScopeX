@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import IconTextLogo from '../icons/IconTextLogo.vue';
-import MenuContainer from '../menu/MenuContainer.vue';
-import MenuGroup from '../menu/MenuGroup.vue';
-import MenuItem from '../menu/MenuItem.vue';
+import IconTextLogo from '@/components/icons/IconTextLogo.vue';
+import MenuContainer from '@/components/menu/MenuContainer.vue';
+import MenuGroup from '@/components/menu/MenuGroup.vue';
+import MenuItem from '@/components/menu/MenuItem.vue';
 </script>
 <template>
   <MenuContainer class="top">
@@ -22,7 +22,7 @@ import MenuItem from '../menu/MenuItem.vue';
 </template>
 
 <style scoped>
-@import '../../assets/menu.css';
+@import '@/assets/menu.css';
 
 .logo {
   flex: 1;

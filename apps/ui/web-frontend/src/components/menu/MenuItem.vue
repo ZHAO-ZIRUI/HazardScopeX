@@ -11,5 +11,5 @@ const props = defineProps<MenuItemProps>();
   </div>
 </template>
 <style scoped>
-@import '../../assets/menu.css';
+@import '@/assets/menu.css';
 </style>

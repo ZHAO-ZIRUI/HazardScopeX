@@ -2,9 +2,9 @@ import './assets/main.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import MainView from './views/Main.vue'
+import HomeView from './views/Home.vue'
 
-const app = createApp(MainView)
+const app = createApp(HomeView)
 
 app.use(createPinia())
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
-import type { MenuGroupId, MenuContext } from './menu.ts';
+import type { MenuGroupId, MenuContext } from '@/components/menu/menu.ts';
 
 interface MenuGroupProps {
   name: string;
@@ -35,7 +35,7 @@ const handleToggle = () => {
   </div>
 </template>
 <style scoped>
-@import '../../assets/menu.css';
+@import '@/assets/menu.css';
 
 .menu-group.menu-item {
   cursor: pointer;
