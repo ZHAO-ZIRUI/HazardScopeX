@@ -6,8 +6,10 @@ import MainMenuBottom from '../components/layout/MainMenuBottom.vue';
 <template>
   <div class="layout-root-container">
     <MainMenuTop />
-    <div class="main-content">
-      <p>Main Content</p>
+    <div class="layout-main-container">
+      <div class="layout-main-container sidebar">Left Sidebar</div>
+      <div class="layout-main-container content">Main Content</div>
+      <div class="layout-main-container sidebar">Right Sidebar</div>
     </div>
     <MainMenuBottom />
   </div>
@@ -20,8 +22,25 @@ import MainMenuBottom from '../components/layout/MainMenuBottom.vue';
   height: 100vh;
 }
 
-.main-content {
+.layout-main-container {
   flex: 1;
   overflow: auto;
+  display: flex;
+  flex-direction: row;
+}
+
+.layout-main-container.left-sidebar {
+  flex: 1;
+  background-color: rgb(125, 137, 131);
+}
+
+.layout-main-container.content {
+  flex: 4;
+  background-color: rgb(125, 137, 131);
+}
+
+.layout-main-container.right-sidebar {
+  flex: 1;
+  background-color: rgb(125, 137, 131);
 }
 </style>
