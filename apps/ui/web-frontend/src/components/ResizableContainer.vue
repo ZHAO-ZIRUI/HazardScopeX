@@ -114,11 +114,6 @@ const updateWeightsForToggle = () => {
         (isOpen ? openIndices : closedIndices).push(index);
     });
     
-    // 如果没有折叠的容器，保持当前权重不变
-    if (closedIndices.length === 0) {
-        return;
-    }
-    
     const newWeights = [...weights.value];
     const reasonableInitialWeight = calculateReasonableWeight(items.value.length);
     
