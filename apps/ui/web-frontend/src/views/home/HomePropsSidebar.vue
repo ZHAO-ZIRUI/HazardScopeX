@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import ResizableContainer from '@/components/ResizableContainer.vue';
 import ToggleContainer from '@/components/ToggleContainer.vue';
+import InfoListItem from '@/components/InfoListItem.vue';
 </script>
 <template>
   <div class="home-props-sidebar">
     <ResizableContainer direction="column">
       <ToggleContainer name="NODE">
-        <div>ITEM 1</div>
-        <div>ITEM 2</div>
+        <InfoListItem name="NAME" value="Node 1" />
+        <InfoListItem name="TYPE" value="Node 2" />
       </ToggleContainer>
       <ToggleContainer name="PROJECT">
-        <div>ITEM 3</div>
-        <div>ITEM 4</div>
+        <InfoListItem name="NAME" value="Project 1" />
+        <InfoListItem name="TYPE" value="Project 2" />
       </ToggleContainer>
     </ResizableContainer>
   </div>
