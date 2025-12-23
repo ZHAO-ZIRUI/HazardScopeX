@@ -4,6 +4,9 @@
   --color-text: rgb(255, 255, 255);
   --color-text-secondary: rgb(144, 144, 144);
 
+  --color-button: rgb(180, 180, 180);
+  --color-button-hover: rgb(60, 60, 60);
+
   --color-layout-border: rgb(70, 70, 70);
   --section-gap: 160px;
 }
