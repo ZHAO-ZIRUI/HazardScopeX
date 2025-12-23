@@ -1,0 +1,119 @@
+@import '@/assets/base.css';
+
+.flow-node {
+    position: relative;
+    min-width: 200px;
+    background: var(--color-flow-node-background);
+    border: 1px solid var(--color-flow-node-border);
+    border-radius: 8px;
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.03);
+    /* padding: 12px; */
+}
+
+.flow-node .header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
+    background: linear-gradient(90deg, #9b2929 0%, #ff8a00 70%, #ffd54f 100%);
+    text-align: left;
+    font-weight: bold;
+    border-radius: 4px 4px 0 0;
+    padding: 0px 4px;
+    border: none;
+}
+
+.flow-node .body {
+    padding: 4px 0px;
+    border: none;
+    border-radius: 0 0 4px 4px;
+}
+
+.flow-node-item {
+    position: relative;
+    padding: 0px;
+    font-size: 0.8rem;
+    min-height: 24px;
+}
+
+.flow-node-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.flow-node-item-icon {
+    display: inline-flex;
+}
+
+.flow-node-item-main {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.flow-node-icon {
+    display: inline-flex;
+}
+
+.flow-node-title {
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+}
+
+.flow-node-item .name {
+    color: var(--color-text);
+    padding-left: 6px;
+    padding-right: 6px;
+    text-align: left;
+    flex: 1;
+}
+
+.flow-handle {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    /* 隐藏默认可视样式，仅保留交互区域 */
+    box-shadow: none;
+}
+
+.flow-handle.begin {
+    left: -6px;
+}
+
+.flow-handle.end {
+    right: -6px;
+}
+
+.flow-handle-icon {
+    position: absolute;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    color: var(--color-text);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.flow-handle-icon.begin {
+    left: -6px;
+}
+
+.flow-handle-icon.end {
+    right: -12px;
+}
+
+.flow-handle-icon.begin.sequence {
+    left: -12px;
+}
+
+.flow-handle-icon.end.sequence {
+    right: -8px;
+}

@@ -1,6 +1,6 @@
 /* semantic color variables for this project */
 :root {
-  --color-background: rgb(0, 0, 0);
+  --color-background: rgb(20, 20, 20);
   --color-text: rgb(255, 255, 255);
   --color-text-secondary: rgb(144, 144, 144);
 
@@ -8,6 +8,10 @@
   --color-button-bg-hover: rgb(60, 60, 60);
   --color-button-active: rgb(230, 230, 230);
   --color-button-bg-active: rgb(35, 35, 35);
+
+  --color-flow-background: rgb(24, 24, 24);
+  --color-flow-node-background: radial-gradient(circle at top left, #2b3a4a 0%, #161b22 45%, #0b0f16 100%);
+  --color-flow-node-border: rgba(255, 255, 255, 0.08);
 
   --color-layout-border: rgb(70, 70, 70);
   --section-gap: 160px;
