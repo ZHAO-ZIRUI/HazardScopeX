@@ -87,6 +87,7 @@ const currentSidebarL = computed(() => {
 }
 
 .header-item.active {
+  color: var(--color-button-active);
   background-color: var(--color-button-bg-active);
 }
 
