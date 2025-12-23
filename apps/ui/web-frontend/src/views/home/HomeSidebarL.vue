@@ -65,6 +65,7 @@ const currentSidebarL = computed(() => {
   justify-content: center;
   align-items: center;
   /* border-bottom: 1px solid var(--color-layout-border); */
+  margin-bottom: 4px;
 }
 
 .body {
