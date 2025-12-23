@@ -27,22 +27,22 @@ const currentSidebarL = computed(() => {
 <template>
   <div class="container">
     <div class="header">
-      <div class="header-item" @click="handleIconClick('IconAssemblyLine')">
+      <div class="header-item" @click="handleIconClick('IconAssemblyLine')" :class="{ 'active': store.currentPage === 'flow' }">
         <IconAssemblyLine />
       </div>
-      <div class="header-item" @click="handleIconClick('IconExperiment')">
+      <div class="header-item" @click="handleIconClick('IconExperiment')" :class="{ 'active': store.currentPage === 'experiment' }">
         <IconExperiment />
       </div>
-      <div class="header-item" @click="handleIconClick('IconData')">
+      <div class="header-item" @click="handleIconClick('IconData')" :class="{ 'active': store.currentPage === 'dataset' }">
         <IconData />
       </div>
-      <div class="header-item" @click="handleIconClick('IconRoadCone')">
+      <div class="header-item" @click="handleIconClick('IconRoadCone')" :class="{ 'active': store.currentPage === 'factors' }">
         <IconRoadCone />
       </div>
-      <div class="header-item" @click="handleIconClick('IconServer')">
+      <div class="header-item" @click="handleIconClick('IconServer')" :class="{ 'active': store.currentPage === 'runner' }">
         <IconServer />
       </div>
-      <div class="header-item" @click="handleIconClick('IconSetting')">
+      <div class="header-item" @click="handleIconClick('IconSetting')" :class="{ 'active': store.currentPage === 'setting' }">
         <IconSetting />
       </div>
     </div>
@@ -85,7 +85,11 @@ const currentSidebarL = computed(() => {
   min-height: 32px;
 }
 
+.header-item.active {
+  background-color: var(--color-button-bg-active);
+}
+
 .header-item:hover {
-  background-color: var(--color-button-hover);
+  background-color: var(--color-button-bg-hover);
 }
 </style>
