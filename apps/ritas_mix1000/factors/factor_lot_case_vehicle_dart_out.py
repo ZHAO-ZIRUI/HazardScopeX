@@ -50,8 +50,6 @@ class FactorLotCaseVehicleDartOut(Factor):
         return self._ego
 
     def bringup(self) -> None:
-        print("FactorLotCaseVehicleDartOut bringup...")
-        # print("Map name:", self._context.map.name)
         spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         # 设置 ego 位置
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
@@ -90,9 +88,7 @@ class FactorLotCaseVehicleDartOut(Factor):
             )
             s_vehicle.spawn()
             
-            print("s_vehicle.actor.is_alive:",s_vehicle.is_alive)
             # 只将成功spawn的车辆添加到列表
-            # if s_vehicle.actor is not None and s_vehicle.is_alive:
             if s_vehicle.is_alive:
                 self._static_vehicles.append(s_vehicle)
                 # 标记为act
@@ -107,7 +103,6 @@ class FactorLotCaseVehicleDartOut(Factor):
             # 无论成功与否，都基于当前位置计算下一辆的位置
             if i < self._static_vehicle_count:
                 # 如果当前车辆spawn成功，使用其bounding box计算间距；否则使用固定间距
-                # if s_vehicle.actor is not None and s_vehicle.actor.is_alive:
                 if s_vehicle.is_alive:
                     vehicle_bbox = s_vehicle.actor.bounding_box
                     vehicle_length = vehicle_bbox.extent.x * 2
@@ -155,12 +150,11 @@ class FactorLotCaseVehicleDartOut(Factor):
                 vehicle.set_carla_autopilot(enable=True)
 
         # 绑定 TICK 钩子
-        super().hook_on_tick.append(self.tick)
+        self._context.hook_on_tick.append(self.tick)
         
         return super().bringup()
 
-    def tick(self) -> None:
-        print("FactorLotCaseVehicleDartOut tick...")
+    def tick(self, snapshot) -> None:
         self._current_ticks += 1
 
         if self._current_ticks <= self._ego_start_ticks:
@@ -233,7 +227,7 @@ class FactorLotCaseVehicleDartOut(Factor):
                 control = carla.VehicleControl(throttle=0.0, brake=1.0, steer=0.0)
                 self._ego.actor.apply_control(control)
         
-        return super().tick()
+        return super().update()
 
     def teardown(self) -> None:
         # 禁用 Traffic Manager 控制的 autopilot

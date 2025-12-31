@@ -1,0 +1,92 @@
+# THIS IS A TEMPLATE CONFIG FILE
+# YOU SHOULD COPY THIS FILE AND RENAME IT TO config.yaml
+# 该文件是配置文件的模板, 你应当复制该文件并重命名为 config.yaml, 并编辑该文件以满足你的需求
+
+# VARIABLES
+# <PROJECT_ROOT> 表示项目根目录
+
+# 日志配置
+logging:
+  # 日志级别
+  # 可选: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: DEBUG
+
+# CarlaContext 配置
+context:
+  # CARLA 服务端的配置
+  server:
+    host: 127.0.0.1 # 除非使用外部服务器, 否则不要修改该值
+    port: 2000
+    timeout: 10
+
+    # 服务端同步模式的速度, 单位: FPS
+    # 该同步模式的设置方式与以往不同, 在服务端启动时指定, 且不需再由 world.settings 指定
+    sync_mode_fps: 20
+    
+    # 是否使用外部服务器,
+    # 如果为 true, 则 CarlaContext 不再管理 CARLA 服务端的生命周期, 且以下配置将会失效
+    use_external_server: false
+
+    # 注意: 本工程使用了 CARLA 的 MULTI_GPU 功能
+    # 参考: https://carla.readthedocs.io/en/latest/adv_multigpu/
+
+    # 使用多 GPU 功能
+    use_multi_gpu: false
+    gpus:
+      - 0
+
+    self_managed:
+      enabled: True
+
+      # 服务端的可执行文件路径
+      # 在 Windows 下, 该路径需要以 .exe 结尾
+      # 在 Linux 下, 该路径需要以 .sh 结尾
+      exe_path: "/media/suayu/9e2b2e70-4f6e-44da-8e70-f1dd7a0057f31/Carla/CarlaUE4.sh"
+
+      # 服务端启动时的等待时间
+      bringup_init_wait_seconds: 10
+      bringup_timeout_seconds: 10
+
+    runtime:
+      timeout_seconds: 10
+
+  # TICK 控制
+  tick:
+    # TICK 阻塞超时时间
+    blocker_timeout: 1.0
+
+# IO 管理器配置, 包括 ROS2 和 SharedMemory(SHM)
+io:
+  # SharedMemory(SHM) 配置
+  shared_memory:
+    # SHM 默认域的名称, 例: 'hazard_scope/sensor_data'
+    domain: 'hazard_scope'
+    # SHM 的默认大小, 单位: MB, 该大小足以覆盖多数传感器数据
+    default_size_mb: 30
+
+  # ROS2 配置
+  ros2:
+    # ROS2 节点的名称, 例: 'hazard_scope_ros2_node'
+    node_name: 'hazard_scope_ros2_node'
+    # ROS2 节点的 QoS 配置
+    node_qos: 10
+
+# Actor 管理器配置
+actors:
+  spawn:
+    # Actor 生成后稳定阈值
+    wait_stable_threshold: 0.0001
+    # Actor 生成后稳定超时时间
+    wait_stable_timeout: 3
+
+  image_color_converter:
+    # 对于图像传感器的颜色转换器, 可选: Raw, LogarithmicDepth, Depth, CityScapesPalette
+    # https://carla.readthedocs.io/en/latest/python_api/#carlacolorconverter
+    depth: LogarithmicDepth
+    instance_segmentation: CityScapesPalette
+    semantic_segmentation: CityScapesPalette
+
+# 记录器的配置
+recorder:
+  # 基础路径
+  path: '<PROJECT_ROOT>/recorders'

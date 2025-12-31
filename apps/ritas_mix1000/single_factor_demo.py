@@ -13,11 +13,10 @@ if __name__ == "__main__":
     # config = Config.from_yaml('config.yaml')        
     configReader = ExternalConfigReader(dict()).load(Path("config.yaml"))
     config = ConfigManager().load(configReader)    # 加载配置到配置管理器
-    print("config:",config.context," ",config.actor_manager," ",config.io_manager)
     logger = Logging.load(configReader).get_logger('Main') # 设置日志记录器
 
     with CarlaContext(configReader) as context:
-        context.bringup()
+        # context.bringup()
         # context.change_map('Town04')
         # context.change_map('Town10HD_Opt')
         context.change_map('SUSTech_COE_ParkingLot')
@@ -27,16 +26,17 @@ if __name__ == "__main__":
         context.actors.spawn_all()
         context.actors.wait_stable(vehicle)
 
-        context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
-        context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
+        # context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
+        # context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
 
-        # f1 = FactorLotTrafficTwoWheels(context, vehicle)
-        # f1 = FactorLotTrafficLargeVehicles(context, vehicle)
-        f1 = FactorLotCaseVehicleDartOut(context, vehicle)
-        # f1 = FactorLotCaseFrontAeb(context, vehicle)
-        # f1 = FactorLotCaseForceCutin(context, vehicle)
-        # f1 = FactorLotCaseRearEnd(context, vehicle)
-        # f1 = FactorLotCaseTurnandFollow(context, vehicle)
+        # tm = context.traffic
+        # tm.set_route(vehicle.actor, ['Straight'])
+        # vehicle.set_carla_autopilot(enable=True)
+
+        # f1 = FactorLotLightDarkWithParkingVehicles(context, vehicle)
+        # f1 = FactorCaseVehicleFollow(context, vehicle)
+        # f1 = FactorLotCaseWrongWayBike(context, vehicle)
+        f1 = FactorLotLightPollution(context, vehicle)
 
         factors = [f1]
         

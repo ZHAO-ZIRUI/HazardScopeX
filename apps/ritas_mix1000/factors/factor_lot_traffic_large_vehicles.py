@@ -12,7 +12,7 @@ class FactorLotTrafficLargeVehicles(Factor):
         self._agents: list[CarlaVehicle] = []
         self._vehicle = vehicle
 
-    def setup(self) -> None:
+    def bringup(self) -> None:
         # 获取主车辆位置
         vehicle_tf = self._vehicle.tf_now
         vehicle_location = vehicle_tf.location
@@ -27,23 +27,29 @@ class FactorLotTrafficLargeVehicles(Factor):
         # 在附近的 spawn points 生成车辆
         for i, tf in enumerate(nearby_spawn_points):
             agent = self._context.actors.create_vehicle(
-                bp=random.choice(CarlaBlueprints.LARGE_VEHICLES()),
+                bp=random.choice(CarlaBlueprints.vehicles("large")),
                 tf=tf,
                 name=f'AGENT_LARGE_{i:03d}',
+                ignore_spawn_failure=True
             )
-            agent.spawn(self._context.world, ignore_spawn_failure=True)
+            agent.spawn()
             self._agents.append(agent)
 
         self._context.tick()
-        self._context.actors.wait_stable()
+        spawned_actors = []
+        for vehicle in self._agents:
+            if vehicle.is_alive:
+                spawned_actors.append(vehicle)
+        if spawned_actors:
+            self._context.actors.wait_stable(*spawned_actors)
 
-        for agent in self._agents:
+        for agent in spawned_actors:
             if agent.actor is not None:
                 agent.set_carla_autopilot(enable=True)
 
         self._vehicle.set_carla_autopilot(enable=True)
 
-        return super().setup()
+        return super().bringup()
 
     def teardown(self) -> None:
         for agent in self._agents:

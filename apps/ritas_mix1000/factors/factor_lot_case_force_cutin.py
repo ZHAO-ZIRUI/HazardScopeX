@@ -58,8 +58,8 @@ class FactorLotCaseForceCutin(Factor):
 
         return vertical_distance
 
-    def setup(self) -> None:
-        spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map_name]
+    def bringup(self) -> None:
+        spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         # 设置 ego 位置
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
         self._ego.actor.set_transform(tf_ego)
@@ -80,8 +80,9 @@ class FactorLotCaseForceCutin(Factor):
             bp=CarlaBlueprints.VEHICLE_TESLA_MODEL3,
             tf=tf_act,
             name='ACT',
+            ignore_spawn_failure=True
         )
-        self._act.spawn(self._context.world)
+        self._act.spawn()
         self._vehicles.append(self._act)
 
         self._init_vertical_distance = self.get_vertical_distance(tf_ego, tf_act.location)
@@ -97,21 +98,22 @@ class FactorLotCaseForceCutin(Factor):
                 bp=CarlaBlueprints.VEHICLE_MERCEDES_SPRINTER,
                 tf=npc_tf,
                 name=f'NPC_{npc_sp_idx}',
+                ignore_spawn_failure=True
             )
-            npc.spawn(self._context.world, ignore_spawn_failure=True)
+            npc.spawn()
             self._vehicles.append(npc)
 
         self._context.tick()
         # 收集所有成功spawn的actors
         spawned_actors = []
         for vehicle in self._vehicles:
-            if vehicle.actor is not None and vehicle.actor.is_alive:
+            if vehicle.is_alive:
                 spawned_actors.append(vehicle)
         if spawned_actors:
             self._context.actors.wait_stable(*spawned_actors)
 
         # 使用 Traffic Manager 控制车辆
-        tm = self._context.traffic_manager
+        tm = self._context.traffic
         tm.set_route(self._ego.actor,["Straight"])
         self._ego.set_carla_autopilot(enable=True)
         control = carla.VehicleControl(throttle=0.5, brake=0.0, steer=0.0)
@@ -134,14 +136,17 @@ class FactorLotCaseForceCutin(Factor):
             tm.ignore_vehicles_percentage(self._ego.actor, 80.0)  # 80% 忽略其他车辆，降低碰撞响应灵敏度
             self.logger.info(f'EGO target speed set to {self._ego_speed_kmh:.1f} km/h, collision response reduced')
         
-        return super().setup()
+        self._context.hook_on_tick.append(self.tick)
 
-    def tick(self) -> None:
+        return super().bringup()
+
+    # TODO: Refactor according to the new code framework
+    def tick(self, snapshot) -> None:
         self._current_ticks += 1
         
         # 如果已经完成变道，不再检测和处理
         if self._act_cutin_stage == 3:
-            return super().tick()
+            return super().update()
         
         v = self._act.actor.get_velocity()
         if math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z) >= self._act_speed_kmh / 3.6:
@@ -192,13 +197,13 @@ class FactorLotCaseForceCutin(Factor):
             elif vertical_distance < 0.25 * self._init_vertical_distance and self._act_cutin_stage == 2:
                 # 变道完成后，标记为已完成，重新启用 autopilot
                 self._act_cutin = False
-                tm = self._context.traffic_manager
+                tm = self._context.traffic
                 tm.set_route(self._act.actor, ['Straight'])
                 self._act.set_carla_autopilot(enable=True)
                 self.logger.info(f'ACT autopilot re-enabled')
                 self._act_cutin_stage = 3
         
-        return super().tick()
+        return super().update()
 
     def teardown(self) -> None:
         # 禁用 Traffic Manager 控制的 autopilot

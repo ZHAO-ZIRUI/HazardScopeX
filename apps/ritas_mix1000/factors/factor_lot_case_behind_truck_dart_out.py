@@ -4,13 +4,12 @@ from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorLotCaseVehiclePullOut(Factor):
-    NAME = 'F_LotCaseVehiclePullOut'
+class FactorLotLightDark(Factor):
+    NAME = 'F_LotLightDark'
 
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/SUSTech_COE_ParkingLot': {
-            'ego': 3,
-            'npc': [1, 12, 15, 18, 25]
+            'npc': [1, 12, 15, 18, 25, 33, 45]
         },
     }
     AVAILABLE_PARKING_AREAS = [
@@ -26,43 +25,31 @@ class FactorLotCaseVehiclePullOut(Factor):
         carla.Transform(carla.Location(x=-00.91, y=-55.54, z=-2), carla.Rotation(yaw=90)),
         carla.Transform(carla.Location(x=+02.46, y=-55.54, z=-2), carla.Rotation(yaw=90)),
         carla.Transform(carla.Location(x=+04.82, y=-55.54, z=-2), carla.Rotation(yaw=90)),
+        carla.Transform(carla.Location(x=+10.54, y=-55.54, z=-2), carla.Rotation(yaw=90)),
+        carla.Transform(carla.Location(x=+26.75, y=-55.54, z=-2), carla.Rotation(yaw=90)),
+        carla.Transform(carla.Location(x=+31.48, y=-55.54, z=-2), carla.Rotation(yaw=90)),
+        carla.Transform(carla.Location(x=+45.33, y=-55.54, z=-2), carla.Rotation(yaw=90)),
+        carla.Transform(carla.Location(x=-09.00, y=-44.50, z=-2), carla.Rotation(yaw=90)),
+        carla.Transform(carla.Location(x=-13.79, y=-44.50, z=-2), carla.Rotation(yaw=270)),
+        carla.Transform(carla.Location(x=-17.15, y=-44.50, z=-2), carla.Rotation(yaw=270)),
+        carla.Transform(carla.Location(x=-21.86, y=-44.50, z=-2), carla.Rotation(yaw=90)),
     ]
 
-    def __init__(
-        self, context: CarlaContext, 
-        ego: CarlaVehicle, *,
-        s1_left_offset: float = 2.3,
-        s_spacing: float = 2,
-        static_vehicle_count: int = 10,
-        trigger_distance: float = 20.0,
-        act_ap_takeover_delay: float = 1.5,
-        wait_trigger_seconds: float = 1.5,
-        triggered_seconds: float = 6.0
-    ):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 5.0, triggered_seconds: float = 5.0, 
+                 static_vehicle_count: int = 3, s1_left_offset: float = 2.5, s_spacing: float = 7, sn_front_offset: float = 14.0):
         super().__init__(context)
-        self._ego = ego
-        self._s1_left_offset = s1_left_offset
-        self._s_spacing = s_spacing
-        self._static_vehicle_count = static_vehicle_count
-        self._trigger_distance = trigger_distance
-        self._act_ap_takeover_delay = act_ap_takeover_delay
+        self._ego = vehicle
         self._vehicles: list[CarlaVehicle] = []
-
-        self._act: CarlaVehicle | None = None
-        self._act_triggered = False
-        self._act_ap_enabled = False  # 标记act是否已启用AP
-        self.debug = context.world.debug
-        self.world = context.world
-
         self._wait_trigger_seconds = wait_trigger_seconds
         self._triggered_seconds = triggered_seconds
         self._count_before_trigger = 0
         self._count_after_trigger = 0
-
-    def __post_init__(self) -> None:
-        self.hook_update.append(self.trigger)
-        self.hook_update.append(self.post_trigger)
-        return
+        self._static_vehicle_count = static_vehicle_count
+        self._s1_left_offset = s1_left_offset
+        self._s_spacing = s_spacing
+        self._sn_front_offset = sn_front_offset
+        self.world = context.world
+        self.debug = self.world.debug
 
     @property
     def ego(self) -> CarlaVehicle:
@@ -71,18 +58,24 @@ class FactorLotCaseVehiclePullOut(Factor):
     def bringup(self) -> None:
         spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         # 设置 ego 位置
-        tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
+        tf_ego = carla.Transform(
+            carla.Location(x=-40,y=-68,z=-2),
+            carla.Rotation(pitch=0,yaw=90,roll=0)
+        )
         self._ego.actor.set_transform(tf_ego)
         self._vehicles.append(self._ego)
 
+        # 计算ego的朝向
+        ego_yaw_rad = np.radians(tf_ego.rotation.yaw)
+        act_rotation=carla.Rotation(pitch=tf_ego.rotation.pitch,yaw=-tf_ego.rotation.yaw,roll=tf_ego.rotation.roll)
+        
         spectator = self.world.get_spectator()
         tf_spec = carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation)
         spectator.set_transform(tf_spec)
 
         for i, parking_tf in enumerate(self.AVAILABLE_PARKING_AREAS):
-            
             s_vehicle = self._context.actors.create_vehicle(
-                bp=CarlaBlueprints.VEHICLE_MERCEDES_SPRINTER,
+                bp=CarlaBlueprints.VEHICLE_AUDI_A2,
                 tf=parking_tf,
                 name=f'NPC_Parking_{i+1}',  # 修改命名以反映停车位来源
                 ignore_spawn_failure=True
@@ -91,30 +84,23 @@ class FactorLotCaseVehiclePullOut(Factor):
             
             if s_vehicle is not None and s_vehicle.is_alive:
                 self._vehicles.append(s_vehicle)
-                
-                # 将第五辆NPC车辆标记为act
-                if i == 4:  # 索引4对应第五辆（从0开始计数）
-                    self._act = s_vehicle
-                    self.logger.info(f'ACT vehicle (NPC_Parking_{i+1}) spawned at parking area {i+1}')
-                else:
-                    self.logger.info(f'NPC vehicle (Parking_{i+1}) spawned at ({parking_tf.location.x:.2f}, {parking_tf.location.y:.2f}, {parking_tf.location.z:.2f})')
             else:
                 self.logger.warning(f'NPC vehicle failed to spawn at parking area {i+1}')
 
         # 创建 npc
         for npc_sp_idx in spawn_point_mapping['npc']:
             npc_tf = self._context.spawn_points[npc_sp_idx]
-            s_vehicle = self._context.actors.create_vehicle(
+            npc = self._context.actors.create_vehicle(
                 bp=CarlaBlueprints.VEHICLE_MERCEDES_SPRINTER,
                 tf=npc_tf,
                 name=f'NPC_{npc_sp_idx}',
                 ignore_spawn_failure=True
             )
-            s_vehicle.spawn()
-            self._vehicles.append(s_vehicle)
+            npc.spawn()
+            self._vehicles.append(npc)
         self._context.tick()
         
-        # 收集所有成功spawn的NPC actors
+        # 收集所有成功spawn的actors
         spawned_actors = []
         for vehicle in self._vehicles:
             if vehicle is not None and vehicle.is_alive:
@@ -122,15 +108,13 @@ class FactorLotCaseVehiclePullOut(Factor):
         if spawned_actors:
             self._context.actors.wait_stable(*spawned_actors)
 
-        # ego开始AP
+        # ego和npc开始AP（静态车辆不启动AP）
         tm = self._context.traffic
         for vehicle in spawned_actors:
-            if vehicle.name.startswith('NPC_') and not vehicle.name.startswith('NPC_Parking_'):
+            if vehicle.name.startswith('NPC_') and not vehicle.name.startswith('NPC_Parking_') and not vehicle.name.startswith('S_'):
                 tm.auto_lane_change(vehicle.actor, False)
                 vehicle.set_carla_autopilot(enable=True)
-        tm.auto_lane_change(self._ego.actor, False)
-        tm.set_route(self._ego.actor, ['Straight'])
-        self._ego.set_carla_autopilot(enable=True)
+        self.ego.set_carla_autopilot(enable=True)
         
         return super().bringup()
     
@@ -138,7 +122,6 @@ class FactorLotCaseVehiclePullOut(Factor):
         # 如果因子不在等待触发阶段, 则直接返回
         if self.stage != self.FactorStage.WAIT_FOR_TRIGGER:
             return
-
         # 如果等待触发帧数达到阈值, 则触发因子
         if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps:
             self.stage = self.FactorStage.TRIGGERED
@@ -150,22 +133,6 @@ class FactorLotCaseVehiclePullOut(Factor):
         # 如果因子不在触发阶段, 则直接返回
         if self.stage != self.FactorStage.TRIGGERED:
             return
-        if self._count_after_trigger < self._act_ap_takeover_delay * self._context.fps:
-            if not self._act_triggered:
-                # 触发act起步：向左打满方向，0.3油门
-                self._act.set_carla_autopilot(enable=False)
-                control = carla.VehicleControl(throttle=0.5, brake=0.0, steer=-0.1)  # 向左打满方向
-                self._act.actor.apply_control(control)
-                self._act_triggered = True
-                self.logger.info(f'ACT started moving after {self._wait_trigger_seconds} seconds.')
-        elif not self._act_ap_enabled:
-            # 启动act的carla AP接管
-            self._act.set_carla_autopilot(enable=True)
-            tm = self._context.traffic
-            tm.auto_lane_change(self._act.actor, False)
-            self._act_ap_enabled = True  # 标记act已启用AP，不再响应ego距离
-            self.logger.info(f'ACT autopilot enabled after {self._wait_trigger_seconds + self._act_ap_takeover_delay} seconds.')
-
         # 如果触发帧数达到阈值, 则完成因子
         if self._count_after_trigger >= self._triggered_seconds * self._context.fps:
             self.stage = self.FactorStage.COMPLETED

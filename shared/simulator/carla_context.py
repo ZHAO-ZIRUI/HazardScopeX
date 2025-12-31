@@ -321,7 +321,7 @@ class CarlaContext:
         no_hook_on_tick: bool = False,
     ):
         """手动 Tick 服务端, 在此处应用 TickBlocker """
-        print("carla_context tick...")
+        # print("carla_context tick...")
         time_begin = time.perf_counter()
 
         # TickBlocker 阻塞

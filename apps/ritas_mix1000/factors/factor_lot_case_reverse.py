@@ -4,22 +4,20 @@ from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorLotLightPollution(Factor):
-    NAME = 'F_LotLightPollution'
+class FactorLotCaseReverse(Factor):
+    NAME = 'F_LotCaseReverse'
+
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/SUSTech_COE_ParkingLot': {
-            'ego': 46,
-            'act': 48,
+            'ego': 33,
             'npc': [1, 12, 15, 18, 25, 45]
         },
     }
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 0.5, triggered_seconds: float = 10.0):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 1.0, triggered_seconds: float = 10.0):
         super().__init__(context)
         self._ego = vehicle
-        self._act = None
         self._vehicles: list[CarlaVehicle] = []
-        self._sa = None
         self._wait_trigger_seconds = wait_trigger_seconds
         self._triggered_seconds = triggered_seconds
         self._count_before_trigger = 0
@@ -35,23 +33,19 @@ class FactorLotLightPollution(Factor):
     @property
     def ego(self) -> CarlaVehicle:
         return self._ego
-    
-    @property
-    def act(self) -> CarlaVehicle:
-        return self._act
 
     def bringup(self) -> None:
-        self._sa = CarlaSingleAction(self._context, self._ego, self.logger)
+        sa = CarlaSingleAction(self._context, self._ego, self.logger)
 
         # 设置 ego 位置
         spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
-        self._sa.set_ego(tf_ego)
+        sa.set_ego(tf_ego)
         self._vehicles.append(self._ego)
 
-        self._sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
+        sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
 
-        vehicles = self._sa.autopilot_traffic(
+        vehicles = sa.autopilot_traffic(
             nums=30,
             distance=40,
             spawn_point_list=spawn_point_mapping['npc'],
@@ -62,14 +56,13 @@ class FactorLotLightPollution(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        self._act = self._sa.manual_control_vehicle(
-            spawnpoint=spawn_point_mapping['act'],
-            bp_type='car',
-            throttle=0.5,
+        tf_act = sa.transform_from_ego(front_offset=22)
+        act = sa.manual_control_vehicle(
+            transform=tf_act,
+            throttle=0.3,
             reverse=True
         )
-        self._vehicles.append(self._act)
-        self._act.set_carla_autopilot(enable=True)
+        self._vehicles.append(act)
 
         return super().bringup()
     
@@ -79,7 +72,6 @@ class FactorLotLightPollution(Factor):
             return
         # 如果等待触发帧数达到阈值, 则触发因子
         if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps:
-            self._sa.set_vehicle_light(self._act, highbeam=True)
             self.ego.set_carla_autopilot(enable=True)
 
             self.stage = self.FactorStage.TRIGGERED
