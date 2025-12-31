@@ -60,7 +60,7 @@ class Injector(metaclass=PostInitMeta):
         self.logger.info(f'All {len(self._factors)} factors brought up')
 
     def tick(self, _: carla.WorldSnapshot) -> None:
-        print("Injector tick...")
+        # print("Injector tick...")
         self._tick_blocker.set()
 
         for factor in self._factors:

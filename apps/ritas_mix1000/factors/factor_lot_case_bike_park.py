@@ -1,16 +1,17 @@
 import numpy as np
 import carla
+import random
 from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorLotCaseIncorrectPark(Factor):
-    NAME = 'F_LotCaseIncorrectPark'
+class FactorLotCaseBikePark(Factor):
+    NAME = 'F_LotCaseBikePark'
 
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/SUSTech_COE_ParkingLot': {
-            'ego': 3,
-            'npc': [1, 12, 15, 18, 25, 33, 45]
+            'ego': 24,
+            'npc': [1, 12, 15, 18, 25]
         },
     }
     AVAILABLE_PARKING_AREAS = [
@@ -65,7 +66,6 @@ class FactorLotCaseIncorrectPark(Factor):
 
         # 计算ego的朝向
         ego_yaw_rad = np.radians(tf_ego.rotation.yaw)
-        act_rotation=carla.Rotation(pitch=tf_ego.rotation.pitch,yaw=-tf_ego.rotation.yaw,roll=tf_ego.rotation.roll)
         
         spectator = self.world.get_spectator()
         tf_spec = carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation)
@@ -73,7 +73,7 @@ class FactorLotCaseIncorrectPark(Factor):
 
         for i, parking_tf in enumerate(self.AVAILABLE_PARKING_AREAS):
             s_vehicle = self._context.actors.create_vehicle(
-                bp=CarlaBlueprints.VEHICLE_AUDI_A2,
+                bp=random.choice(CarlaBlueprints.vehicles("2wheel")),
                 tf=parking_tf,
                 name=f'NPC_Parking_{i+1}',  # 修改命名以反映停车位来源
                 ignore_spawn_failure=True
@@ -96,11 +96,11 @@ class FactorLotCaseIncorrectPark(Factor):
         for i in range(1, self._static_vehicle_count + 1):
             s_transform = carla.Transform(
                 location=current_location,
-                rotation=act_rotation
+                rotation=carla.Rotation(pitch=0,yaw=random.randint(-179,179),roll=0)
             )
 
             s_vehicle = self._context.actors.create_vehicle(
-                bp=CarlaBlueprints.VEHICLE_AUDI_TT,
+                bp=random.choice(CarlaBlueprints.vehicles("2wheel")),
                 tf=s_transform,
                 name=f'S{i}',
                 ignore_spawn_failure=True
@@ -139,10 +139,10 @@ class FactorLotCaseIncorrectPark(Factor):
         for i in range(self._static_vehicle_count, self._static_vehicle_count * 2):
             s_transform = carla.Transform(
                 location=current_location,
-                rotation=act_rotation
+                rotation=carla.Rotation(pitch=0,yaw=random.randint(-179,179),roll=0)
             )
             s_vehicle = self._context.actors.create_vehicle(
-                bp=CarlaBlueprints.VEHICLE_BMW_GRANDTOURER,
+                bp=random.choice(CarlaBlueprints.vehicles("2wheel")),
                 tf=s_transform,
                 name=f'S{i}',
                 ignore_spawn_failure=True
@@ -171,11 +171,29 @@ class FactorLotCaseIncorrectPark(Factor):
                     z=current_location.z
                 )
 
+        for i in range(self._static_vehicle_count * 2, self._static_vehicle_count * 4):
+            s_transform = carla.Transform(
+                location=carla.Location(x=tf_ego.location.x+random.randint(-20,20),y=tf_ego.location.y+random.randint(-20,20),z=-2),
+                rotation=carla.Rotation(pitch=0,yaw=random.randint(-179,179),roll=0)
+            )
+            s_vehicle = self._context.actors.create_vehicle(
+                bp=random.choice(CarlaBlueprints.vehicles("2wheel")),
+                tf=s_transform,
+                name=f'S{i}',
+                ignore_spawn_failure=True
+            )
+            s_vehicle.spawn()
+            # 只将成功spawn的车辆添加到列表
+            if s_vehicle is not None and s_vehicle.is_alive:
+                self._vehicles.append(s_vehicle)
+            else:
+                self.logger.warning(f'Static vehicle S{i} failed to spawn at ({current_location.x:.2f}, {current_location.y:.2f}, {current_location.z:.2f})')
+
         # 创建 npc
         for npc_sp_idx in spawn_point_mapping['npc']:
             npc_tf = self._context.spawn_points[npc_sp_idx]
             npc = self._context.actors.create_vehicle(
-                bp=CarlaBlueprints.VEHICLE_MERCEDES_SPRINTER,
+                bp=random.choice(CarlaBlueprints.vehicles("2wheel")),
                 tf=npc_tf,
                 name=f'NPC_{npc_sp_idx}',
                 ignore_spawn_failure=True
@@ -197,6 +215,7 @@ class FactorLotCaseIncorrectPark(Factor):
         for vehicle in spawned_actors:
             if vehicle.name.startswith('NPC_') and not vehicle.name.startswith('NPC_Parking_') and not vehicle.name.startswith('S_'):
                 tm.auto_lane_change(vehicle.actor, False)
+                print("npc ap:",vehicle.name)
                 vehicle.set_carla_autopilot(enable=True)
         self.ego.set_carla_autopilot(enable=True)
         

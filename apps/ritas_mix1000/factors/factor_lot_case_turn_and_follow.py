@@ -41,8 +41,8 @@ class FactorLotCaseTurnandFollow(Factor):
     def act(self) -> CarlaVehicle:
         return self._act
 
-    def setup(self) -> None:
-        spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map_name]
+    def bringup(self) -> None:
+        spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         # 设置 ego 位置
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
         # self.debug.draw_point(tf_ego.location,size=0.2,color=carla.Color(255,0,0),life_time=1000)
@@ -57,7 +57,7 @@ class FactorLotCaseTurnandFollow(Factor):
             tf=tf_act,
             name='ACT',
         )
-        self._act.spawn(self._context.world)
+        self._act.spawn()
         self._act.actor.set_transform(tf_act)
         self._vehicles.append(self._act)
 
@@ -71,21 +71,22 @@ class FactorLotCaseTurnandFollow(Factor):
                 bp=CarlaBlueprints.VEHICLE_AUDI_A2,
                 tf=npc_tf,
                 name=f'NPC_{npc_sp_idx}',
+                ignore_spawn_failure=True
             )
-            npc.spawn(self._context.world, ignore_spawn_failure=True)
+            npc.spawn()
             self._vehicles.append(npc)
 
         self._context.tick()
         # 收集所有成功spawn的actors
         spawned_actors = []
         for vehicle in self._vehicles:
-            if vehicle.actor is not None and vehicle.actor.is_alive:
+            if vehicle.is_alive:
                 spawned_actors.append(vehicle)
         if spawned_actors:
             self._context.actors.wait_stable(*spawned_actors)
 
         # 使用 Traffic Manager 控制车辆
-        tm = self._context.traffic_manager
+        tm = self._context.traffic
         tm.auto_lane_change(self._ego.actor, False)
         tm.set_route(self._ego.actor,["Straight","Straight","Straight"])
         self._ego.set_carla_autopilot(enable=True)
@@ -107,12 +108,16 @@ class FactorLotCaseTurnandFollow(Factor):
             tm.ignore_vehicles_percentage(self._ego.actor, 80.0)  # 80% 忽略其他车辆，降低碰撞响应灵敏度
             self.logger.info(f'EGO target speed set to {self._ego_speed_kmh:.1f} km/h, collision response reduced')
         
-        return super().setup()
+        self._context.hook_on_tick.append(self.tick)
 
-    def tick(self) -> None:
+        return super().bringup()
+
+    def tick(self, snapshot) -> None:
         self._current_ticks += 1
-        return super().tick()
+        return super().update()
 
+    # TODO: Refactor according to the new code framework
+    
     def teardown(self) -> None:
         # 禁用 Traffic Manager 控制的 autopilot
         if self._ego.actor is not None and self._ego.actor.is_alive:

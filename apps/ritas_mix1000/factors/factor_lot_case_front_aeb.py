@@ -35,8 +35,8 @@ class FactorLotCaseFrontAeb(Factor):
     def act(self) -> CarlaVehicle:
         return self._act
 
-    def setup(self) -> None:
-        spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map_name]
+    def bringup(self) -> None:
+        spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         # 设置 ego 位置
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
         ego_yaw_rad = np.radians(tf_ego.rotation.yaw)
@@ -57,7 +57,7 @@ class FactorLotCaseFrontAeb(Factor):
             tf=tf_act,
             name='ACT',
         )
-        self._act.spawn(self._context.world)
+        self._act.spawn()
         self._vehicles.append(self._act)
 
         # 创建 npc
@@ -67,8 +67,9 @@ class FactorLotCaseFrontAeb(Factor):
                 bp=CarlaBlueprints.VEHICLE_AUDI_A2,
                 tf=npc_tf,
                 name=f'NPC_{npc_sp_idx}',
+                ignore_spawn_failure=True
             )
-            npc.spawn(self._context.world, ignore_spawn_failure=True)
+            npc.spawn()
             self._vehicles.append(npc)
 
         self._context.tick()
@@ -82,14 +83,17 @@ class FactorLotCaseFrontAeb(Factor):
             self._context.actors.wait_stable(*spawned_actors)
 
         # 使用 Traffic Manager 控制车辆直行
-        tm = self._context.traffic_manager
+        tm = self._context.traffic
         for vehicle in spawned_actors:
             tm.auto_lane_change(vehicle.actor, False)
             vehicle.set_carla_autopilot(enable=True)
         
-        return super().setup()
+        self._context.hook_on_tick.append(self.tick)
 
-    def tick(self) -> None:
+        return super().bringup()
+
+    # TODO: Refactor according to the new code framework
+    def tick(self, snapshot) -> None:
         self._current_ticks += 1
         
         # 在指定时间后让 act 强行刹停
@@ -104,7 +108,7 @@ class FactorLotCaseFrontAeb(Factor):
             control = carla.VehicleControl(throttle=0.0, brake=1.0, steer=0.0)
             self._act.actor.apply_control(control)
         
-        return super().tick()
+        return super().update()
 
     def teardown(self) -> None:
         # 禁用 Traffic Manager 控制的 autopilot

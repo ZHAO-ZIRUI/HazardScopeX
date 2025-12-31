@@ -37,12 +37,13 @@ class FactorLotTrafficTwoWheels(Factor):
         other_count_actual = 0
         for i, tf in enumerate(nearby_spawn_points):
             # 前 tesla_count 个生成 Tesla Model 3，其余生成两轮车
+            # print("spawn vehicle at:",tf)
             if i < other_count:
                 bp = CarlaBlueprints.VEHICLE_TESLA_MODEL3
                 name_prefix = 'AGENT_TESLA'
                 other_count_actual += 1
             else:
-                bp = random.choice(CarlaBlueprints.TWO_WHEELS())
+                bp = random.choice(CarlaBlueprints.vehicles("2wheel"))
                 name_prefix = 'AGENT_2W'
                 two_wheel_count += 1
             
@@ -50,20 +51,28 @@ class FactorLotTrafficTwoWheels(Factor):
                 bp=bp,
                 tf=tf,
                 name=f'{name_prefix}_{i:03d}',
+                ignore_spawn_failure=True,
             )
-            agent.spawn(self._context.world, ignore_spawn_failure=True)
+            agent.spawn()
             self._agents.append(agent)
 
         self._context.tick()
-        self._context.actors.wait_stable()
 
-        for agent in self._agents:
+        # 收集所有成功spawn的actors
+        spawned_actors = []
+        for vehicle in self._agents:
+            if vehicle.is_alive:
+                spawned_actors.append(vehicle)
+        if spawned_actors:
+            self._context.actors.wait_stable(*spawned_actors)
+
+        for agent in spawned_actors:
             if agent.actor is not None:
                 agent.set_carla_autopilot(enable=True)
 
         self._vehicle.set_carla_autopilot(enable=True)
 
-        return super().setup()
+        return super().bringup()
 
     def teardown(self) -> None:
         for agent in self._agents:
