@@ -45,6 +45,8 @@ class CarlaContext:
 
         self._time_last_tick: float = 0.0
 
+        self._is_sync_mode_before_bringup: bool = False
+
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         
@@ -85,6 +87,11 @@ class CarlaContext:
             self._client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
             self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         return self._client
+
+    @property
+    def is_sync_mode(self) -> bool:
+        """服务端当前是否处于同步模式, 只读"""
+        return self.world.get_settings().synchronous_mode
 
     @property
     def world(self) -> carla.World:
@@ -143,7 +150,10 @@ class CarlaContext:
         # 等待服务端可用
         self.wait_server_available()
 
-        # 进入同步模式
+        # 记录服务端当前是否处于同步模式
+        self._is_sync_mode_before_bringup = self.is_sync_mode
+
+        # 强制进入同步模式
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = 1/self.configs.context.runtime_sync_mode_fps
@@ -169,6 +179,15 @@ class CarlaContext:
 
         # 清理 tick blockers
         self._tick_blockers.clear()
+
+        # 恢复服务端到异步模式
+        if not self._is_sync_mode_before_bringup:
+            settings = self.world.get_settings()
+            settings.synchronous_mode = False
+            settings.fixed_delta_seconds = 0
+            self.world.apply_settings(settings)
+            self.logger.info('Restored server sync mode to previous state before bringup')
+            self.tick(force=True)
 
         # 清理 client
         del self._client
