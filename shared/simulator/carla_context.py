@@ -46,6 +46,7 @@ class CarlaContext:
         self._time_last_tick: float = 0.0
 
         self._is_sync_mode_before_bringup: bool = False
+        self._flag_log_tick_details: bool = False
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
@@ -139,6 +140,15 @@ class CarlaContext:
         self._event_heavy_operation.clear()
         self.client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.debug('Exiting heavy operation mode')
+
+    @contextmanager
+    def log_tick_details(self):
+        """在 Tick 过程中打印详细信息"""
+        self._flag_log_tick_details = True
+        self.logger.debug('Begin to log tick details ...')
+        yield
+        self._flag_log_tick_details = False
+        self.logger.debug('End to log tick details')
 
     def bringup(self):
         """启动 CARLA 上下文"""
@@ -342,7 +352,13 @@ class CarlaContext:
 
         # 执行 TICK
         self.world.tick()
+        client_dt = time.perf_counter() - self._time_last_tick
+        server_frame = self.world.get_snapshot().frame
         self._time_last_tick = time.perf_counter()
+
+        # 打印 Tick 详细信息
+        if self._flag_log_tick_details:
+            self.logger.debug(f'TICK >>>> frame: {server_frame}, dt: {client_dt:.3f}')
 
         # 自动设置 TickBlocker
         for blocker in self._tick_blockers:
