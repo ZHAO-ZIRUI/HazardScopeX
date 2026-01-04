@@ -44,6 +44,11 @@ class CarlaContext:
         self._service_recorder: CarlaRecorder = CarlaRecorder(self)
 
         self._time_last_tick: float = 0.0
+        self._time_sleep_error_accumulated: float = 0.0  # 累积的 sleep 误差
+        self._time_last_sleep_end: float = 0.0  # 上一次 sleep 结束的时间点
+
+        self._is_sync_mode_before_bringup: bool = False
+        self._flag_log_tick_details: bool = False
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
@@ -85,6 +90,11 @@ class CarlaContext:
             self._client = carla.Client(self.configs.context.server_host, self.configs.context.server_port)
             self._client.set_timeout(self.configs.context.runtime_timeout_seconds)
         return self._client
+
+    @property
+    def is_sync_mode(self) -> bool:
+        """服务端当前是否处于同步模式, 只读"""
+        return self.world.get_settings().synchronous_mode
 
     @property
     def world(self) -> carla.World:
@@ -137,6 +147,15 @@ class CarlaContext:
         self.client.set_timeout(self.configs.context.runtime_timeout_seconds)
         self.logger.debug('Exiting heavy operation mode')
 
+    @contextmanager
+    def log_tick_details(self):
+        """在 Tick 过程中打印详细信息"""
+        self._flag_log_tick_details = True
+        self.logger.debug('Begin to log tick details ...')
+        yield
+        self._flag_log_tick_details = False
+        self.logger.debug('End to log tick details')
+
     def bringup(self):
         """启动 CARLA 上下文"""
         if not self.configs.context.server_self_managed_enabled:
@@ -147,7 +166,10 @@ class CarlaContext:
         # 等待服务端可用
         self.wait_server_available()
 
-        # 进入同步模式
+        # 记录服务端当前是否处于同步模式
+        self._is_sync_mode_before_bringup = self.is_sync_mode
+
+        # 强制进入同步模式
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = 1/self.configs.context.runtime_sync_mode_fps
@@ -173,6 +195,15 @@ class CarlaContext:
 
         # 清理 tick blockers
         self._tick_blockers.clear()
+
+        # 恢复服务端到异步模式
+        if not self._is_sync_mode_before_bringup:
+            settings = self.world.get_settings()
+            settings.synchronous_mode = False
+            settings.fixed_delta_seconds = 0
+            self.world.apply_settings(settings)
+            self.logger.info('Restored server sync mode to previous state before bringup')
+            self.tick(force=True)
 
         # 清理 client
         del self._client
@@ -327,7 +358,13 @@ class CarlaContext:
 
         # 执行 TICK
         self.world.tick()
+        client_dt = time.perf_counter() - self._time_last_tick
+        server_frame = self.world.get_snapshot().frame
         self._time_last_tick = time.perf_counter()
+
+        # 打印 Tick 详细信息
+        if self._flag_log_tick_details:
+            self.logger.debug(f'TICK >>>> frame: {server_frame}, dt: {client_dt:.3f}')
 
         # 自动设置 TickBlocker
         for blocker in self._tick_blockers:
@@ -346,11 +383,10 @@ class CarlaContext:
             while not self._event_shutdown.is_set() and not self._event_server_dead.is_set():
                 self.tick()
                 try:
-                    time.sleep(self._calc_tick_wait_time())
+                    self._sleep_tick_wait_time()
                 except KeyboardInterrupt:
                     self.logger.warning('Spin interrupted by user')
                     raise SystemExit(100)
-                self._time_last_tick = time.perf_counter()
         except KeyboardInterrupt:
             self.logger.info('Spin stopped by manual interrupt')
             return
@@ -379,13 +415,12 @@ class CarlaContext:
         while time.perf_counter() - begin < seconds:
             self.tick(force=force, no_hook_before_next_tick=no_hook_before_next_tick, no_hook_on_tick=no_hook_on_tick)
             try:
-                time.sleep(self._calc_tick_wait_time())
+                self._sleep_tick_wait_time()
             except KeyboardInterrupt as e:
                 if not raise_interrupted:
                     self.logger.warning(f'Wait seconds (seconds: {seconds}) interrupted by user')
                     raise SystemExit(100)
                 raise e
-            self._time_last_tick = time.perf_counter()
         if not no_log:
             self.logger.debug(f'Waiting finished: {seconds} seconds')
         return self
@@ -415,13 +450,12 @@ class CarlaContext:
             self.tick(force=force, no_hook_before_next_tick=no_hook_before_next_tick, no_hook_on_tick=no_hook_on_tick)
             tick_counter += 1
             try:
-                time.sleep(self._calc_tick_wait_time())
+                self._sleep_tick_wait_time()
             except KeyboardInterrupt as e:
                 if not raise_interrupted:
                     self.logger.warning(f'Wait ticks (ticks: {ticks}) interrupted by user')
                     raise SystemExit(100)
                 raise e
-            self._time_last_tick = time.perf_counter()
         if not no_log:
             self.logger.debug(f'Waiting finished: {ticks} ticks')
 
@@ -435,13 +469,34 @@ class CarlaContext:
             self.world.tick()  # 这里使用 carla.world.tick()
             self.logger.info(f'Map changed to {map_name}, fullname: "{self.world.get_map().name}"')
 
-    def _calc_tick_wait_time(self) -> float:
-        """计算 TICK 等待时间"""
+    def _sleep_tick_wait_time(self):
+        """执行 tick 等待时间的 sleep，并记录误差用于补偿"""
         time_now = time.perf_counter()
-        time_diff = time_now - self._time_last_tick
-        time_wait = 1/self.configs.context.runtime_sync_mode_fps - time_diff
-        time_wait = max(time_wait, 1/self.configs.context.runtime_sync_mode_fps * 1/4)  # 最小等待时间不超过 1/4 帧
-        return time_wait
+        frame_time = 1/self.configs.context.runtime_sync_mode_fps
+        
+        # 计算等待时间
+        if self._time_last_sleep_end == 0.0:
+            # 如果还没有 sleep 过，直接返回帧时间
+            time_diff = time_now - self._time_last_tick
+            expected_sleep = frame_time - time_diff
+        else:
+            time_since_last_sleep = time_now - self._time_last_sleep_end
+            expected_sleep = frame_time - time_since_last_sleep - self._time_sleep_error_accumulated
+        
+        expected_sleep = max(expected_sleep, frame_time * 0.25)  # 最小等待时间不超过 1/4 帧
+        
+        # 执行 sleep
+        time_before_sleep = time.perf_counter()
+        time.sleep(expected_sleep)
+        time_after_sleep = time.perf_counter()
+        actual_sleep = time_after_sleep - time_before_sleep
+        
+        self._time_last_sleep_end = time_after_sleep
+        sleep_error = actual_sleep - expected_sleep
+        
+        # 使用指数移动平均平滑误差
+        alpha = 0.5 # 控制平滑程度, 越大响应越快但波动越大, 越小越平滑但响应越慢
+        self._time_sleep_error_accumulated = alpha * sleep_error + (1 - alpha) * self._time_sleep_error_accumulated
 
     def _server_kill(self):
         """终止所有 CARLA 服务端进程, 该方法强制通过操作系统的进程管理器终止进程"""
