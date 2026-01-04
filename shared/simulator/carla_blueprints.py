@@ -232,7 +232,7 @@ class CarlaBlueprints(Enum):
     WALKER_PEDESTRIAN_0049 = 'walker.pedestrian.0049'
     WALKER_PEDESTRIAN_0050 = 'walker.pedestrian.0050'
     WALKER_PEDESTRIAN_0051 = 'walker.pedestrian.0051'
-    WALKER_PEDESTRIAN_0052 = 'walker.pedestrian.0052'
+    # WALKER_PEDESTRIAN_0052 = 'walker.pedestrian.0052'
 
     @classmethod
     def walkers(cls) -> list[str]:

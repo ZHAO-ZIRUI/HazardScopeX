@@ -114,6 +114,7 @@ class CarlaSingleAction():
                          mix_emergency = 0.0,) -> list[CarlaVehicle]:
         
         if mix_car + mix_large + mix_2wheel + mix_emergency > 1.0:
+            print("mix_car:",mix_car," mix_large:",mix_large," mix_2wheel:",mix_2wheel," mix_emergency:",mix_emergency)
             self._logger.error('Mix ratios exceed 1.0, please adjust the parameters.')
             return
         if mix_car < 0 or mix_large < 0 or mix_2wheel < 0 or mix_emergency < 0:
@@ -255,7 +256,7 @@ class CarlaSingleAction():
                             pedestrain: carla.Walker = None,
                             transform: carla.Transform = None,
                             bp: str = None,
-                            destination: carla.Location = None,
+                            destination: carla.Transform = None,
                             direction: carla.Vector3D = None,
                             speed: float = 0.0,
                             jump: bool = False,) -> carla.Walker:
@@ -278,9 +279,9 @@ class CarlaSingleAction():
 
         pedestrain_control = carla.WalkerControl()
         if destination is not None:
-            pedestrain_control.direction = carla.Vector3D(x=destination.x-transform.location.x,
-                                                          y=destination.y-transform.location.y,
-                                                          z=destination.z-transform.location.z)
+            pedestrain_control.direction = carla.Vector3D(x=destination.location.x-transform.location.x,
+                                                          y=destination.location.y-transform.location.y,
+                                                          z=destination.location.z-transform.location.z)
         else:
             if direction is not None:
                 pedestrain_control.direction = direction
@@ -290,7 +291,7 @@ class CarlaSingleAction():
 
         pedestrain_control.speed = speed
         pedestrain_control.jump = jump
-        act.apply_control(pedestrain_control)
+        act.actor.apply_control(pedestrain_control)
 
         return act
     
@@ -349,14 +350,20 @@ class CarlaSingleAction():
             pedestrain_control.speed = r
             pedestrain_rotation = carla.Rotation(0,random.uniform(-180,180),0)
             pedestrain_control.direction = pedestrain_rotation.get_forward_vector()
-            r = random.random()
-            if r > 0.5:
-                pedestrain_control.jump = True
-            else:
-                pedestrain_control.jump = False
-            walker.apply_control(pedestrain_control) 
+            # r = random.random()
+            # if r > 0.5:
+            #     pedestrain_control.jump = True
+            # else:
+            #     pedestrain_control.jump = False
+            # 在地库让行人起跳可能会出现行人飞天bug
+            pedestrain_control.jump = False
+            walker.actor.apply_control(pedestrain_control) 
 
         return spawned_actors
+    
+    def create_static_object():
+        return
+
     
     def transform_from_ego(self,
                            left_offset: float = 0.0,
