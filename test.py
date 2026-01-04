@@ -57,10 +57,10 @@ def main():
         client.set_timeout(15.0)
         
         # 加载地图
-        world = client.load_world('SUSTech_COE_ParkingLot')
-        print("成功连接到Carla模拟器并加载地图SUSTech_COE_ParkingLot")
-        # world = client.load_world('Town10HD_Opt')
-        # print("成功连接到Carla模拟器并加载地图Town10HD_Opt")
+        # world = client.load_world('SUSTech_COE_ParkingLot')
+        # print("成功连接到Carla模拟器并加载地图SUSTech_COE_ParkingLot")
+        world = client.load_world('Town10HD_Opt')
+        print("成功连接到Carla模拟器并加载地图Town10HD_Opt")
         
         # 获取所有生成点
         spawn_points = world.get_map().get_spawn_points()

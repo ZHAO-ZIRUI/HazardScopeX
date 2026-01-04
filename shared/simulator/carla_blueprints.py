@@ -39,7 +39,7 @@ class CarlaBlueprints(Enum):
     
     # 静态物体
     STATIC_PROP_ADVERTISEMENT = 'static.prop.advertisement'
-    STATIC_PROP_APOROSATREE = 'static.prop.aporosatree'
+    # STATIC_PROP_APOROSATREE = 'static.prop.aporosatree'
     STATIC_PROP_ATM = 'static.prop.atm'
     STATIC_PROP_BARBEQUE = 'static.prop.barbeque'
     STATIC_PROP_BARREL = 'static.prop.barrel'
@@ -62,11 +62,11 @@ class CarlaBlueprints(Enum):
     STATIC_PROP_COLACAN = 'static.prop.colacan'
     STATIC_PROP_CONSTRUCTIONCONE = 'static.prop.constructioncone'
     STATIC_PROP_CONTAINER = 'static.prop.container'
-    STATIC_PROP_COCONUTPALM = 'static.prop.coconutpalm'
+    # STATIC_PROP_COCONUTPALM = 'static.prop.coconutpalm'
     STATIC_PROP_CREASEDBOX01 = 'static.prop.creasedbox01'
     STATIC_PROP_CREASEDBOX02 = 'static.prop.creasedbox02'
     STATIC_PROP_CREASEDBOX03 = 'static.prop.creasedbox03'
-    STATIC_PROP_CYPRESSTREE = 'static.prop.cypresstree'
+    # STATIC_PROP_CYPRESSTREE = 'static.prop.cypresstree'
     STATIC_PROP_DIRTDEBRIS01 = 'static.prop.dirtdebris01'
     STATIC_PROP_DIRTDEBRIS02 = 'static.prop.dirtdebris02'
     STATIC_PROP_DIRTDEBRIS03 = 'static.prop.dirtdebris03'
@@ -238,6 +238,11 @@ class CarlaBlueprints(Enum):
     def walkers(cls) -> list[str]:
         """获取所有行人蓝图"""
         return [walker.value for walker in cls.__members__.values() if walker.value.startswith('walker.pedestrian.')]
+    
+    @classmethod
+    def static_objects(cls) -> list[str]:
+        """获取所有静态物体蓝图"""
+        return [static.value for static in cls.__members__.values() if static.value.startswith('static.')]
     
     @classmethod
     def vehicles(cls, filter: Literal[None, 'car', 'large', 'emergency', '2wheel'] = None) -> list[str]:

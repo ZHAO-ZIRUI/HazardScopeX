@@ -33,18 +33,8 @@ if __name__ == "__main__":
         # tm.set_route(vehicle.actor, ['Straight'])
         # vehicle.set_carla_autopilot(enable=True)
 
-        # f1 = FactorLotLightDarkWithParkingVehicles(context, vehicle)
-        # f1 = FactorCaseVehicleFollow(context, vehicle)
-        # f1 = FactorLotCaseWrongWayBike(context, vehicle)
-        # f1 = FactorLotLightPollution(context, vehicle)
-        # f1 = FactorLotPedestrainCross(context, vehicle)
-        # f1 = FactorLotPedestrainBlock(context, vehicle)
-
-        # f1 = FactorLotCaseFrontAvoid(context, vehicle)
-        # f1 = FactorLotCasePedestrainDartOut(context, vehicle)
-        # f1 = FactorLotCaseBikeDartOut(context, vehicle)
-        # f1 = FactorLotCaseDrivingVehicleDartOut(context, vehicle)
-        f1 = FactorLotCaseBehindTruckDartOut(context, vehicle)
+        # f1 = FactorCaseObstaclesRandom(context, vehicle)
+        f1 = FactorLotCaseReverse(context, vehicle)
 
         factors = [f1]
         

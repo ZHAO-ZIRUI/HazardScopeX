@@ -1,33 +1,32 @@
 import numpy as np
 import carla
-import time
+import random
 from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorLotCaseDrivingVehicleDartOut(Factor):
-    NAME = 'F_LotCaseDrivingVehicleDartOut'
+class FactorCaseObstacleBuildingRubbish(Factor):
+    NAME = 'F_CaseObstacleBuildingRubbish'
 
     MAP_SPAWN_POINT_MAPPING = {
-        'Carla/Maps/SUSTech_COE_ParkingLot': {
-            'ego': 8,
-            'npc': [1, 6, 12, 15, 18]
+        'Carla/Maps/Town10HD_Opt': {
+            'ego': 50,
+            'npc': [56, 57, 58, 59, 93, 94, 107]
         },
     }
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 0.5, triggered_seconds: float = 7.0):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 0.5, triggered_seconds: float = 10.0, rubbish_num: int = 15):
         super().__init__(context)
         self._ego = vehicle
-        self._sa = None
-        self._act = None
         self._vehicles: list[CarlaVehicle] = []
+        self._static_objects: list[CarlaActor] = []
         self._wait_trigger_seconds = wait_trigger_seconds
         self._triggered_seconds = triggered_seconds
         self._count_before_trigger = 0
         self._count_after_trigger = 0
+        self._rubbish_num = rubbish_num
         self.world = context.world
         self.debug = self.world.debug
-        self.step = 0
 
     def __post_init__(self) -> None:
         self.hook_update.append(self.trigger)
@@ -39,28 +38,17 @@ class FactorLotCaseDrivingVehicleDartOut(Factor):
         return self._ego
 
     def bringup(self) -> None:
-        self._sa = CarlaSingleAction(self._context, self._ego, self.logger)
+        sa = CarlaSingleAction(self._context, self._ego, self.logger)
 
         # 设置 ego 位置
         spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
-        self._sa.set_ego(tf_ego)
+        sa.set_ego(tf_ego)
         self._vehicles.append(self._ego)
 
-        self._sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
+        sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
 
-        static_list = self._sa.lotStatic_parking_car(
-                              distance=15,
-                              mix_large=0.0, 
-                              mix_emergency=0.0,
-                              mix_head_in=0.3, 
-                              mix_empty=0.0, 
-                              limit_yaw=5.0, 
-                              limit_drift_short=0.1, 
-                              limit_drift_long=0.1)
-        self._vehicles.extend(static_list)
-
-        vehicles = self._sa.autopilot_traffic(
+        vehicles = sa.autopilot_traffic(
             nums=30,
             distance=40,
             spawn_point_list=spawn_point_mapping['npc'],
@@ -71,14 +59,23 @@ class FactorLotCaseDrivingVehicleDartOut(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        tf_act = self._sa.transform_from_ego(front_offset=14, left_offset=-6, yaw_offset=-90)
-        act = self._sa.manual_control_vehicle(
-            transform=tf_act,
-            bp='vehicle.tesla.model3',
-            throttle=0.4,
-            reverse=False
-        )
-        self._vehicles.append(act)
+        bp_list = [
+            'static.prop.garbage01',
+            'static.prop.garbage02',
+            'static.prop.garbage03',
+            'static.prop.garbage04',
+            'static.prop.garbage05',
+            'static.prop.garbage06',
+        ]
+
+        for i in range(self._rubbish_num):
+            bp = random.choice(bp_list)
+            rubbish = sa.create_static_object(
+                transform=sa.transform_from_ego(front_offset=20+random.uniform(-5,5), left_offset=random.uniform(-5,5), yaw_offset=random.uniform(-180,180)),
+                bp=bp,
+            )
+            self._static_objects.append(rubbish)
+            rubbish.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

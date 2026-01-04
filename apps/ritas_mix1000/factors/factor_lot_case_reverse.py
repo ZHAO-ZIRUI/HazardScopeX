@@ -12,6 +12,10 @@ class FactorLotCaseReverse(Factor):
             'ego': 33,
             'npc': [1, 12, 15, 18, 25, 45]
         },
+        'Carla/Maps/Town10HD_Opt': {
+            'ego': 50,
+            'npc': [93, 53, 56, 107, 58]
+        },
     }
 
     def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 1.0, triggered_seconds: float = 10.0):

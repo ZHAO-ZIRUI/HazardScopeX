@@ -357,17 +357,101 @@ class CarlaSingleAction():
             #     pedestrain_control.jump = False
             # 在地库让行人起跳可能会出现行人飞天bug
             pedestrain_control.jump = False
-            walker.actor.apply_control(pedestrain_control) 
+            walker.actor.apply_control(pedestrain_control)
 
         return spawned_actors
     
-    def create_static_object():
-        return
+    def create_static_object(self,
+                             transform: carla.Transform = None,
+                             bp: str = None) -> CarlaActor:
+        static_object = self._context.actors.create_actor(
+                bp=bp,
+                tf=transform,
+                name=f'Static_{bp}',
+                ignore_spawn_failure=True,
+        )
+        static_object.spawn()
+        return static_object
 
-    
+    def create_static_objects(self,
+                            nums: int = 100,
+                            distance: float = 100.0,
+                            spawn_point_list: list[int] = None,
+                            spawn_transform_list: list[carla.Transform] = None,
+                            ) -> list[CarlaActor]:
+        # 获取主车辆位置
+        tf_ego = self._ego.tf_now_baselink
+        vehicle_location = tf_ego.location
+
+        static_objects = []
+        nearby_spawn_points = []
+
+        if spawn_transform_list is not None or spawn_point_list is not None:
+            tf_list = []
+            if spawn_transform_list is not None:
+                tf_list = spawn_transform_list
+            if spawn_point_list is not None:
+                for id in spawn_point_list:
+                    tf = self._context.spawn_points[id]
+                    tf_list.append(tf)
+            
+            # 筛选附近的 spawn points
+            for tf in tf_list:
+                location_distance = vehicle_location.distance(tf.location)
+                if location_distance < distance:
+                    nearby_spawn_points.append(tf)
+            random.shuffle(nearby_spawn_points)
+        else:
+            for i in range(nums):
+                dx = random.uniform(-distance, distance)
+                dy = math.sqrt(distance**2 - dx**2) * random.choice([-1, 1])
+                tf = carla.Transform(
+                    carla.Location(
+                        x=vehicle_location.x + dx,
+                        y=vehicle_location.y + dy,
+                        z=vehicle_location.z,
+                    ),
+                    carla.Rotation(
+                        pitch=0.0,
+                        yaw=random.uniform(-180.0, 180.0), 
+                        roll=0.0,
+                    )
+                )
+                nearby_spawn_points.append(tf)
+
+        # 在附近的 spawn points 生成static objects
+        for i, tf in enumerate(nearby_spawn_points):
+            if i > nums:
+                break
+            bp = random.choice(CarlaBlueprints.static_objects())
+            print("bp:",bp)
+            static_object = self._context.actors.create_actor(
+                bp=bp,
+                tf=tf,
+                name=f'Static_{i}',
+                ignore_spawn_failure=True,
+            )
+            static_object.spawn()
+            if static_object is not None and static_object.is_alive:
+                static_object.actor.set_simulate_physics(True)
+                static_objects.append(static_object)
+
+        self._context.tick()
+
+        # 收集所有成功spawn的actors
+        spawned_actors = []
+        for static_object in static_objects:
+            if static_object.is_alive:
+                spawned_actors.append(static_object)
+        if spawned_actors:
+            self._context.actors.wait_stable(*spawned_actors)
+
+        return static_objects
+
     def transform_from_ego(self,
                            left_offset: float = 0.0,
                            front_offset: float = 0.0,
+                           height_offset: float = 0.0,
                            yaw_offset: float = 0.0) -> carla.Transform:
         tf_ego = self._ego.tf_now_baselink
 
@@ -377,7 +461,7 @@ class CarlaSingleAction():
         location = carla.Location(
             x=tf_ego.location.x + left_offset * np.sin(ego_yaw_rad) + front_offset * np.cos(ego_yaw_rad),
             y=tf_ego.location.y + left_offset * np.cos(ego_yaw_rad) + front_offset * np.sin(ego_yaw_rad),
-            z=tf_ego.location.z
+            z=tf_ego.location.z + height_offset
         )
 
         transform = carla.Transform(location=location, rotation=rotation)
