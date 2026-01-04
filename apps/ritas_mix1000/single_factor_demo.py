@@ -36,7 +36,15 @@ if __name__ == "__main__":
         # f1 = FactorLotLightDarkWithParkingVehicles(context, vehicle)
         # f1 = FactorCaseVehicleFollow(context, vehicle)
         # f1 = FactorLotCaseWrongWayBike(context, vehicle)
-        f1 = FactorLotLightPollution(context, vehicle)
+        # f1 = FactorLotLightPollution(context, vehicle)
+        # f1 = FactorLotPedestrainCross(context, vehicle)
+        # f1 = FactorLotPedestrainBlock(context, vehicle)
+
+        # f1 = FactorLotCaseFrontAvoid(context, vehicle)
+        # f1 = FactorLotCasePedestrainDartOut(context, vehicle)
+        # f1 = FactorLotCaseBikeDartOut(context, vehicle)
+        # f1 = FactorLotCaseDrivingVehicleDartOut(context, vehicle)
+        f1 = FactorLotCaseBehindTruckDartOut(context, vehicle)
 
         factors = [f1]
         

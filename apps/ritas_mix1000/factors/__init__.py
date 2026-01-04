@@ -50,6 +50,7 @@ from .factor_lot_case_vehicle_dart_out import FactorLotCaseVehicleDartOut
 from .factor_lot_case_driving_vehicle_dart_out import FactorLotCaseDrivingVehicleDartOut
 from .factor_lot_case_bike_dart_out import FactorLotCaseBikeDartOut
 from .factor_lot_case_pedestrain_dart_out import FactorLotCasePedestrainDartOut
+from .factor_lot_case_behind_truck_dart_out import FactorLotCaseBehindTruckDartOut
 from .factor_lot_case_front_aeb import FactorLotCaseFrontAeb
 from .factor_lot_case_front_avoid import FactorLotCaseFrontAvoid
 from .factor_lot_case_force_cutin import FactorLotCaseForceCutin
@@ -129,6 +130,7 @@ __all__ = [
     "FactorLotCaseDrivingVehicleDartOut",
     "FactorLotCaseBikeDartOut",
     "FactorLotCasePedestrainDartOut",
+    "FactorLotCaseBehindTruckDartOut",
     "FactorLotCaseFrontAvoid",
     "FactorLotCaseIncorrectPark",
     "FactorLotCaseTryingPark",
