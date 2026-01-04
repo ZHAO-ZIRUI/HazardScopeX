@@ -3,7 +3,8 @@ from typing_extensions import Self, Unpack
 from logging import Logger
 
 from shared.simulator import CarlaContext, CarlaTickBlocker
-from shared.scenarios import Factor, Evaluator
+from shared.scenarios.factor import Factor
+from shared.scenarios.evaluator import Evaluator
 from shared.utils import Logging, PostInitMeta
 
 class Injector(metaclass=PostInitMeta):
@@ -116,6 +117,9 @@ class Injector(metaclass=PostInitMeta):
         assert isinstance(threshold, float) and 0.0 <= threshold <= 1.0
         while evaluator.result is None or evaluator.result < threshold:
             try:
+                evaluator.evaluate()
+                # self._logger.info(f'frame: {self._context.world.get_snapshot().frame}')
+                # self._logger.info(f'sync: {self._context.world.get_settings().synchronous_mode}')
                 self._context.wait_ticks(1, no_log=True, raise_interrupted=True)
             except KeyboardInterrupt:
                 self.logger.warning(f'Spin until evaluator threshold interrupted by user')

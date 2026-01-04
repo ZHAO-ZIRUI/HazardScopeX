@@ -121,6 +121,10 @@ class CarlaContext:
     @property
     def recorder(self) -> CarlaRecorder:
         return self._service_recorder
+    
+    @property
+    def fixed_delta_seconds(self) -> float:
+        return 1/self.configs.context.runtime_sync_mode_fps
 
     @contextmanager
     def heavy_operation(self):

@@ -9,6 +9,7 @@
 import cv2
 from typing_extensions import Self
 from shared.data.image import Image
+from shared.scenarios.evaluator import ConstantRiskEvaluator, SimpleRiskEvaluator
 from shared.simulator import *
 from shared.utils import Logging
 from shared.prefabs import PlayerVehicle
@@ -103,13 +104,21 @@ if __name__ == "__main__":
     logger.info('DEMO FOR SIMPLE INJECT')
 
     with CarlaContext() as context:    
+
+        context.change_map('Town10HD')
         vehicle = PlayerVehicle(context, context.spawn_points[0])
 
         context.actors.spawn_all()
         context.actors.wait_stable(vehicle)
 
-        context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
-        context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
+        evaluator = SimpleRiskEvaluator(context)
+        evaluator.bind_evaluate_actor('hero', vehicle)
+
+        # 绑定传感器输出到内存
+        context.io.create_shm(topic='cam_game').bind_sensor_output(vehicle.cam_game)
+        
+        # context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
+        # context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
 
         vehicle.set_carla_autopilot(enable=True)
 
@@ -118,6 +127,6 @@ if __name__ == "__main__":
         factors = [f1, f2]
         
         with Injector(context, *factors) as injector:       # 执行注入
-            injector.spin_until_finished(f2)
+            injector.spin_until_evaluator_threshold(evaluator=evaluator, threshold=0.99)
 
     logger.info('Goodbye!')
