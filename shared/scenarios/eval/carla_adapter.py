@@ -67,7 +67,7 @@ class CarlaEvaluatorAdapter:
         # collision_sensor.spawn(lambda event: self._on_collision(event))
 
         collision_sensor = self._carla_context.actors.create_sensor(bp=bp, tf=carla.Transform(), parent=ego_vehicle)
-        collision_sensor.hook_sensor_data_recv.append(self._on_collision)
+        collision_sensor.hook_sensor_data_ready.append(self._on_collision)
         collision_sensor.spawn()
         self._logger.info(f"已注册碰撞传感器 (id={collision_sensor.actor.id})！")
         return collision_sensor.actor
