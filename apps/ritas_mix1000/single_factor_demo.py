@@ -33,9 +33,7 @@ if __name__ == "__main__":
         # tm.set_route(vehicle.actor, ['Straight'])
         # vehicle.set_carla_autopilot(enable=True)
 
-        # f1 = FactorCaseObstaclesRandom(context, vehicle)
-        f1 = FactorLotCaseReverse(context, vehicle)
-
+        f1 = FactorCaseObstaclesRandom(context, vehicle)
         factors = [f1]
         
         with Injector(context, *factors) as injector:       # 执行注入

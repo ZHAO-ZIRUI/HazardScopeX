@@ -18,15 +18,35 @@
 pip install uv
 ```
 
-在安装 `uv` 后, 使用下列命令创建虚拟环境并同步依赖
+在安装 `uv` 后, 使用下列命令创建虚拟环境并同步依赖. 目前项目支持在以下环境中运行:
+
+- Ubuntu 22.04 + Python 3.10 + ROS2 Humble
+- Ubuntu 24.04 + Python 3.12 + ROS2 Jazzy
 
 ```sh
-uv sync
+# Ubuntu 22.04 Python 3.10
+uv sync --python 3.10
+# Ubuntu 24.04 Python 3.12
+uv sync --python 3.12
+```
+
+在你的 Shell 配置文件中增加以下内容, 例如: `~/.zshrc` 或 `~/.bashrc`, 并重新执行 `source`, 
+如果您不愿意通过上述方式污染 `uv` 的设置, 可以在每次运行前在 Shell 中手动输入下述命令.
+
+```bash
+# Ubuntu 22.04 Python 3.10
+export UV_PYTHON=3.10
+# Ubuntu 22.04 Python 3.10
+export UV_PYTHON=3.12
 ```
 
 > [!TIP]
 > 
 > 我们推荐使用 ROS2 作为通信中间件, 并使用 `rviz2` 进行可视化调试.
+
+> [!WARNING]
+> 
+> 如果决定使用 ROS2, 操作系统的发型版本与 Python 的版本将会严格绑定, 在 `Ubuntu 22.04 + ROS2 Humble` 环境下使用 `Python 3.12` 将无法找到 ROS 包
 
 ### 程序配置
 

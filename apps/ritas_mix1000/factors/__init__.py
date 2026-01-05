@@ -41,6 +41,7 @@ from .factor_case_highway_miss_exit import FactorCaseHighwayMissExit
 from .factor_case_highway_wrong_way import FactorCaseHighwayWrongWay
 from .factor_case_ramp_wrong_way import FactorCaseRampWrongWay
 from .factor_case_vehicle_follow import FactorCaseVehicleFollow
+from .factor_case_box_fall_down import FactorCaseBoxFallDown
 from .factor_case_obstacle_bin import FactorCaseObstacleBin
 from .factor_case_obstacle_building_rubbish import FactorCaseObstacleBuildingRubbish
 from .factor_case_obstacle_container  import FactorCaseObstacleContainer
@@ -51,6 +52,7 @@ from .factor_case_obstacle_mailbox import FactorCaseObstacleMailBox
 from .factor_case_obstacle_warning import FactorCaseObstacleWarning
 from .factor_case_obstacle_car import FactorCaseObstacleCar
 from .factor_case_obstacles_random import FactorCaseObstaclesRandom
+from .factor_case_obstacles_sequence import FactorCaseObstaclesSequence
 from .factor_traffic_cross_road import FactorTrafficCrossRoad
 from .factor_lot_mess_park import FactorLotMessPark
 from .factor_lot_traffic_two_wheels import FactorLotTrafficTwoWheels
@@ -127,6 +129,7 @@ __all__ = [
     "FactorCaseHighwayWrongWay",
     "FactorCaseRampWrongWay",
     "FactorCaseVehicleFollow",
+    "FactorCaseBoxFallDown",
     "FactorCaseObstacleBin",
     "FactorCaseObstacleBuildingRubbish",
     "FactorCaseObstacleContainer",
@@ -137,6 +140,7 @@ __all__ = [
     "FactorCaseObstacleWarning",
     "FactorCaseObstacleCar",
     "FactorCaseObstaclesRandom",
+    "FactorCaseObstaclesSequence",
     "FactorTrafficCrossRoad",
     "FactorLotMessPark",
     "FactorLotTrafficTwoWheels",

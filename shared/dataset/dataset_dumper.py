@@ -47,6 +47,8 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._data_buffer: dict[str, BaseData] = {}
 
         self._cached_sensor_hooks: dict[CarlaSensor, Callable] = {}
+        self._cached_sensor_hooks_befre_next_tick: list[Callable] = []
+        self._cached_sensor_hooks_on_tick: list[Callable] = []
 
         self._hook_after_final_flush: list[Callable[[], None]] = []
 
@@ -64,9 +66,9 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._context.tick_blockers.append(self._tick_blocker)
 
         # 注册钩子
-        self._context.hook_on_tick.append(self._update_frame_counter)
-        self._context.hook_on_tick.append(self._log_on_tick)
-        self._context.hook_on_tick.append(self._flash_on_memory_usage_high)
+        self._append_hook_on_tick(self._update_frame_counter)
+        self._append_hook_on_tick(self._log_on_tick)
+        self._append_hook_on_tick(self._flash_on_memory_usage_high)
         
         self._hook_after_final_flush.append(self._log_result)
         return self
@@ -96,6 +98,8 @@ class DatasetDumper(metaclass=PostInitMeta):
         return memory_usage < self._context.configs.dataset.safe_memory_usage_threshold
 
     def close(self) -> None:
+        # 在最后一次 tick 后移除传感器钩子, 以避免额外一次的写入, 或者过早的移除钩子导致数据丢失
+        self._append_hook_befre_next_tick(self._remove_sensor_hooks)
         # 执行最终写入
         self.flush(final=True)
 
@@ -104,14 +108,13 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._context.tick_blockers.remove(self._tick_blocker)
 
         # 移除钩子
-        self._context.hook_on_tick.remove(self._update_frame_counter)
-        self._context.hook_on_tick.remove(self._log_on_tick)
-        self._context.hook_on_tick.remove(self._flash_on_memory_usage_high)
+        for hook in self._cached_sensor_hooks_befre_next_tick:
+            self._context.hook_befre_next_tick.remove(hook)
+        self._cached_sensor_hooks_befre_next_tick.clear()
 
-        # 移除传感器钩子
-        for sensor, hook in self._cached_sensor_hooks.items():
-            sensor.hook_sensor_data_ready.remove(hook)
-        self._cached_sensor_hooks.clear()
+        for hook in self._cached_sensor_hooks_on_tick:
+            self._context.hook_on_tick.remove(hook)
+        self._cached_sensor_hooks_on_tick.clear()
 
         # 移除自身钩子
         self._hook_after_final_flush.clear()
@@ -153,24 +156,26 @@ class DatasetDumper(metaclass=PostInitMeta):
 
         return self
 
-    def flush(self, *, final: bool = False) -> None:
+    def flush(self, *, final: bool = True) -> None:
         """将数据集写入到磁盘"""
+        # 在最终写入前额外执行一次 tick, 以保证 hook_before_next_tick 被执行
+        if final:
+            self._context.wait_ticks(1, no_hook_on_tick=True)
+
         self.tick_blocker.set()
         with self._context.heavy_operation():
-            pass
+            # 执行写入
+            count = 0
+            total = len(self._data_buffer)
+            for file_path, data in self._data_buffer.items():
+                self._flush_data(data, file_path)
+                count += 1
+                percentage = count / total * 100
+                msg = f'Flushed {percentage:.2f}%: {count}/{total} files'
+                Logging().interval(self._context.configs.dataset.log_interval_seconds, self.logger.info, msg, 'dataset_dumper_flush')
+
         self.tick_blocker.clear()
-
         self.logger.info(f'Flushed dataset to disk ... Count: {len(self._data_buffer)} files')
-
-        # 执行写入
-        count = 0
-        total = len(self._data_buffer)
-        for file_path, data in self._data_buffer.items():
-            self._flush_data(data, file_path)
-            count += 1
-            percentage = count / total * 100
-            msg = f'Flushed {percentage:.2f}%: {count}/{total} files'
-            Logging().interval(self._context.configs.dataset.log_interval_seconds, self.logger.info, msg, 'dataset_dumper_flush')
 
         Logging().cancel_interval('dataset_dumper_flush')
         self._data_buffer.clear()
@@ -184,6 +189,16 @@ class DatasetDumper(metaclass=PostInitMeta):
             self.logger.info(f'Memory usage is safe, continue')
         
         return None
+
+    def _append_hook_befre_next_tick(self, hook: Callable) -> Self:
+        self._context.hook_befre_next_tick.append(hook)
+        self._cached_sensor_hooks_befre_next_tick.append(hook)
+        return self
+
+    def _append_hook_on_tick(self, hook: Callable) -> Self:
+        self._context.hook_on_tick.append(hook)
+        self._cached_sensor_hooks_on_tick.append(hook)
+        return self
 
     def _cache_sensor_data_to_buffer(self, data: BaseData, path: Path, naming_policy: NamingPolicy) -> None:
         """缓存传感器数据到内存缓存
@@ -290,8 +305,15 @@ class DatasetDumper(metaclass=PostInitMeta):
         """当内存使用率过高时, 将数据集写入到磁盘"""
         if not self.is_memory_safe:
             self.logger.warning(f'Memory usage is too high: {psutil.virtual_memory().percent:.2f}%, flushing dataset to disk immediately')
-            self.flush()
+            self.flush(final=False)
         return self
+
+    def _remove_sensor_hooks(self, _) -> None:
+        """移除传感器钩子"""
+        for sensor, hook in self._cached_sensor_hooks.items():
+            sensor.hook_sensor_data_ready.remove(hook)
+        self._cached_sensor_hooks.clear()
+        return None
 
     @property
     def hook_after_final_flush(self) -> list[Callable[[], None]]:

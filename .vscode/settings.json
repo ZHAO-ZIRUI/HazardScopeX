@@ -14,5 +14,8 @@
     "coverage-gutters.coverageFileNames": [
         ".coverage",
         "coverage.xml"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python-envs.pythonProjects": []
 }
