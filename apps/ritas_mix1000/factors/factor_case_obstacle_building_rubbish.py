@@ -75,7 +75,6 @@ class FactorCaseObstacleBuildingRubbish(Factor):
                 bp=bp,
             )
             self._static_objects.append(rubbish)
-            rubbish.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

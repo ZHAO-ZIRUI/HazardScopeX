@@ -21,6 +21,10 @@ class CarlaSingleAction():
         self._tm = self._context.traffic
 
     @property
+    def context(self) -> CarlaContext:
+        return self._context
+
+    @property
     def world(self) -> carla.World:
         return self._world
     
@@ -268,7 +272,6 @@ class CarlaSingleAction():
             else:
                 pedestrain_blueprint = random.choice(CarlaBlueprints.walkers())
             # 设置行人起点
-            # act = self.world.try_spawn_actor(pedestrain_blueprint, transform)
             act = self._context.actors.create_actor(
                 bp=pedestrain_blueprint,
                 tf=transform,
@@ -371,6 +374,7 @@ class CarlaSingleAction():
                 ignore_spawn_failure=True,
         )
         static_object.spawn()
+        static_object.actor.set_simulate_physics(True)
         return static_object
 
     def create_static_objects(self,
@@ -424,7 +428,6 @@ class CarlaSingleAction():
             if i > nums:
                 break
             bp = random.choice(CarlaBlueprints.static_objects())
-            print("bp:",bp)
             static_object = self._context.actors.create_actor(
                 bp=bp,
                 tf=tf,
@@ -447,6 +450,16 @@ class CarlaSingleAction():
             self._context.actors.wait_stable(*spawned_actors)
 
         return static_objects
+    
+    def object_fly_away(self
+            
+                                    ):
+        initial_velocity = spec_transform.rotation.get_forward_vector()
+        box = manager.spawn_one_box(spec_transform, world, blueprint_id='static.prop.streetbarrier')
+        box.set_simulate_physics(True)
+        box.set_target_velocity(initial_velocity*10) # type: ignore
+        box.add_impulse(initial_velocity*500) # type: ignore
+        return
 
     def transform_from_ego(self,
                            left_offset: float = 0.0,
@@ -462,6 +475,37 @@ class CarlaSingleAction():
             x=tf_ego.location.x + left_offset * np.sin(ego_yaw_rad) + front_offset * np.cos(ego_yaw_rad),
             y=tf_ego.location.y + left_offset * np.cos(ego_yaw_rad) + front_offset * np.sin(ego_yaw_rad),
             z=tf_ego.location.z + height_offset
+        )
+
+        transform = carla.Transform(location=location, rotation=rotation)
+        return transform
+    
+    def transform_from_transform(self,
+                                 transform: carla.Transform = None,
+                                 left_offset: float = 0.0,
+                                 front_offset: float = 0.0,
+                                 height_offset: float = 0.0,
+                                 yaw_offset: float = 0.0) -> carla.Transform:
+        if transform is None:
+            self._logger.error('Initial transform is not passed in.')
+            return
+        
+        yaw = transform.rotation.yaw
+        if 0 < yaw <= 90:
+            yaw = 90 - yaw
+        elif 90 < yaw <= 180:
+            yaw = 450 - yaw
+        elif -90 < yaw <= 0:
+            yaw = 90 - yaw
+        else:
+            yaw = 90 - yaw
+        transform_yaw_rad = np.radians(yaw)
+        rotation=carla.Rotation(pitch=transform.rotation.pitch,yaw=transform.rotation.yaw + yaw_offset,roll=transform.rotation.roll)
+
+        location = carla.Location(
+            x=transform.location.x + left_offset * np.sin(transform_yaw_rad + math.pi / 2) + front_offset * np.cos(transform_yaw_rad + math.pi / 2),
+            y=transform.location.y + left_offset * np.cos(transform_yaw_rad + math.pi / 2) + front_offset * np.sin(transform_yaw_rad + math.pi / 2),
+            z=transform.location.z + height_offset
         )
 
         transform = carla.Transform(location=location, rotation=rotation)
@@ -513,6 +557,43 @@ class CarlaSingleAction():
 
         vehicle.actor.set_light_state(carla.VehicleLightState(light_state))
         return
+    
+    def get_path_by_start_point(self, start_location: carla.Location = None, distance: float = 200.0, interval: float = 5.0) -> list[carla.Waypoint]:
+        """
+        从起点开始，规划一条确定的 Waypoint 路径。
+        我们总是选择最右侧（车道不变）或直行（路口）路径。
+        """
+        if start_location is None:
+            self._logger.error('Initial location is not passed in.')
+            return
+        
+        carla_map = self.world.get_map()
+        current_wp = carla_map.get_waypoint(start_location, project_to_road=True)
+        
+        path = []
+        for _ in range(int(distance / interval)): # 每 5 米一个 Waypoint
+            path.append(current_wp)
+            
+            # 核心逻辑：路径选择
+            next_wps = current_wp.next(interval) # 获取前方 5 米的所有可能 Waypoint
+            
+            if not next_wps:
+                break
+                
+            # 在路口：我们总是选择第一个 Waypoint（通常是直行或默认路径）
+            # 在直道：选择 lane_id 不变的 Waypoint
+            
+            next_wp = next_wps[0] # 默认选择第一个
+            
+            if current_wp.is_junction and len(next_wps) > 1:
+                # 在路口时，可以加入自定义逻辑，例如：
+                # 找到下一个 Waypoint 中 'road_id' 不变的 (直行)
+                # 或者强制选择一个固定的方向
+                next_wp = next_wps[0] # 这里简化为选择第一个出口
+            
+            current_wp = next_wp
+            
+        return path
     
     def set_spectator(self, transform):
         spectator = self.world.get_spectator()

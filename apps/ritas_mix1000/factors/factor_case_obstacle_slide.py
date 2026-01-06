@@ -63,7 +63,6 @@ class FactorCaseObstacleSlide(Factor):
             bp='static.prop.slide',
         )
         self._static_objects.append(slide)
-        slide.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

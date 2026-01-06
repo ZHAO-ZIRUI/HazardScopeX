@@ -63,7 +63,6 @@ class FactorCaseObstacleTrafficCone(Factor):
             bp='static.prop.trafficcone01',
         )
         self._static_objects.append(shopping_cart)
-        shopping_cart.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

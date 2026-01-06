@@ -63,7 +63,6 @@ class FactorCaseObstacleShoppingCart(Factor):
             bp='static.prop.shoppingcart',
         )
         self._static_objects.append(shopping_cart)
-        shopping_cart.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

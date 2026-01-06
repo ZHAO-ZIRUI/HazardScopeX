@@ -15,7 +15,7 @@ class FactorCaseBoxFallDown(Factor):
         },
     }
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 1.5, triggered_seconds: float = 8.5):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 1.0, triggered_seconds: float = 10.5):
         super().__init__(context)
         self._sa = None
         self._ego = vehicle
@@ -59,12 +59,12 @@ class FactorCaseBoxFallDown(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        # mailbox = sa.create_static_object(
-        #     transform=sa.transform_from_ego(front_offset=15, left_offset=random.uniform(-1,1), height_offset=1, yaw_offset=15),
-        #     bp='static.prop.mailbox',
-        # )
-        # self._static_objects.append(mailbox)
-        # mailbox.actor.set_simulate_physics(True)
+        act = self._sa.manual_control_vehicle(
+            bp='vehicle.carlamotors.carlacola',
+            transform=self._sa.transform_from_ego(left_offset=0.3, front_offset=10, height_offset=0.0, yaw_offset=0.0)
+            throttle=0.3
+        )
+
 
         self.ego.set_carla_autopilot(enable=True)
 

@@ -63,7 +63,6 @@ class FactorCaseObstacleMailBox(Factor):
             bp='static.prop.mailbox',
         )
         self._static_objects.append(mailbox)
-        mailbox.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

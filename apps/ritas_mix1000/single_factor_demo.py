@@ -18,8 +18,8 @@ if __name__ == "__main__":
     with CarlaContext(configReader) as context:
         # context.bringup()
         # context.change_map('Town04')
-        # context.change_map('Town10HD_Opt')
-        context.change_map('SUSTech_COE_ParkingLot')
+        context.change_map('Town10HD_Opt')
+        # context.change_map('SUSTech_COE_ParkingLot')
 
         vehicle = PlayerVehicle(context, context.spawn_points[0])
 
@@ -33,7 +33,8 @@ if __name__ == "__main__":
         # tm.set_route(vehicle.actor, ['Straight'])
         # vehicle.set_carla_autopilot(enable=True)
 
-        f1 = FactorCaseObstaclesRandom(context, vehicle)
+        f1 = FactorCaseObstaclesSequenceApproaching(context, vehicle)
+        # f1 = FactorCaseBoxFallDown(context, vehicle)
         factors = [f1]
         
         with Injector(context, *factors) as injector:       # 执行注入

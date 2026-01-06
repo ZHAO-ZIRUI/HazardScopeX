@@ -63,7 +63,6 @@ class FactorCaseObstacleWarning(Factor):
             bp='static.prop.warningaccident',
         )
         self._static_objects.append(warning)
-        warning.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

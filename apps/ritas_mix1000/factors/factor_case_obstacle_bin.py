@@ -63,7 +63,6 @@ class FactorCaseObstacleBin(Factor):
             bp='static.prop.bin',
         )
         self._static_objects.append(bin)
-        bin.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

@@ -63,7 +63,6 @@ class FactorCaseObstacleContainer(Factor):
             bp='static.prop.container',
         )
         self._static_objects.append(container)
-        container.actor.set_simulate_physics(True)
 
         self.ego.set_carla_autopilot(enable=True)
 

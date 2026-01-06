@@ -5,8 +5,8 @@ from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorCaseObstaclesSequence(Factor):
-    NAME = 'F_CaseObstaclesSequence'
+class FactorCaseObstaclesSequenceApproaching(Factor):
+    NAME = 'F_CaseObstaclesSequenceApproaching'
 
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/Town10HD_Opt': {
@@ -58,12 +58,13 @@ class FactorCaseObstaclesSequence(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        static_waypoint_list = sa.get_path_by_start_point(start_location=tf_ego.location)
-        bp = 'static.prop.barrel'
+        static_waypoint_list = sa.get_path_by_start_point(start_location=tf_ego.location, distance=120.0, interval=5.0)
+        bp = 'static.prop.streetbarrier'
         static_waypoint_list.pop()
-        for waypoint in static_waypoint_list:
+        d_left = 2.2 / len(static_waypoint_list)
+        for i, waypoint in enumerate(static_waypoint_list):
             static_object = sa.create_static_object(
-                transform=sa.transform_from_transform(waypoint.transform, left_offset=2, front_offset=1),
+                transform=sa.transform_from_transform(waypoint.transform, left_offset=3.0 - d_left * i, front_offset=0.3),
                 bp=bp,
             )
             self._static_objects.append(static_object)
