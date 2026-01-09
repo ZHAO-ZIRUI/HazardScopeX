@@ -451,14 +451,13 @@ class CarlaSingleAction():
 
         return static_objects
     
-    def object_fly_away(self
-            
-                                    ):
-        initial_velocity = spec_transform.rotation.get_forward_vector()
-        box = manager.spawn_one_box(spec_transform, world, blueprint_id='static.prop.streetbarrier')
-        box.set_simulate_physics(True)
-        box.set_target_velocity(initial_velocity*10) # type: ignore
-        box.add_impulse(initial_velocity*500) # type: ignore
+    def object_fly_away(self,
+                        object: CarlaActor,
+                        vector: carla.Vector3D = carla.Vector3D(0, 0, 0),
+                        force: float = 1):
+        object.actor.set_simulate_physics(True)
+        object.actor.set_target_velocity(vector * force) # type: ignore
+        object.actor.add_impulse(vector * force) # type: ignore
         return
 
     def transform_from_ego(self,
@@ -603,6 +602,15 @@ class CarlaSingleAction():
     def set_ego(self, transform):
         self._ego.actor.set_transform(transform)
         return
+    
+    def normalize_vector(self, vector: carla.Vector3D = None) -> carla.Vector3D:
+        '''
+            Normalize the vector x and y, ignore z.
+        '''
+        length = math.sqrt(vector.x**2 + vector.y**2)
+        if length == 0:
+            return carla.Vector3D(x=0,y=0,z=0)
+        return carla.Vector3D(x=vector.x / length,y=vector.y / length,z=vector.z)
     
 
 

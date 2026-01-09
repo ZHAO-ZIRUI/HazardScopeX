@@ -6,8 +6,8 @@ from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorCaseBoxFallDown(Factor):
-    NAME = 'F_CaseBoxFallDown'
+class FactorCaseBoxesFallDown(Factor):
+    NAME = 'F_CaseBoxesFallDown'
 
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/Town10HD_Opt': {
@@ -16,7 +16,7 @@ class FactorCaseBoxFallDown(Factor):
         },
     }
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 2.0, triggered_seconds: float = 10.5):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 2.0, triggered_seconds: float = 12.0):
         super().__init__(context)
         self._sa = None
         self._ego = vehicle
@@ -36,22 +36,16 @@ class FactorCaseBoxFallDown(Factor):
         return
     
     BOX_BLUEPRINTS = [
-                # 'static.prop.paperbox01',
-                # 'static.prop.paperbox02',
-                # 'static.prop.paperbox03',
                 'static.prop.box01',
                 'static.prop.box02',
                 'static.prop.box03',
             ]
-    
-    OFFSET_Z = {
-            # 'static.prop.paperbox01': 0.5,
-            # 'static.prop.paperbox02': 0.4,
-            # 'static.prop.paperbox03': 0.2,
-            'static.prop.box01': 0,
-            'static.prop.box02': 0,
-            'static.prop.box03': 0,
-        }
+
+    BOX_OFFSET_LIST = [
+        (0.35, 10, 4.5),
+        (-0.35, 10, 4.5),
+        (0.0, 11.0, 4.5),
+    ]
 
     @property
     def ego(self) -> CarlaVehicle:
@@ -79,17 +73,18 @@ class FactorCaseBoxFallDown(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        act = self._sa.manual_control_vehicle(
-            bp='vehicle.carlamotors.carlacola',
-            transform=self._sa.transform_from_ego(left_offset=0.3, front_offset=10, height_offset=0.0, yaw_offset=0.0),
-            throttle=0.5
+        self._sa.manual_control_vehicle(
+            bp='vehicle.mitsubishi.fusorosa',
+            transform=self._sa.transform_from_ego(left_offset=0.3, front_offset=13, height_offset=0.0, yaw_offset=0.0),
+            throttle=0.3
         )
 
-        bp = random.choice(self.BOX_BLUEPRINTS)
-        self._box = self._sa.create_static_object(
-            transform=self._sa.transform_from_ego(left_offset=0.3, front_offset=10, height_offset=3.0 + self.OFFSET_Z[bp], yaw_offset=0.0),
-            bp=bp
-        )
+        for i, (left_offset, front_offset, height_offset) in enumerate(self.BOX_OFFSET_LIST):
+             bp = random.choice(self.BOX_BLUEPRINTS)
+             self._box = self._sa.create_static_object(
+                 transform=self._sa.transform_from_ego(left_offset=left_offset, front_offset=front_offset, height_offset=height_offset, yaw_offset=0.0),
+                 bp=bp
+             )
 
         return super().bringup()
     
@@ -106,7 +101,7 @@ class FactorCaseBoxFallDown(Factor):
             tf_ego = self._ego.tf_now_baselink
             self._sa.object_fly_away(object=self._box, 
                                      vector=self._sa.normalize_vector(tf_ego.get_forward_vector()),
-                                     force=-5)
+                                     force=-25)
 
         self._count_before_trigger += 1
         return

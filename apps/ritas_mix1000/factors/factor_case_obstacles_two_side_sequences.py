@@ -1,13 +1,12 @@
 import numpy as np
 import carla
 import random
-import math
 from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorCaseBoxFallDown(Factor):
-    NAME = 'F_CaseBoxFallDown'
+class FactorCaseObstaclesTwoSideSequences(Factor):
+    NAME = 'F_CaseObstaclesTwoSideSequence'
 
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/Town10HD_Opt': {
@@ -16,11 +15,9 @@ class FactorCaseBoxFallDown(Factor):
         },
     }
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 2.0, triggered_seconds: float = 10.5):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 0.5, triggered_seconds: float = 60.0):
         super().__init__(context)
-        self._sa = None
         self._ego = vehicle
-        self._box = None
         self._vehicles: list[CarlaVehicle] = []
         self._static_objects: list[CarlaActor] = []
         self._wait_trigger_seconds = wait_trigger_seconds
@@ -34,41 +31,23 @@ class FactorCaseBoxFallDown(Factor):
         self.hook_update.append(self.trigger)
         self.hook_update.append(self.post_trigger)
         return
-    
-    BOX_BLUEPRINTS = [
-                # 'static.prop.paperbox01',
-                # 'static.prop.paperbox02',
-                # 'static.prop.paperbox03',
-                'static.prop.box01',
-                'static.prop.box02',
-                'static.prop.box03',
-            ]
-    
-    OFFSET_Z = {
-            # 'static.prop.paperbox01': 0.5,
-            # 'static.prop.paperbox02': 0.4,
-            # 'static.prop.paperbox03': 0.2,
-            'static.prop.box01': 0,
-            'static.prop.box02': 0,
-            'static.prop.box03': 0,
-        }
 
     @property
     def ego(self) -> CarlaVehicle:
         return self._ego
 
     def bringup(self) -> None:
-        self._sa = CarlaSingleAction(self._context, self._ego, self.logger)
+        sa = CarlaSingleAction(self._context, self._ego, self.logger)
 
         # 设置 ego 位置
         spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
-        self._sa.set_ego(tf_ego)
+        sa.set_ego(tf_ego)
         self._vehicles.append(self._ego)
 
-        self._sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
+        sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
 
-        vehicles = self._sa.autopilot_traffic(
+        vehicles = sa.autopilot_traffic(
             nums=30,
             distance=40,
             spawn_point_list=spawn_point_mapping['npc'],
@@ -79,17 +58,22 @@ class FactorCaseBoxFallDown(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        act = self._sa.manual_control_vehicle(
-            bp='vehicle.carlamotors.carlacola',
-            transform=self._sa.transform_from_ego(left_offset=0.3, front_offset=10, height_offset=0.0, yaw_offset=0.0),
-            throttle=0.5
-        )
+        static_waypoint_list = sa.get_path_by_start_point(start_location=tf_ego.location)
+        bp = 'static.prop.streetbarrier'
+        static_waypoint_list.pop()
+        for waypoint in static_waypoint_list:
+            static_object = sa.create_static_object(
+                transform=sa.transform_from_transform(waypoint.transform, left_offset=1.9, front_offset=1),
+                bp=bp,
+            )
+            self._static_objects.append(static_object)
+            static_object = sa.create_static_object(
+                transform=sa.transform_from_transform(waypoint.transform, left_offset=-1.9, front_offset=1),
+                bp=bp,
+            )
+            self._static_objects.append(static_object)
 
-        bp = random.choice(self.BOX_BLUEPRINTS)
-        self._box = self._sa.create_static_object(
-            transform=self._sa.transform_from_ego(left_offset=0.3, front_offset=10, height_offset=3.0 + self.OFFSET_Z[bp], yaw_offset=0.0),
-            bp=bp
-        )
+        self.ego.set_carla_autopilot(enable=True)
 
         return super().bringup()
     
@@ -101,13 +85,6 @@ class FactorCaseBoxFallDown(Factor):
         if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps:
             self.stage = self.FactorStage.TRIGGERED
             self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
-
-            self.ego.set_carla_autopilot(enable=True)
-            tf_ego = self._ego.tf_now_baselink
-            self._sa.object_fly_away(object=self._box, 
-                                     vector=self._sa.normalize_vector(tf_ego.get_forward_vector()),
-                                     force=-5)
-
         self._count_before_trigger += 1
         return
 
@@ -128,4 +105,3 @@ class FactorCaseBoxFallDown(Factor):
                 vehicle.set_carla_autopilot(enable=False)
         
         return super().teardown()
-    

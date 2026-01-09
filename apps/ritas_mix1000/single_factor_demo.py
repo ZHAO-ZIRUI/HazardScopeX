@@ -33,8 +33,7 @@ if __name__ == "__main__":
         # tm.set_route(vehicle.actor, ['Straight'])
         # vehicle.set_carla_autopilot(enable=True)
 
-        f1 = FactorCaseObstaclesSequenceApproaching(context, vehicle)
-        # f1 = FactorCaseBoxFallDown(context, vehicle)
+        f1 = FactorCaseObstaclesTwoSideSequences(context, vehicle)
         factors = [f1]
         
         with Injector(context, *factors) as injector:       # 执行注入
