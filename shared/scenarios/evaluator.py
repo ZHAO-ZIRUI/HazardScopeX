@@ -58,7 +58,7 @@ class SimpleRiskEvaluator(Evaluator):
 
     def __init__(self, context: CarlaContext):
         super().__init__(context)
-        self._eval_manager = None
+        self._eval_manager: EvalManager | None = None
 
     @property
     def frame(self):
@@ -86,3 +86,17 @@ class SimpleRiskEvaluator(Evaluator):
             self._logger.info(f"指标 {k}: {v}")
         self._logger.info(f"执行评估在 {self.frame} 帧，评估结果为 {self._result}.")
         return self._eval_manager.normalized_risk_value
+
+    def dump_data_package(self) -> dict:
+        """导出当前评估器的数据包"""
+        if self._eval_manager is None:
+            raise RuntimeError("You should bind a vehicle before dumping data package!")
+        
+        single_scenario_context = self._eval_manager.single_target_scenario_context # type: ignore
+        return {
+            'time_s': self._context.world.get_snapshot().frame * self._context.fixed_delta_seconds,
+            'scenario_context': single_scenario_context.dump_json(), # type: ignore
+            "norm": self._eval_manager.normalized_risk_value,
+            'metrics': self._eval_manager.dump_risk_metrics(),
+            'frame_id': self._context.world.get_snapshot().frame
+        }    

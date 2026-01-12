@@ -51,7 +51,7 @@ class CarlaEvaluatorAdapter:
         
         # 绘制射线检测点
         for loc in valid_locations:
-            world.debug.draw_point(loc, life_time=10)
+            world.debug.draw_point(loc, life_time=0.1)
         return valid_locations
     
     def register_collision_sensor(self, ego_vehicle: carla.Vehicle) -> carla.Sensor:

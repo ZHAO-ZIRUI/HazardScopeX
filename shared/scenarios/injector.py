@@ -83,10 +83,11 @@ class Injector(metaclass=PostInitMeta):
         self.logger.info(f'All {len(self._factors)} factors torn down')
         return
 
-    def spin_until_finished(self, *factors: Unpack[Factor]) -> None:
+    def spin_until_finished(self, evaluator: Evaluator, *factors: Unpack[Factor]) -> None:
         """持续运行仿真直到指定因子完成
 
         Args:
+            evaluator (Evaluator): 评估器
             *factors: 指定因子, 如果为空, 则运行直到所有因子完成
 
         Raises:
@@ -97,6 +98,7 @@ class Injector(metaclass=PostInitMeta):
         
         while any(factor.stage != Factor.FactorStage.COMPLETED for factor in factors):
             try:
+                evaluator.evaluate()
                 self._context.wait_ticks(1, no_log=True, raise_interrupted=True)
             except KeyboardInterrupt:
                 self.logger.warning(f'Spin until finished interrupted by user')
