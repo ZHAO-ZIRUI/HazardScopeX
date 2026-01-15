@@ -9,5 +9,5 @@ THIS WORKSPACE ONLY USED FOR MSG BUILD&SOURCE.
 sudo apt install ros-<distro>-geographic-msgs
 ```
 
-- autoware_vehicle_msgs
-- tier4_vehicle_msgs
+- autoware_vehicle_msgs: submodule from https://github.com/autowarefoundation/autoware_msgs.git
+- tier4_vehicle_msgs: submodule from https://github.com/tier4/tier4_autoware_msgs.git
