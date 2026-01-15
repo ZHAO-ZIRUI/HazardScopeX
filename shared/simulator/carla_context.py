@@ -461,7 +461,7 @@ class CarlaContext:
                 map_name = map.value
             else:
                 map_name = map
-            self.client.load_world(map_name)
+            self.client.load_world(map_name, reset_settings=False)
             self.world.tick()  # 这里使用 carla.world.tick()
             self.logger.info(f'Map changed to {map_name}, fullname: "{self.world.get_map().name}"')
 
