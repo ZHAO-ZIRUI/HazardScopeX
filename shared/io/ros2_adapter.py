@@ -217,7 +217,7 @@ class ROS2Adapter(AbstractIOAdapter):
                         if data is not None:
                             if hasattr(data, 'sim_frame') and data.sim_frame == current_frame:
                                 # 将数据转换为 ROS2 消息
-                                ros2_data = data.to_ros2(frame_id=ros_frame_id, timestamp_source=timestamp_source)
+                                ros2_data = data.to_ros2(frame_id=ros_frame_id, ros_message_type=ros_message_type, timestamp_source=timestamp_source)
                                 if rclpy.ok():
                                     ros_publisher.publish(ros2_data)
                                 else:
