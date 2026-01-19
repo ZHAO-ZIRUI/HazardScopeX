@@ -131,7 +131,7 @@ class BaseData(ABC):
             return default
 
     @abstractmethod
-    def to_ros2(self, frame_id: str = 'world', timestamp_source: TimestampSource = TimestampSource.OS) -> Any:
+    def to_ros2(self, frame_id: str = 'world', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> Any:
         """将数据转换为 ROS2 消息"""
         raise NotImplementedError
 

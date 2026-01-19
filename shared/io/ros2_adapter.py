@@ -26,6 +26,7 @@ class ROS2Adapter(AbstractIOAdapter):
     def __init__(
         self,
         shm_adapter: SharedMemoryAdapter,
+        ros_message_type: type,
         ros_topic_name: str, 
         ros_node_name: str = DEFAULT_ROS_NODE_NAME,
         ros_qos: int = 10, 
@@ -43,7 +44,7 @@ class ROS2Adapter(AbstractIOAdapter):
         self._ros_frame_id = ros_frame_id
         self._timestamp_source = timestamp_source
 
-        self._ros_message_type = None
+        self._ros_message_type = ros_message_type
         self._ros_node = None
         self._ros_publisher = None
 
@@ -78,6 +79,7 @@ class ROS2Adapter(AbstractIOAdapter):
             self._ros_node_name,
             self._ros_qos,
             self._ros_frame_id,
+            self._ros_message_type,
             self._timestamp_source,
             self._sensor_type,
         )
@@ -134,6 +136,7 @@ class ROS2Adapter(AbstractIOAdapter):
         ros_node_name: str,
         ros_qos: int,
         ros_frame_id: str,
+        ros_message_type: type,
         timestamp_source: TimestampSource,
         sensor_type: str,
     ) -> None:
@@ -174,10 +177,10 @@ class ROS2Adapter(AbstractIOAdapter):
             # 根据传感器类型确定数据类和消息类型
             if sensor_type == 'camera':
                 data_type = SharedImage
-                ros_message_type = Image
+                ros_message_type = Image if ros_message_type is None else ros_message_type
             elif sensor_type == 'lidar':
                 data_type = SharedPointCloud
-                ros_message_type = PointCloud2
+                ros_message_type = PointCloud2 if ros_message_type is None else ros_message_type
             else:
                 raise ValueError(f"Unsupported sensor type: {sensor_type}")
             

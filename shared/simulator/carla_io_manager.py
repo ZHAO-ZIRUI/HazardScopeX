@@ -137,6 +137,7 @@ class CarlaIOManager:
     def create_ros2(
         self, 
         topic: str, 
+        msg: type | None = None,
         shm_topic: str = '',
         ros_node_name: str = ROS2Adapter.DEFAULT_ROS_NODE_NAME,
         ros_node_qos: int = 10,
@@ -154,8 +155,9 @@ class CarlaIOManager:
 
         # 创建 ROS2 高性能适配器
         adapter = ROS2Adapter(
-            shm,
-            topic,
+            shm_adapter=shm,
+            ros_message_type=msg,
+            ros_topic_name=topic,
             ros_node_name=ros_node_name,
             ros_qos=ros_node_qos,
             ros_frame_id=frame_id,
