@@ -4,6 +4,7 @@
 from shared.simulator import CarlaContext
 from shared.utils import Logging
 from shared.prefabs import AutowareVehicle
+from geometry_msgs.msg import PoseWithCovarianceStamped
 
 if __name__ == "__main__":
     logger = Logging.load('config.yaml').get_logger('Main')
@@ -22,7 +23,7 @@ if __name__ == "__main__":
         context.io.create_ros2(topic='/hs/cam/front').bind_sensor_output(vehicle.cam_front)
         context.io.create_ros2(topic='/hs/cam/game').bind_sensor_output(vehicle.cam_game)
         context.io.create_ros2(topic='/hs/lidar/main').bind_sensor_output(vehicle.lidar)
-        context.io.create_ros2(topic='/hs/gnss').bind_sensor_output(vehicle.gnss)
+        context.io.create_ros2(topic='/hs/gnss', msg=PoseWithCovarianceStamped).bind_sensor_output(vehicle.gnss)
         context.io.create_ros2(topic='/hs/imu').bind_sensor_output(vehicle.imu)
 
         # 启动 CARLA AUTOPILOT 自动驾驶
