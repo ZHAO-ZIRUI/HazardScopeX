@@ -63,6 +63,10 @@ class ROS2Adapter(AbstractIOAdapter):
             self._sensor_type = 'camera'
         elif sensor.bp.id.lower().startswith('sensor.lidar.'):
             self._sensor_type = 'lidar'
+        elif sensor.bp.id.lower().startswith('sensor.other.gnss'):
+            self._sensor_type = 'gnss'
+        elif sensor.bp.id.lower().startswith('sensor.other.imu'):
+            self._sensor_type = 'imu'
         else:
             raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
 
@@ -153,8 +157,9 @@ class ROS2Adapter(AbstractIOAdapter):
         """
         import rclpy
         from multiprocessing.shared_memory import SharedMemory
-        from sensor_msgs.msg import Image, PointCloud2
+        from sensor_msgs.msg import Image, PointCloud2, NavSatFix, Imu
         from shared.data import Image as SharedImage, PointCloud as SharedPointCloud
+        from shared.data import Gnss as SharedGnss, Imu as SharedImu
         
         logger = Logging().get_logger('IOManager')
         logger.debug(f"Starting worker for shm to ros2: '{shm_topic}' -> '/{ros_topic_name}'")
@@ -181,6 +186,12 @@ class ROS2Adapter(AbstractIOAdapter):
             elif sensor_type == 'lidar':
                 data_type = SharedPointCloud
                 ros_message_type = PointCloud2 if ros_message_type is None else ros_message_type
+            elif sensor_type == 'gnss':
+                data_type = SharedGnss
+                ros_message_type = NavSatFix if ros_message_type is None else ros_message_type
+            elif sensor_type == 'imu':
+                data_type = SharedImu
+                ros_message_type = Imu if ros_message_type is None else ros_message_type
             else:
                 raise ValueError(f"Unsupported sensor type: {sensor_type}")
             

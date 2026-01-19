@@ -223,6 +223,10 @@ class CarlaSensor(CarlaActor):
             return PointCloud.from_carla(data)
         if isinstance(data, carla.CollisionEvent):
             return Collision.from_carla(data)
+        if isinstance(data, carla.GnssMeasurement):
+            return Gnss.from_carla(data)
+        if isinstance(data, carla.IMUMeasurement):
+            return Imu.from_carla(data)
         raise ValueError(f"Unsupported sensor data type: {type(data)}")
     
     def _resolve_image_color_converter(self, value: carla.ColorConverter | None) -> carla.ColorConverter:
