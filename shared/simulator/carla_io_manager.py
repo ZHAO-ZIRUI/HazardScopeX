@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from typing_extensions import Self
 from logging import Logger
 
-from shared.io import SharedMemoryAdapter, ROS2Adapter
+from shared.io import SharedMemoryAdapter, ROS2PublishAdapter
 from shared.utils import Logging
 from shared.data import TimestampSource
 
@@ -27,7 +27,7 @@ class CarlaIOManager:
 
         # ROS2
         self._flag_ros2_enabled: bool = False
-        self._registry_ros2: set[ROS2Adapter] = set()
+        self._registry_ros2: set[ROS2PublishAdapter] = set()
 
     @property
     def logger(self) -> Logger:
@@ -134,17 +134,17 @@ class CarlaIOManager:
 
 # region: ROS2
 
-    def create_ros2(
+    def create_ros2_pub(
         self, 
         topic: str, 
         msg: type | None = None,
         shm_topic: str = '',
-        ros_node_name: str = ROS2Adapter.DEFAULT_ROS_NODE_NAME,
+        ros_node_name: str = ROS2PublishAdapter.DEFAULT_ROS_NODE_NAME,
         ros_node_qos: int = 10,
         frame_id: str = 'world',
         timestamp_source: TimestampSource = TimestampSource.OS,
-    ) -> ROS2Adapter:
-        """创建 ROS2 高性能适配器"""
+    ) -> ROS2PublishAdapter:
+        """创建 ROS2 发布高性能适配器"""
          # 标记启用 ROS2
         self._flag_ros2_enabled = True
 
@@ -154,7 +154,7 @@ class CarlaIOManager:
         shm = self.create_shm(shm_topic.replace("/", "_"))
 
         # 创建 ROS2 高性能适配器
-        adapter = ROS2Adapter(
+        adapter = ROS2PublishAdapter(
             shm_adapter=shm,
             ros_message_type=msg,
             ros_topic_name=topic,

@@ -14,11 +14,11 @@ if TYPE_CHECKING:
     from shared.simulator import CarlaSensor
 
 
-class ROS2Adapter(AbstractIOAdapter):
+class ROS2PublishAdapter(AbstractIOAdapter):
     """
     ROS2 适配器, 用于将仿真器的数据转换为 ROS2 数据
 
-    高性能适配器将使用共享内存和多进程的方式来实现 ROS2 信息的发布和订阅, 以避免因 Python GIL 锁导致的性能瓶颈
+    高性能适配器将使用共享内存和多进程的方式来实现 ROS2 信息的发布, 以避免因 Python GIL 锁导致的性能瓶颈
     """
 
     DEFAULT_ROS_NODE_NAME = "HarzedScopeROS2Node"

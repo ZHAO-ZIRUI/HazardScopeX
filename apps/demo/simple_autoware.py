@@ -20,11 +20,11 @@ if __name__ == "__main__":
         context.actors.wait_stable(vehicle)
 
         # 绑定传感器输出到 ROS2
-        context.io.create_ros2(topic='/hs/cam/front').bind_sensor_output(vehicle.cam_front)
-        context.io.create_ros2(topic='/hs/cam/game').bind_sensor_output(vehicle.cam_game)
-        context.io.create_ros2(topic='/hs/lidar/main').bind_sensor_output(vehicle.lidar)
-        context.io.create_ros2(topic='/hs/gnss', msg=PoseWithCovarianceStamped).bind_sensor_output(vehicle.gnss)
-        context.io.create_ros2(topic='/hs/imu').bind_sensor_output(vehicle.imu)
+        context.io.create_ros2_pub(topic='/hs/cam/front').bind_sensor_output(vehicle.cam_front)
+        context.io.create_ros2_pub(topic='/hs/cam/game').bind_sensor_output(vehicle.cam_game)
+        context.io.create_ros2_pub(topic='/hs/lidar/main', frame_id='velodyne_top').bind_sensor_output(vehicle.lidar)
+        context.io.create_ros2_pub(topic='/hs/gnss', msg=PoseWithCovarianceStamped).bind_sensor_output(vehicle.gnss)
+        context.io.create_ros2_pub(topic='/hs/imu').bind_sensor_output(vehicle.imu)
 
         # 启动 CARLA AUTOPILOT 自动驾驶
         vehicle.set_carla_autopilot(enable=True)
