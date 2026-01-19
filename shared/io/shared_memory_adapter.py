@@ -34,3 +34,9 @@ class SharedMemoryAdapter(AbstractIOAdapter):
             lambda data: data.to_shm(self.shared_memory_instance)
         )
         return self
+
+    def bind_clock_output(self) -> Self:
+        self._context.hook_on_tick.append(
+            lambda snapshot: self._context.clock.to_shm(self.shared_memory_instance)
+        )
+        return self

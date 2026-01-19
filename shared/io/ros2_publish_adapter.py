@@ -54,6 +54,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         self._data_cache = None
 
         self._sensor_worker_process: None | Process = None
+        self._clock_worker_process: None | Process = None
         self._sensor_type: str | None = None
 
     def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
@@ -77,7 +78,10 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         
         return self
 
-    def bind_clock(self, clock: Clock) -> Self:
+    def bind_clock_output(self) -> Self:
+        """绑定时钟数据源并启动 clock_worker, clock 数据由 context 写入共享内存"""
+        self._shm_adapter.bind_clock_output()
+        self.start_clock_worker()
         return self
 
     def start_sensor_worker(self) -> Self:
@@ -113,11 +117,11 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         return self
 
     def stop_sensor_worker(self) -> Self:
-        """停止 Worker 进程"""
+        """停止 sensor_worker 进程"""
         if self._sensor_worker_process is not None:
             if self._sensor_worker_process.is_alive():
                 pid = self._sensor_worker_process.pid
-                self.logger.debug(f"Stopping worker process for '/{self._ros_topic_name}' (PID: {pid})")
+                self.logger.debug(f"Stopping sensor worker for '/{self._ros_topic_name}' (PID: {pid})")
                 try:
                     os.kill(pid, signal.SIGINT)
                 except ProcessLookupError:
@@ -127,7 +131,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
                     self._sensor_worker_process.terminate()
                     self._sensor_worker_process.join(timeout=1.0)
                 if self._sensor_worker_process.is_alive():
-                    self.logger.warning(f"Worker process for '/{self._ros_topic_name}' did not terminate in time, forcing shutdown")
+                    self.logger.warning(f"Sensor worker for '/{self._ros_topic_name}' did not terminate in time, forcing shutdown")
                     self._sensor_worker_process.kill()
                     self._sensor_worker_process.join()
             try:
@@ -136,6 +140,61 @@ class ROS2PublishAdapter(AbstractIOAdapter):
                 pass
             finally:
                 self._sensor_worker_process = None
+        return self
+
+    def start_clock_worker(self) -> Self:
+        """启动 clock_worker 进程"""
+        worker_args = (
+            self._shm_topic,
+            self._ros_topic_name,
+            self._ros_node_name,
+            self._ros_qos,
+            self._ros_message_type,
+            self._timestamp_source,
+        )
+        
+        self._clock_worker_process = Process(
+            target=ROS2PublishAdapter._clock_worker_process,
+            args=worker_args,
+            daemon=True
+        )
+        self._clock_worker_process.start()
+        
+        time.sleep(0.1)
+        
+        if self._clock_worker_process.is_alive():
+            self.logger.info(f"Started clock worker for '{self._ros_topic_name}' (PID: {self._clock_worker_process.pid})")
+        else:
+            self.logger.error(f"Failed to start clock worker for '{self._ros_topic_name}'")
+            if self._clock_worker_process.exitcode is not None:
+                self.logger.error(f"Clock worker exit code: {self._clock_worker_process.exitcode}")
+        
+        return self
+
+    def stop_clock_worker(self) -> Self:
+        """停止 clock_worker 进程"""
+        if self._clock_worker_process is not None:
+            if self._clock_worker_process.is_alive():
+                pid = self._clock_worker_process.pid
+                self.logger.debug(f"Stopping clock worker for '/{self._ros_topic_name}' (PID: {pid})")
+                try:
+                    os.kill(pid, signal.SIGINT)
+                except ProcessLookupError:
+                    pass
+                self._clock_worker_process.join(timeout=1.0)
+                if self._clock_worker_process.is_alive():
+                    self._clock_worker_process.terminate()
+                    self._clock_worker_process.join(timeout=1.0)
+                if self._clock_worker_process.is_alive():
+                    self.logger.warning(f"Clock worker for '/{self._ros_topic_name}' did not terminate in time, forcing shutdown")
+                    self._clock_worker_process.kill()
+                    self._clock_worker_process.join()
+            try:
+                self._clock_worker_process.close()
+            except AttributeError:
+                pass
+            finally:
+                self._clock_worker_process = None
         return self
     
     @staticmethod
@@ -252,7 +311,99 @@ class ROS2PublishAdapter(AbstractIOAdapter):
             except Exception as e:
                 logger.debug(f"Error closing shared memory: {e}")
 
-        logger.debug(f"Worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}' stopped")
+        logger.debug(f"Sensor worker for shm to ros2: '{shm_topic}' -> '{ros_topic_name}' stopped")
+
+    @staticmethod
+    def _clock_worker_process(
+        shm_topic: str,
+        ros_topic_name: str,
+        ros_node_name: str,
+        ros_qos: int,
+        ros_message_type: type,
+        timestamp_source: TimestampSource,
+    ) -> None:
+        """Clock 数据到 ROS2 的工作进程函数
+
+        Args:
+            shm_topic (str): 共享内存的名称
+            ros_topic_name (str): ROS2 的 topic 名称
+            ros_node_name (str): ROS2 的节点名称
+            ros_qos (int): ROS2 的 QoS
+            ros_message_type (type): ROS2 消息类型
+            timestamp_source (TimestampSource): 时间戳来源
+        """
+        import rclpy
+        from multiprocessing.shared_memory import SharedMemory
+        from rosgraph_msgs.msg import Clock as ROS2Clock
+        
+        logger = Logging().get_logger('IOManager')
+        logger.debug(f"Starting clock worker: '{shm_topic}' -> '/{ros_topic_name}'")
+
+        # 连接到共享内存
+        try:
+            shm = SharedMemory(name=shm_topic)
+            logger.debug(f"Clock worker connected to shared memory '{shm_topic}'")
+        except FileNotFoundError:
+            logger.error(f"Shared memory '{shm_topic}' not found for clock worker")
+            return
+
+        try:
+            if not rclpy.ok():
+                rclpy.init()
+            
+            ros_node = rclpy.create_node(ros_node_name, enable_rosout=False)
+            logger.debug(f"Clock worker created ROS2 node '{ros_node_name}'")
+            
+            # 确定消息类型
+            ros_message_type = ROS2Clock if ros_message_type is None else ros_message_type
+            
+            # 创建 Publisher
+            ros_publisher = ros_node.create_publisher(ros_message_type, ros_topic_name, ros_qos)
+            logger.debug(f"Clock worker created ROS2 publisher for '{ros_topic_name}'")
+
+            # 主工作循环
+            last_frame = None
+            try:
+                while True:
+                    current_frame = Clock.try_from_shm_frame_only(shm, default=None)
+
+                    if current_frame is None:
+                        time.sleep(0.01)
+                        continue
+                    
+                    if last_frame is None or current_frame != last_frame:
+                        data = Clock.try_from_shm(shm, default=None)
+                        if data is not None:
+                            if hasattr(data, 'sim_frame') and data.sim_frame == current_frame:
+                                ros2_data = data.to_ros2(ros_message_type=ros_message_type, timestamp_source=timestamp_source)
+                                if rclpy.ok():
+                                    ros_publisher.publish(ros2_data)
+                                else:
+                                    break
+                                last_frame = current_frame
+                            else:
+                                time.sleep(0.001)
+                                continue
+                    else:
+                        time.sleep(0.01)
+                        continue
+
+            except KeyboardInterrupt:
+                logger.info("Clock worker received interrupt signal")
+            except Exception as e:
+                logger.error(f"Clock worker error: {e}")
+            finally:
+                if ros_node is not None:
+                    ros_node.destroy_node()
+                if rclpy.ok():
+                    rclpy.shutdown()
+        finally:
+            try:
+                shm.close()
+            except Exception as e:
+                logger.debug(f"Error closing shared memory in clock worker: {e}")
+
+        logger.debug(f"Clock worker: '{shm_topic}' -> '{ros_topic_name}' stopped")
 
     def _resolve_ros_node_name(self, name: str) -> str:
         """解析 ROS2 节点名称, 如果名称未指定或为空, 则生成一个默认名称, 其他情况则直接用户输入

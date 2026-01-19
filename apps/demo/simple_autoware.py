@@ -5,6 +5,7 @@ from shared.simulator import CarlaContext
 from shared.utils import Logging
 from shared.prefabs import AutowareVehicle
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from shared.data import TimestampSource
 
 if __name__ == "__main__":
     logger = Logging.load('config.yaml').get_logger('Main')
@@ -25,6 +26,7 @@ if __name__ == "__main__":
         context.io.create_ros2_pub(topic='/hs/lidar/main', frame_id='velodyne_top').bind_sensor_output(vehicle.lidar)
         context.io.create_ros2_pub(topic='/hs/gnss', msg=PoseWithCovarianceStamped).bind_sensor_output(vehicle.gnss)
         context.io.create_ros2_pub(topic='/hs/imu').bind_sensor_output(vehicle.imu)
+        context.io.create_ros2_pub(topic='/hs/clock',timestamp_source=TimestampSource.SIM).bind_clock_output()
 
         # 启动 CARLA AUTOPILOT 自动驾驶
         vehicle.set_carla_autopilot(enable=True)
