@@ -26,6 +26,8 @@ if __name__ == "__main__":
         context.io.create_ros2_pub(topic='/hs/lidar/main', frame_id='velodyne_top').bind_sensor_output(vehicle.lidar)
         context.io.create_ros2_pub(topic='/hs/gnss', msg=PoseWithCovarianceStamped).bind_sensor_output(vehicle.gnss)
         context.io.create_ros2_pub(topic='/hs/imu').bind_sensor_output(vehicle.imu)
+
+        # 绑定时钟输出到 ROS2
         context.io.create_ros2_pub(topic='/hs/clock',timestamp_source=TimestampSource.SIM).bind_clock_output()
 
         # 启动 CARLA AUTOPILOT 自动驾驶
