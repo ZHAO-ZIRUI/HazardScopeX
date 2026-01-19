@@ -54,7 +54,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         self._sensor_worker_process: None | Process = None
         self._sensor_type: str | None = None
 
-    def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
+    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
         # Bind SHM, 令其开始工作
         self._shm_adapter.bind_sensor_output(sensor)
 
