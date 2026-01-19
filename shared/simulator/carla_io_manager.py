@@ -3,13 +3,17 @@ from multiprocessing.shared_memory import SharedMemory
 from typing import TYPE_CHECKING
 from typing_extensions import Self
 from logging import Logger
+from threading import Thread
+from typing import Callable
 
-from shared.io import SharedMemoryAdapter, ROS2PublishAdapter
+from shared.io import SharedMemoryAdapter, ROS2PublishAdapter, ROS2TfAdapter
 from shared.utils import Logging
 from shared.data import TimestampSource
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
+    from rclpy import Node
+    from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 
 
 class CarlaIOManager:
@@ -28,6 +32,15 @@ class CarlaIOManager:
         # ROS2
         self._flag_ros2_enabled: bool = False
         self._registry_ros2: set[ROS2PublishAdapter] = set()
+
+        self._node_tf: 'Node' | None = None
+        self._node_tf_executor = None
+        self._node_tf_broadcaster: 'TransformBroadcaster' | None = None
+        self._node_tf_static_broadcaster: 'StaticTransformBroadcaster' | None = None
+        self._node_tf_spin_thread: Thread | None = None
+        self._registry_ros2_tf: set[ROS2TfAdapter] = set()
+        self._registry_ros2_tf_static: set[ROS2TfAdapter] = set()
+        self._hook_ros2_tf_broadcast: Callable[[], None] = None
 
     @property
     def logger(self) -> Logger:
@@ -167,12 +180,103 @@ class CarlaIOManager:
         self._registry_ros2.add(adapter)
         return adapter
 
+    def create_ros2_tf_static(self, frame_id_parent: str, frame_id_child: str) -> ROS2TfAdapter:
+        # 如果 TF 节点不存在, 则创建 TF 节点并启动
+        self._create_ros2_tf_node_if_not_exists()
+
+        adapter = ROS2TfAdapter(
+            context=self._context,
+            frame_id_parent=frame_id_parent,
+            frame_id_child=frame_id_child,
+            tf_broadcaster=self._node_tf_static_broadcaster,
+        )
+
+        self._registry_ros2_tf_static.add(adapter)
+        return adapter
+
+    def create_ros2_tf(self, frame_id_parent: str, frame_id_child: str) -> ROS2TfAdapter:
+        # 如果 TF 节点不存在, 则创建 TF 节点并启动
+        self._create_ros2_tf_node_if_not_exists()
+
+        # 注册 TF 广播钩子
+        if self._hook_ros2_tf_broadcast is None:
+            self._hook_ros2_tf_broadcast = self._hookfunc_ros2_tf_broadcast
+            self._context.hook_on_tick.append(self._hook_ros2_tf_broadcast)
+
+        adapter = ROS2TfAdapter(
+            context=self._context,
+            frame_id_parent=frame_id_parent,
+            frame_id_child=frame_id_child,
+            tf_broadcaster=self._node_tf_broadcaster,
+        )
+
+        self._registry_ros2_tf.add(adapter)
+        return adapter
+
     def destroy_all_ros2(self) -> Self:
         """销毁所有 ROS2 高性能适配器"""
         for adapter in list(self._registry_ros2):
             adapter.stop_sensor_worker()
             adapter.stop_clock_worker()
         self._registry_ros2.clear()
+
+        # TF NODE
+        self._registry_ros2_tf.clear()
+        self._registry_ros2_tf_static.clear()
+        if self._node_tf_executor is not None:
+            self._node_tf_executor.shutdown()
+        if self._node_tf_spin_thread is not None:
+            self._node_tf_spin_thread.join(timeout=2.0)
+            self._node_tf_spin_thread = None
+        if self._node_tf is not None:
+            self._node_tf.destroy_node()
+            self._node_tf = None
+        self._node_tf_executor = None
         return self
+
+    def _create_ros2_tf_node_if_not_exists(self):
+        import rclpy
+        from rclpy.executors import SingleThreadedExecutor
+        from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
+
+        if not rclpy.ok():
+            rclpy.init()
+
+        if self._node_tf is None:
+            self._node_tf = rclpy.create_node('HazardScopeROS2_TF', enable_rosout=False)
+            self.logger.debug(f"Created ROS2 TF node 'HazardScopeROS2_TF'")
+
+        if self._node_tf_executor is None:
+            self._node_tf_executor = SingleThreadedExecutor()
+            self._node_tf_executor.add_node(self._node_tf)
+
+        if self._node_tf_broadcaster is None:
+            self._node_tf_broadcaster = TransformBroadcaster(self._node_tf)
+            self.logger.debug(f"Created ROS2 TF broadcaster")
+
+        if self._node_tf_static_broadcaster is None:
+            self._node_tf_static_broadcaster = StaticTransformBroadcaster(self._node_tf)
+            self.logger.debug(f"Created ROS2 TF static broadcaster")
+
+        if self._node_tf_spin_thread is None or not self._node_tf_spin_thread.is_alive():
+            if self._node_tf_spin_thread is not None:
+                self._node_tf_executor.shutdown()
+                self._node_tf_spin_thread.join(timeout=1.0)
+                self._node_tf_spin_thread = None
+                self._node_tf_executor = SingleThreadedExecutor()
+                self._node_tf_executor.add_node(self._node_tf)
+            self._node_tf_spin_thread = Thread(target=self._threadfunc_ros2_tf_spin, daemon=True)
+            self._node_tf_spin_thread.start()
+            self.logger.debug(f"Started ROS2 TF spin thread")
+
+    def _threadfunc_ros2_tf_spin(self) -> None:
+        try:
+            self._node_tf_executor.spin()
+        except Exception:
+            pass
+
+    def _hookfunc_ros2_tf_broadcast(self, _) -> None:
+        for adapter in self._registry_ros2_tf:
+            self._node_tf_broadcaster.sendTransform(adapter.tf_stamped)
 
 # endregion: ROS2 High Performance
