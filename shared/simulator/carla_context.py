@@ -188,6 +188,7 @@ class CarlaContext:
 
         # 清理 hook
         self._hook_on_tick.clear()
+        self._hook_befre_next_tick.clear()
 
         # 清理 tick blockers
         self._tick_blockers.clear()
