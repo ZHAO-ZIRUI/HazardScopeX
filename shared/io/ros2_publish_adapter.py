@@ -57,7 +57,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         self._clock_worker_process: None | Process = None
         self._sensor_type: str | None = None
 
-    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
+    def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
         # Bind SHM, 令其开始工作
         self._shm_adapter.bind_sensor_output(sensor)
 
@@ -78,7 +78,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         
         return self
 
-    def bind_clock_output(self) -> Self:
+    def bind_clock(self) -> Self:
         """绑定时钟数据源并启动 clock_worker, clock 数据由 context 写入共享内存"""
         self._shm_adapter.bind_clock_output()
         self.start_clock_worker()

@@ -29,13 +29,13 @@ class SharedMemoryAdapter(AbstractIOAdapter):
         """共享内存的名称, 与对象创建时的 topic 参数一致"""
         return self._topic
 
-    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
+    def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
         sensor.hook_sensor_data_ready.append(
             lambda data: data.to_shm(self.shared_memory_instance)
         )
         return self
 
-    def bind_clock_output(self) -> Self:
+    def bind_clock(self) -> Self:
         self._context.hook_on_tick.append(
             lambda snapshot: self._context.clock.to_shm(self.shared_memory_instance)
         )

@@ -16,5 +16,5 @@ class AbstractIOAdapter(ABC):
         self._context = context
 
     @abstractmethod
-    def bind_sensor_output(self, sensor: 'CarlaSensor') -> Self:
+    def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
         pass
