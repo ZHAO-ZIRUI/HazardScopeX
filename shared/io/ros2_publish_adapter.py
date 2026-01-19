@@ -12,6 +12,7 @@ from shared.io import SharedMemoryAdapter
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaSensor
+    from shared.simulator import CarlaContext
 
 
 class ROS2PublishAdapter(AbstractIOAdapter):
@@ -25,6 +26,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
 
     def __init__(
         self,
+        context: 'CarlaContext',
         shm_adapter: SharedMemoryAdapter,
         ros_message_type: type,
         ros_topic_name: str, 
@@ -33,7 +35,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         ros_frame_id: str = 'world',
         timestamp_source: TimestampSource = TimestampSource.OS,
     ):
-        super().__init__()
+        super().__init__(context)
         self.logger = Logging().get_logger('IOManager')
 
         self._shm_adapter = shm_adapter

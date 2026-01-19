@@ -85,7 +85,7 @@ class CarlaIOManager:
                     raise SystemExit(321)
 
         # 创建适配器并注册到注册表
-        adapter = SharedMemoryAdapter(shm, topic)
+        adapter = SharedMemoryAdapter(self._context, shm, topic)
         self._registry_shm.add(adapter)
         self.logger.info(f"Created shared memory with topic '{topic}'")
         return adapter
@@ -155,6 +155,7 @@ class CarlaIOManager:
 
         # 创建 ROS2 高性能适配器
         adapter = ROS2PublishAdapter(
+            context=self._context,
             shm_adapter=shm,
             ros_message_type=msg,
             ros_topic_name=topic,
@@ -170,6 +171,7 @@ class CarlaIOManager:
         """销毁所有 ROS2 高性能适配器"""
         for adapter in list(self._registry_ros2):
             adapter.stop_sensor_worker()
+            adapter.stop_clock_worker()
         self._registry_ros2.clear()
         return self
 

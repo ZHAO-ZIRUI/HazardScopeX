@@ -6,6 +6,7 @@ from shared.io import AbstractIOAdapter
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaSensor
+    from shared.simulator import CarlaContext
 
 
 class SharedMemoryAdapter(AbstractIOAdapter):
@@ -13,8 +14,8 @@ class SharedMemoryAdapter(AbstractIOAdapter):
     共享内存适配器, 用于将仿真器的数据转换为共享内存数据
     """
 
-    def __init__(self, shm: SharedMemory, topic: str):
-        super().__init__()
+    def __init__(self, context: 'CarlaContext', shm: SharedMemory, topic: str):
+        super().__init__(context)
         self._shared_memory_instance = shm
         self._topic = topic
 
