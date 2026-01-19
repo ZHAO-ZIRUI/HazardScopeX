@@ -169,7 +169,7 @@ class CarlaIOManager:
     def destroy_all_ros2(self) -> Self:
         """销毁所有 ROS2 高性能适配器"""
         for adapter in list(self._registry_ros2):
-            adapter.stop_worker()
+            adapter.stop_sensor_worker()
         self._registry_ros2.clear()
         return self
 

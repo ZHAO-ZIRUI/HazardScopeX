@@ -51,7 +51,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         self._data_type: BaseData | None = None
         self._data_cache = None
 
-        self._worker_process: None | Process = None
+        self._sensor_worker_process: None | Process = None
         self._sensor_type: str | None = None
 
     def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
@@ -71,14 +71,14 @@ class ROS2PublishAdapter(AbstractIOAdapter):
             raise ValueError(f"Unsupported sensor type: {sensor.bp.id}")
 
         # 启动 Worker
-        self.start_worker()
+        self.start_sensor_worker()
         
         return self
 
-    def bind_clock_output(self, clock: Clock) -> Self:
+    def bind_clock(self, clock: Clock) -> Self:
         return self
 
-    def start_worker(self) -> Self:
+    def start_sensor_worker(self) -> Self:
         """启动 Worker 进程"""
         worker_args = (
             self._shm_topic,
@@ -91,53 +91,53 @@ class ROS2PublishAdapter(AbstractIOAdapter):
             self._sensor_type,
         )
         
-        self._worker_process = Process(
-            target=ROS2PublishAdapter._worker_process,
+        self._sensor_worker_process = Process(
+            target=ROS2PublishAdapter._sensor_worker_process,
             args=worker_args,
             daemon=True
         )
-        self._worker_process.start()
+        self._sensor_worker_process.start()
         
         # 等待进程启动并检查状态
         time.sleep(0.1)
         
-        if self._worker_process.is_alive():
-            self.logger.info(f"Started worker process for '{self._ros_topic_name}' (PID: {self._worker_process.pid})")
+        if self._sensor_worker_process.is_alive():
+            self.logger.info(f"Started worker process for '{self._ros_topic_name}' (PID: {self._sensor_worker_process.pid})")
         else:
             self.logger.error(f"Failed to start worker process for '{self._ros_topic_name}'")
-            if self._worker_process.exitcode is not None:
-                self.logger.error(f"Worker exit code: {self._worker_process.exitcode}")
+            if self._sensor_worker_process.exitcode is not None:
+                self.logger.error(f"Worker exit code: {self._sensor_worker_process.exitcode}")
         
         return self
 
-    def stop_worker(self) -> Self:
+    def stop_sensor_worker(self) -> Self:
         """停止 Worker 进程"""
-        if self._worker_process is not None:
-            if self._worker_process.is_alive():
-                pid = self._worker_process.pid
+        if self._sensor_worker_process is not None:
+            if self._sensor_worker_process.is_alive():
+                pid = self._sensor_worker_process.pid
                 self.logger.debug(f"Stopping worker process for '/{self._ros_topic_name}' (PID: {pid})")
                 try:
                     os.kill(pid, signal.SIGINT)
                 except ProcessLookupError:
                     pass
-                self._worker_process.join(timeout=1.0)
-                if self._worker_process.is_alive():
-                    self._worker_process.terminate()
-                    self._worker_process.join(timeout=1.0)
-                if self._worker_process.is_alive():
+                self._sensor_worker_process.join(timeout=1.0)
+                if self._sensor_worker_process.is_alive():
+                    self._sensor_worker_process.terminate()
+                    self._sensor_worker_process.join(timeout=1.0)
+                if self._sensor_worker_process.is_alive():
                     self.logger.warning(f"Worker process for '/{self._ros_topic_name}' did not terminate in time, forcing shutdown")
-                    self._worker_process.kill()
-                    self._worker_process.join()
+                    self._sensor_worker_process.kill()
+                    self._sensor_worker_process.join()
             try:
-                self._worker_process.close()
+                self._sensor_worker_process.close()
             except AttributeError:
                 pass
             finally:
-                self._worker_process = None
+                self._sensor_worker_process = None
         return self
     
     @staticmethod
-    def _worker_process(
+    def _sensor_worker_process(
         shm_topic: str,
         ros_topic_name: str,
         ros_node_name: str,
