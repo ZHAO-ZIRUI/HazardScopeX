@@ -59,7 +59,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
 
     def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
         # Bind SHM, 令其开始工作
-        self._shm_adapter.bind_sensor_output(sensor)
+        self._shm_adapter.bind_sensor(sensor)
 
         # 确定传感器类型
         if sensor.bp.id.lower().startswith('sensor.camera.'):
