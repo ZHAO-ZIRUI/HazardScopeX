@@ -6,6 +6,7 @@ from .point_cloud import PointCloud
 from .collision import Collision
 from .gnss import Gnss
 from .imu import Imu
+from .clock import Clock
 
 __all__ = [
     "BaseData",
