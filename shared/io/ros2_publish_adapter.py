@@ -89,7 +89,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
         )
         
         self._worker_process = Process(
-            target=ROS2Adapter._worker_process,
+            target=ROS2PublishAdapter._worker_process,
             args=worker_args,
             daemon=True
         )
