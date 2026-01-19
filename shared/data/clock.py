@@ -23,7 +23,7 @@ class Clock(SimulatorOutput):
     def from_carla(cls, carla_input: carla.WorldSnapshot) -> Self:
         return cls(
             sim_frame=carla_input.frame,
-            sim_timestamp=carla_input.timestamp,
+            sim_timestamp=carla_input.timestamp.elapsed_seconds,
         )
 
     def to_ros2(self, frame_id: str = 'undefined', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2NavSatFix" or "ROS2PoseWithCovarianceStamped":
