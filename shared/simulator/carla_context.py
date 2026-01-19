@@ -53,7 +53,7 @@ class CarlaContext:
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
 
-        self._clock: list[Clock] = []
+        self._clock: Clock = Clock(0, 0)
         
         self.__post_init__()
 
@@ -137,10 +137,6 @@ class CarlaContext:
 
     @property
     def clock(self) -> Clock:
-        return self._clock[0]
-
-    @property
-    def clock_ref(self) -> list[Clock]:
         return self._clock
 
     @contextmanager
@@ -578,7 +574,7 @@ class CarlaContext:
             self.logger.debug('Server dead detector stopped')
 
     def _hookfunc_clock_update(self, snapshot: carla.WorldSnapshot):
-        self._clock[0] = Clock.from_carla(snapshot)
+        self._clock = Clock.from_carla(snapshot)
 
     @property
     def hook_on_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:
