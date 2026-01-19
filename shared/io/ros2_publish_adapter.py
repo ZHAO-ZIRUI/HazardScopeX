@@ -80,7 +80,7 @@ class ROS2PublishAdapter(AbstractIOAdapter):
 
     def bind_clock(self) -> Self:
         """绑定时钟数据源并启动 clock_worker, clock 数据由 context 写入共享内存"""
-        self._shm_adapter.bind_clock_output()
+        self._shm_adapter.bind_clock()
         self.start_clock_worker()
         return self
 
