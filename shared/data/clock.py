@@ -9,6 +9,7 @@ from shared.data import SimulatorOutput, TimestampSource
 
 if TYPE_CHECKING:
     from rosgraph_msgs.msg import Clock as ROS2Clock
+    from builtin_interfaces.msg import Time
 
 class Clock(SimulatorOutput):
     """
@@ -43,6 +44,15 @@ class Clock(SimulatorOutput):
         msg.clock.nanosec = int((timestamp - msg.clock.sec) * 1e9)
 
         return msg
+
+    def to_ros2_stamp(self, timestamp_source: TimestampSource = TimestampSource.OS) -> "Time":
+        from builtin_interfaces.msg import Time
+
+        timestamp = self.sim_timestamp if timestamp_source == TimestampSource.SIM else self.os_timestamp
+        stamp = Time()
+        stamp.sec = int(timestamp)
+        stamp.nanosec = int((timestamp - stamp.sec) * 1e9)
+        return stamp
 
     @classmethod
     def from_ros2(cls, ros2_msg: any) -> Self:
