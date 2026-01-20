@@ -3,7 +3,7 @@ import math
 from typing import TYPE_CHECKING, Dict, Any
 from typing_extensions import Unpack
 
-from shared.data import TimestampSource
+from shared.define import TimestampSource
 from shared.prefabs.nuscenes_vehicle import NuScenesVehicle
 from shared.simulator import CarlaContext, CarlaTransform, CarlaBlueprints, CarlaSensor
 
@@ -60,10 +60,11 @@ class AutowareVehicle(NuScenesVehicle):
     def imu(self) -> CarlaSensor:
         return self._imu
 
-    def get_header_msg(self, frame_id: str = 'UNDEFINED', timestamp_source: TimestampSource = TimestampSource.OS) -> Header:
+    def get_header_msg(self, frame_id: str = 'UNDEFINED', timestamp_source: TimestampSource = TimestampSource.OS) -> 'Header':
         from std_msgs.msg import Header
+        from builtin_interfaces.msg import Time
         return Header(
-            stamp=self._context.clock.to_ros2_stamp(timestamp_source),
+            stamp=self._context.clock.to_ros2(Time, timestamp_source),
             frame_id=frame_id,
         )
 
