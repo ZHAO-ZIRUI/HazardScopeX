@@ -56,6 +56,7 @@ from .factor_case_obstacles_random import FactorCaseObstaclesRandom
 from .factor_case_obstacles_sequence import FactorCaseObstaclesSequence
 from .factor_case_obstacles_two_side_sequences import FactorCaseObstaclesTwoSideSequences
 from .factor_case_obstacles_sequence_approaching import FactorCaseObstaclesSequenceApproaching
+from .factor_case_construction_area import FactorCaseConstructionArea
 from .factor_traffic_cross_road import FactorTrafficCrossRoad
 from .factor_lot_mess_park import FactorLotMessPark
 from .factor_lot_traffic_two_wheels import FactorLotTrafficTwoWheels
@@ -147,6 +148,7 @@ __all__ = [
     "FactorCaseObstaclesSequence",
     "FactorCaseObstaclesTwoSideSequences",
     "FactorCaseObstaclesSequenceApproaching",
+    "FactorCaseConstructionArea",
     "FactorTrafficCrossRoad",
     "FactorLotMessPark",
     "FactorLotTrafficTwoWheels",

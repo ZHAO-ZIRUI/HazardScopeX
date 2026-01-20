@@ -223,6 +223,7 @@ class FactorLotCaseVehicleDartOut(Factor):
                     self._ego_aeb_triggered = True
                     self.logger.info(f'EGO AEB triggered at distance {distance:.2f}m (threshold: {self._ego_aeb_distance}m)')
                 
+                
                 # 持续应用刹车
                 control = carla.VehicleControl(throttle=0.0, brake=1.0, steer=0.0)
                 self._ego.actor.apply_control(control)

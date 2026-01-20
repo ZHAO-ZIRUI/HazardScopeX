@@ -30,10 +30,16 @@ if __name__ == "__main__":
         # context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
 
         # tm = context.traffic
-        # tm.set_route(vehicle.actor, ['Straight'])
+        # tm.set_route(vehicle.actor, ['Straight']) 
         # vehicle.set_carla_autopilot(enable=True)
 
-        f1 = FactorCaseObstaclesTwoSideSequences(context, vehicle)
+        # f1 = FactorCaseConstructionArea(context, vehicle)
+        # f1 = FactorCaseObstaclesSequence(context, vehicle)
+        # f1 = FactorCaseObstaclesTwoSideSequences(context, vehicle)
+        # f1 = FactorCaseObstaclesSequenceApproaching(context, vehicle)
+        f1 = FactorLotCaseReverse(context, vehicle)
+
+
         factors = [f1]
         
         with Injector(context, *factors) as injector:       # 执行注入

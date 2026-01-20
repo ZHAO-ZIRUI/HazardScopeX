@@ -1,5 +1,6 @@
 import numpy as np
 import carla
+import time
 from shared.scenarios import Factor
 from shared.simulator import *
 
@@ -13,14 +14,16 @@ class FactorLotCaseReverse(Factor):
             'npc': [1, 12, 15, 18, 25, 45]
         },
         'Carla/Maps/Town10HD_Opt': {
-            'ego': 50,
+            'ego': 50, # 12   4   50 
             'npc': [93, 53, 56, 107, 58]
         },
     }
 
-    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 1.0, triggered_seconds: float = 10.0):
+    def __init__(self, context: CarlaContext, vehicle: CarlaVehicle, wait_trigger_seconds: float = 2.0, triggered_seconds: float = 10.0):
         super().__init__(context)
         self._ego = vehicle
+        self._act = None
+        self._sa = None
         self._vehicles: list[CarlaVehicle] = []
         self._wait_trigger_seconds = wait_trigger_seconds
         self._triggered_seconds = triggered_seconds
@@ -39,17 +42,17 @@ class FactorLotCaseReverse(Factor):
         return self._ego
 
     def bringup(self) -> None:
-        sa = CarlaSingleAction(self._context, self._ego, self.logger)
+        self._sa = CarlaSingleAction(self._context, self._ego, self.logger)
 
         # 设置 ego 位置
         spawn_point_mapping = self.MAP_SPAWN_POINT_MAPPING[self._context.map.name]
         tf_ego = self._context.spawn_points[spawn_point_mapping['ego']]
-        sa.set_ego(tf_ego)
+        self._sa.set_ego(tf_ego)
         self._vehicles.append(self._ego)
 
-        sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
+        self._sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
 
-        vehicles = sa.autopilot_traffic(
+        vehicles = self._sa.autopilot_traffic(
             nums=30,
             distance=40,
             spawn_point_list=spawn_point_mapping['npc'],
@@ -60,13 +63,32 @@ class FactorLotCaseReverse(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        tf_act = sa.transform_from_ego(front_offset=22)
-        act = sa.manual_control_vehicle(
+
+
+
+
+        tf_act = self._sa.transform_from_waypoint(transform=tf_ego,front_offset=50,left_offset=-0.5)
+        print("tf_ego:",tf_ego," act tf:",tf_act)
+        self._act = self._sa.manual_control_vehicle(
             transform=tf_act,
-            throttle=0.3,
-            reverse=True
+            bp='vehicle.tesla.model3',
         )
-        self._vehicles.append(act)
+        self._vehicles.append(self._act)
+
+        # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
+        v = self._sa.get_ego_forward_vector() * 5
+        print("v:",v)
+        # v = carla.Vector3D(x=-2, y=-0.002779, z=0.000000)
+        # print("v:",v)
+        time.sleep(1)
+        # self._sa.set_constant_velocity(self._act, flag=True, velocity=v)
+        # self._sa.set_constant_velocity(self._ego, flag=True, velocity=v)
+
+        self._sa.set_velocity_along_the_road(self._act, 30)
+        self._sa.set_velocity_along_the_road(self._ego, 30)
+        self._act.set_carla_autopilot(enable=True)
+        self._ego.set_carla_autopilot(enable=True)
+        
 
         return super().bringup()
     
@@ -76,10 +98,23 @@ class FactorLotCaseReverse(Factor):
             return
         # 如果等待触发帧数达到阈值, 则触发因子
         if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps:
-            self.ego.set_carla_autopilot(enable=True)
+            # self.ego.set_carla_autopilot(enable=True)
+            # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
+            # self._sa.set_constant_velocity(self._act, carla.Vector3D(self._sa.get_ego_forward_vector().x * -1, self._sa.get_ego_forward_vector().y * -1, self._sa.get_ego_forward_vector().z))
+            # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
+            self._sa.set_constant_velocity(self._act, flag=False)
+            self._sa.set_constant_velocity(self._ego, flag=False)
+            self._act.set_carla_autopilot(enable=False)
+            self._act = self._sa.manual_control_vehicle(
+                vehicle=self._act,
+                throttle=1.0,
+                reverse=True
+            )
 
             self.stage = self.FactorStage.TRIGGERED
             self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
+        print("tf_ego:",self.ego.actor.get_transform())
+        print("ego v:",self.ego.actor.get_velocity())
         self._count_before_trigger += 1
         return
 

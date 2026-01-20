@@ -31,6 +31,10 @@ class CarlaSingleAction():
     @property
     def ego(self) -> CarlaVehicle:
         return self._ego
+    
+    @property
+    def tm(self) -> carla.TrafficManager:
+        return self._tm
 
     @property
     def logger(self) -> Logger:
@@ -488,27 +492,143 @@ class CarlaSingleAction():
         if transform is None:
             self._logger.error('Initial transform is not passed in.')
             return
+        ego_location = transform.location
+        ego_rotation = transform.rotation
+        yaw_rad = math.radians(ego_rotation.yaw)
         
-        yaw = transform.rotation.yaw
-        if 0 < yaw <= 90:
-            yaw = 90 - yaw
-        elif 90 < yaw <= 180:
-            yaw = 450 - yaw
-        elif -90 < yaw <= 0:
-            yaw = 90 - yaw
-        else:
-            yaw = 90 - yaw
-        transform_yaw_rad = np.radians(yaw)
-        rotation=carla.Rotation(pitch=transform.rotation.pitch,yaw=transform.rotation.yaw + yaw_offset,roll=transform.rotation.roll)
-
-        location = carla.Location(
-            x=transform.location.x + left_offset * np.sin(transform_yaw_rad + math.pi / 2) + front_offset * np.cos(transform_yaw_rad + math.pi / 2),
-            y=transform.location.y + left_offset * np.cos(transform_yaw_rad + math.pi / 2) + front_offset * np.sin(transform_yaw_rad + math.pi / 2),
-            z=transform.location.z + height_offset
+        # 计算前方分量（自车坐标系x轴方向）
+        forward_x = math.cos(yaw_rad) * front_offset
+        forward_y = math.sin(yaw_rad) * front_offset
+        
+        # 计算左方分量（自车坐标系y轴负方向）
+        # 左方是自车坐标系的y轴负方向，所以需要旋转-90度
+        left_x = math.cos(yaw_rad - math.pi/2) * left_offset
+        left_y = math.sin(yaw_rad - math.pi/2) * left_offset
+        
+        # 计算总偏移
+        total_offset_x = forward_x + left_x
+        total_offset_y = forward_y + left_y
+        
+        # 计算最终位置
+        result_location = carla.Location(
+            x=ego_location.x + total_offset_x,
+            y=ego_location.y + total_offset_y,
+            z=ego_location.z + height_offset
         )
 
-        transform = carla.Transform(location=location, rotation=rotation)
+        rotation = carla.Rotation(pitch=transform.rotation.pitch,yaw=transform.rotation.yaw + yaw_offset,roll=transform.rotation.roll)
+        transform = carla.Transform(location=result_location, rotation=rotation)
         return transform
+    
+    def transform_from_waypoint(self,
+                                transform: carla.Transform = None,
+                                left_offset: float = 0.0,
+                                front_offset: float = 0.0,
+                                height_offset: float = 0.0,
+                                yaw_offset: float = 0.0) -> carla.Transform:
+        """从给定的变换位置开始，沿着道路向前移动指定距离，并应用偏移
+        
+        Args:
+            transform (carla.Transform): 起始变换位置
+            left_offset (float): 横向偏移（正=左，负=右）
+            front_offset (float): 前向偏移距离
+            height_offset (float): 高度偏移
+            yaw_offset (float): 航向偏移角度
+        
+        Returns:
+            新的carla.Transform位置
+        """
+        if transform is None:
+            self._logger.error('Initial transform is not passed in.')
+            return
+        start_location = transform.location
+
+        interval = 0.1
+        distance_remaining = front_offset
+
+        carla_map = self.world.get_map()
+        current_wp = carla_map.get_waypoint(start_location, project_to_road=True)
+
+        if current_wp is None:
+            self._logger.error('Cannot find waypoint for start location.')
+            return
+
+        while distance_remaining > 0:
+            # 计算本次前进的距离
+            step_distance = min(interval, distance_remaining)
+            
+            # 获取下一个waypoint
+            next_wps = current_wp.next(step_distance)
+            
+            if not next_wps:
+                self._logger.warning(f'Road ends after moving {front_offset - distance_remaining:.1f}m')
+                break
+            
+            # 路径选择逻辑
+            if current_wp.is_junction:
+                # 在路口：选择第一个waypoint（可扩展为智能选择）
+                next_wp = next_wps[0]
+            else:
+                # 在直道：优先选择相同车道ID的waypoint
+                same_lane_wps = [wp for wp in next_wps if wp.lane_id == current_wp.lane_id]
+                if same_lane_wps:
+                    next_wp = same_lane_wps[0]
+                else:
+                    # 如果没有相同车道，选择第一个
+                    next_wp = next_wps[0]
+            
+            current_wp = next_wp
+            distance_remaining -= step_distance
+
+        if math.fabs(left_offset) > current_wp.lane_width / 2.0:
+            self._logger.error('Beyond the road boundary.')
+            return
+        
+        final_transform = current_wp.transform
+    
+        # # 应用横向偏移
+        # if left_offset != 0:
+        #     right_vector = final_transform.get_right_vector()
+        #     # 应用横向偏移（left_offset为正表示向左，即-right_vector方向）
+        #     offset_location = final_transform.location + carla.Location(
+        #         x=-left_offset * right_vector.x,
+        #         y=-left_offset * right_vector.y,
+        #         z=-left_offset * right_vector.z
+        #     )
+        #     final_transform.location = offset_location
+        
+        # # 应用高度偏移
+        # if height_offset != 0:
+        #     up_vector = final_transform.get_up_vector()
+        #     final_transform.location += carla.Location(
+        #         x=height_offset * up_vector.x,
+        #         y=height_offset * up_vector.y,
+        #         z=height_offset * up_vector.z
+        #     )
+        
+        # # 应用航向偏移
+        # if yaw_offset != 0:
+        #     new_rotation = final_transform.rotation
+        #     new_rotation.yaw += yaw_offset
+        #     # 规范化角度到[-180, 180]
+        #     new_rotation.yaw = (new_rotation.yaw + 180) % 360 - 180
+        #     final_transform.rotation = new_rotation
+
+        final_transform = self.transform_from_transform(final_transform, left_offset=left_offset, height_offset=height_offset, yaw_offset=yaw_offset)
+        
+        final_transform.location += carla.Location(z=1)
+        return final_transform
+    
+    def get_ego_forward_vector(self) -> carla.Vector3D:
+        tf_ego = self._ego.tf_now_baselink
+        # print("tf_ego:",tf_ego)
+        forward_vector = tf_ego.get_forward_vector()
+        return forward_vector
+    
+    def get_forward_vector(self, actor: CarlaActor) -> carla.Vector3D:
+        tf = actor.actor.get_transform()
+        forward_vector = tf.get_forward_vector()
+        return forward_vector
     
     def set_vehicle_light(self, vehicle: CarlaVehicle, 
                           none: bool = False,
@@ -603,10 +723,25 @@ class CarlaSingleAction():
         self._ego.actor.set_transform(transform)
         return
     
+    def set_velocity(self, actor, velocity: carla.Vector3D = carla.Vector3D(0,0,0)):
+        # print("set v:",velocity)
+        actor.actor.set_target_velocity(velocity)
+        return actor
+    
+    def set_constant_velocity(self, actor, flag: bool, velocity: carla.Vector3D = carla.Vector3D(0,0,0)):
+        if flag:
+            print("constant v:",velocity * -1)
+            actor.actor.enable_constant_velocity(velocity * -1)
+        else:
+            actor.actor.disable_constant_velocity()
+        return actor
+    
+    def set_velocity_along_the_road(self, actor, speed: float = 0.0):
+        self._tm.set_desired_speed(actor.actor, speed)
+        return
+    
     def normalize_vector(self, vector: carla.Vector3D = None) -> carla.Vector3D:
-        '''
-            Normalize the vector x and y, ignore z.
-        '''
+        '''Normalize the vector x and y, ignore z.'''
         length = math.sqrt(vector.x**2 + vector.y**2)
         if length == 0:
             return carla.Vector3D(x=0,y=0,z=0)
