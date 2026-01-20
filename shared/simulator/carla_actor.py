@@ -231,6 +231,14 @@ class CarlaActor(metaclass=PostInitMeta):
         T_base_center = np.linalg.inv(T_center_base)
         return T_base_center
 
+    def set_transform(self, tf: carla.Transform | CarlaTransform, no_log: bool = False) -> Self:
+        """设置 Actor 的变换"""
+        tf = self._resolve_transform(tf)
+        self.actor.set_transform(tf)
+        if not no_log:
+            self.logger.info(f"Set transform to {Logging.short_tf(tf)}")
+        return self
+
     def _resolve_blueprint(self, bp: carla.ActorBlueprint | CarlaBlueprints | str) -> carla.ActorBlueprint:
         """将多种可能的蓝图输入统一为 carla.ActorBlueprint
 
