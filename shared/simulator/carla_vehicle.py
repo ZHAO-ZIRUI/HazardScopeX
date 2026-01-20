@@ -75,6 +75,39 @@ class CarlaVehicle(CarlaActor):
         self._control_mode = value
         self.logger.info(f"Set control mode to {value.name}")
 
+    @property
+    def velocity(self) -> carla.Vector3D:
+        """当前帧车辆在世界坐标系下的速度, 只读"""
+        return self.actor.get_velocity()
+
+    @property
+    def velocity_self(self) -> carla.Vector3D:
+        """当前帧车辆在自身坐标系下的速度, 只读"""
+        vel = self.velocity
+        yaw = np.radians(self.tf_now.rotation.yaw)
+        cos_yaw = np.cos(yaw)
+        sin_yaw = np.sin(yaw)
+        # 世界坐标系到车辆坐标系的旋转 (绕Z轴旋转-yaw)
+        return carla.Vector3D(
+            x = vel.x * cos_yaw + vel.y * sin_yaw,
+            y = -vel.x * sin_yaw + vel.y * cos_yaw,
+            z = vel.z,
+        )
+
+    @property
+    def angular_velocity(self) -> carla.Vector3D:
+        """当前帧车辆在世界坐标系下的角速度, 只读"""
+        return self.actor.get_angular_velocity()
+
+    @property
+    def control(self) -> carla.VehicleControl:
+        """当前帧车辆的控制, 只读"""
+        return self.actor.get_control()
+
+    @control.setter
+    def control(self, value: carla.VehicleControl):
+        self.actor.set_control(value)
+
     def set_carla_autopilot(self, enable: bool = True) -> Self:
         """设置 CARLA 自动驾驶模式"""
         if not self.is_alive:
