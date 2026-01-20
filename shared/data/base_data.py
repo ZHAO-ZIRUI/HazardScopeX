@@ -3,14 +3,11 @@ import struct
 import time
 from abc import ABC, abstractmethod
 from typing import Any
-from enum import Enum
 from pathlib import Path
 from typing_extensions import Self
 from multiprocessing.shared_memory import SharedMemory
 
-class TimestampSource(Enum):
-    SIM = 'sim'
-    OS = 'os'
+from shared.define import TimestampSource
 
 class BaseData(ABC):
 

@@ -6,7 +6,8 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from typing_extensions import Self
 
-from shared.data import SimulatorOutput, TimestampSource
+from shared.data import SimulatorOutput
+from shared.define import TimestampSource
 
 
 if TYPE_CHECKING:

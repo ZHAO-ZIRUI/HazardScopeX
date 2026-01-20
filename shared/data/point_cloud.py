@@ -5,7 +5,8 @@ from pathlib import Path
 from typing_extensions import Self
 from io import StringIO
 
-from shared.data import SimulatorOutput, TimestampSource
+from shared.data import SimulatorOutput
+from shared.define import TimestampSource
 
 
 if TYPE_CHECKING:
