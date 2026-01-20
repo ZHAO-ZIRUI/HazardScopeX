@@ -20,6 +20,8 @@ class CarlaVehicle(CarlaActor):
     class ControlMode(Enum):
         NONE = 0
         CARLA_AUTOPILOT = 1
+        EXTERNAL_AUTOPILOT = 2
+        MANUAL = 3
 
     def __init__(
         self,
