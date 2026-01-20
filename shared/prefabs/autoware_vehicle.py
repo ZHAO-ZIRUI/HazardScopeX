@@ -117,7 +117,6 @@ class AutowareVehicle(NuScenesVehicle):
         from tier4_vehicle_msgs.msg import ActuationStatusStamped, ActuationStatus
         return ActuationStatusStamped(
             header=self.get_header_msg(frame_id, timestamp_source),
-            control = 
             status=ActuationStatus(
                 accel_status=self.control.throttle,
                 brake_status=self.control.brake,
