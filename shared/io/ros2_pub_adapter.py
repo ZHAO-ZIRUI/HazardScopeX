@@ -1,3 +1,4 @@
+from re import T
 import carla
 import os
 import signal
@@ -64,8 +65,7 @@ class ROS2PubAdapter(Generic[MsgT]):
         return self
 
     def bind_sensor(self, sensor: CarlaSensor) -> Self:
-        # 传感器类型使用多进程发布模式, 先销毁原有的 publiser
-        self._ros2_pub.destroy()
+        self._ros2_pub = None
 
         self._sensor_id_local = sensor.id_local
 
@@ -212,11 +212,13 @@ class ROS2PubAdapter(Generic[MsgT]):
             logger.error(f"Shared memory '{shm_topic}' not found")
             return
 
+        ros_context = None
+        ros_node = None
         try:
-            # if not rclpy.ok():
-            rclpy.init()
+            ros_context = rclpy.Context()
+            rclpy.init(context=ros_context)
             
-            ros_node = rclpy.create_node(ros_node_name, enable_rosout=False)
+            ros_node = rclpy.create_node(ros_node_name, enable_rosout=False, context=ros_context)
             logger.debug(f"Created ROS2 node '{ros_node_name}'")
             
             # 根据传感器类型确定数据类和消息类型
@@ -258,7 +260,7 @@ class ROS2PubAdapter(Generic[MsgT]):
                             if hasattr(data, 'sim_frame') and data.sim_frame == current_frame:
                                 # 将数据转换为 ROS2 消息
                                 ros2_data = data.to_ros2(frame_id=ros_frame_id, ros_message_type=ros_message_type, timestamp_source=timestamp_source)
-                                if rclpy.ok():
+                                if ros_context.ok():
                                     ros_publisher.publish(ros2_data)
                                 else:
                                     break
@@ -278,8 +280,8 @@ class ROS2PubAdapter(Generic[MsgT]):
                 # 销毁 ROS2 资源
                 if ros_node is not None:
                     ros_node.destroy_node()
-                if rclpy.ok():
-                    rclpy.shutdown()
+                if ros_context is not None and ros_context.ok():
+                    rclpy.shutdown(context=ros_context)
         finally:
             # 关闭共享内存连接
             try:
