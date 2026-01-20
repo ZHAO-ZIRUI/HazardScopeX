@@ -26,7 +26,7 @@ class Clock(SimulatorOutput):
             sim_timestamp=carla_input.timestamp.elapsed_seconds,
         )
 
-    def to_ros2(self, frame_id: str = 'undefined', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2NavSatFix" or "ROS2PoseWithCovarianceStamped":
+    def to_ros2(self, ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2Clock":
         from rosgraph_msgs.msg import Clock as ROS2Clock
 
         if ros_message_type is None:
