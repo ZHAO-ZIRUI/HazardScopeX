@@ -1,4 +1,4 @@
-from .base_data import BaseData, TimestampSource
+from .base_data import BaseData
 from .simulator_input import SimulatorInput
 from .simulator_output import SimulatorOutput
 from .image import Image
@@ -10,7 +10,6 @@ from .clock import Clock
 
 __all__ = [
     "BaseData",
-    "TimestampSource",
     "SimulatorInput",
     "SimulatorOutput",
     "Image",
