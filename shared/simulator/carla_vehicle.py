@@ -5,6 +5,7 @@ from typing_extensions import Self, Unpack
 from enum import Enum
 
 from shared.simulator import CarlaActor, CarlaBlueprints, CarlaTransform
+from shared.data import VehicleDirectControl
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
@@ -104,9 +105,9 @@ class CarlaVehicle(CarlaActor):
         """当前帧车辆的控制, 只读"""
         return self.actor.get_control()
 
-    @control.setter
-    def control(self, value: carla.VehicleControl):
-        self.actor.apply_control(value)
+    def apply_direct_control(self, control: carla.VehicleControl | VehicleDirectControl) -> Self:
+        self.actor.apply_control(control.to_carla() if isinstance(control, VehicleDirectControl) else control)
+        return self
 
     def set_carla_autopilot(self, enable: bool = True) -> Self:
         """设置 CARLA 自动驾驶模式"""
