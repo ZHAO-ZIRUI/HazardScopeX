@@ -106,7 +106,7 @@ class CarlaVehicle(CarlaActor):
 
     @control.setter
     def control(self, value: carla.VehicleControl):
-        self.actor.set_control(value)
+        self.actor.apply_control(value)
 
     def set_carla_autopilot(self, enable: bool = True) -> Self:
         """设置 CARLA 自动驾驶模式"""
