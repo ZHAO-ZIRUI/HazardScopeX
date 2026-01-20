@@ -1,82 +1,95 @@
+import carla
 import math
-from typing import TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Callable
 from typing_extensions import Self
 
-from shared.io import AbstractIOAdapter
-from shared.simulator import CarlaSensor
-
+from shared.define import TimestampSource
+from shared.simulator import CarlaTransform
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
     from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
     from geometry_msgs.msg import TransformStamped
 
-class ROS2TfAdapter(AbstractIOAdapter):
-    
+class ROS2TfAdapter():
+
     def __init__(
-        self, 
-        context: 'CarlaContext', 
-        frame_id_parent: str, 
+        self,
+        context: 'CarlaContext',
+        ros2_tf_broadcaster: 'TransformBroadcaster | StaticTransformBroadcaster',
+        frame_id_parent: str,
         frame_id_child: str,
-        tf_broadcaster: 'TransformBroadcaster | StaticTransformBroadcaster',
+        timestamp_source: TimestampSource = TimestampSource.OS,
     ):
-        super().__init__(context)
+        # 在实例化的时候执行实际引入
+        from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
+
+        self._context = context
+        self._ros2_tf_broadcaster = ros2_tf_broadcaster
+        self._timestamp_source = timestamp_source
         self._frame_id_parent = frame_id_parent
         self._frame_id_child = frame_id_child
-        self._tf_broadcaster = tf_broadcaster
-        self._tf_stamped = None
 
-    @property
-    def tf_stamped(self) -> 'TransformStamped':
-        return self._tf_stamped
-
-    def bind_sensor(self, sensor: CarlaSensor) -> Self:
-        from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
-        from geometry_msgs.msg import TransformStamped, Transform, Vector3
-        from std_msgs.msg import Header
-
-        tf_init = sensor.tf_init
+        self._is_static = isinstance(ros2_tf_broadcaster, StaticTransformBroadcaster)
+        self._is_hook_registered = False
+        self._relation = None
         
-        # 位置: CARLA (x, y, z) -> ROS2 (x, y, z)
-        translation = Vector3(
-            x=tf_init.location.x,
-            y=-tf_init.location.y,  # CARLA Y 轴取反
-            z=tf_init.location.z,
-        )
+
+    def bind_relation(self, relation: carla.Transform | CarlaTransform | Callable[[], carla.Transform]) -> Self:
+        # 整理输入
+        relation = relation.to_carla() if isinstance(relation, CarlaTransform) else relation
+        assert isinstance(relation, carla.Transform) or callable(relation), f"Unsupported relation type: {type(relation)}"
+
+        # 如果是静态则直接发送变换
+        if self._is_static:
+            relation_now = relation() if callable(relation) else relation
+            self._ros2_tf_broadcaster.sendTransform(self._get_transform(relation_now))
+            return self
+
+        # 动态要求绑定必须是 Callable 的
+        assert callable(relation), f"Using TransformBroadcaster binding must be a callable"
+        self._relation: Callable[[], carla.Transform] = relation
         
-        # 旋转: CARLA 欧拉角 (pitch, yaw, roll) -> ROS2 四元数
-        rotation = self._carla_rotation_to_quaternion(
-            pitch=tf_init.rotation.pitch,
-            yaw=tf_init.rotation.yaw,
-            roll=tf_init.rotation.roll,
-        )
+        # 注册钩子
+        self._context.hook_on_tick.append(self._hookfunc_on_tick_tf_broadcast)
+        self._is_hook_registered = True
 
-        self._tf_stamped = TransformStamped(
-            header=Header(frame_id=self._frame_id_parent),
-            child_frame_id=self._frame_id_child,
-            transform=Transform(translation=translation, rotation=rotation),
-        )
-
-        # 如果是静态 TF 广播器, 则直接发送变换
-        # 如果是动态 TF 广播器, 则将变换添加到缓冲区
-        if isinstance(self._tf_broadcaster, StaticTransformBroadcaster):
-            self._tf_broadcaster.sendTransform(self._tf_stamped)
         return self
 
-    @staticmethod
-    def _carla_rotation_to_quaternion(pitch: float, yaw: float, roll: float):
-        """将 CARLA 欧拉角转换为 ROS2 四元数
-        
-        CARLA 使用 UE4 坐标系 (左手系, 度数), ROS2 使用右手系
-        """
-        from geometry_msgs.msg import Quaternion
-        
-        # 转换为弧度
-        pitch_rad = math.radians(pitch)
-        yaw_rad = math.radians(-yaw)  # CARLA yaw 取反
-        roll_rad = math.radians(-roll)  # CARLA roll 取反
-        
-        # 欧拉角 (ZYX 顺序) 转四元数
+    def destroy(self) -> Self:
+        # 只销毁对 hook 的影响, ROS2 的资源释放由 CarlaIOManager 负责
+        if self._is_hook_registered:
+            self._context.hook_on_tick.remove(self._hookfunc_on_tick_tf_broadcast)
+            self._is_hook_registered = False
+        return self
+
+    def _hookfunc_on_tick_tf_broadcast(self, _: carla.WorldSnapshot) -> None:
+        if self._relation is None:
+            return
+        relation_now = self._relation()
+        self._ros2_tf_broadcaster.sendTransform(self._get_transform(relation_now))
+
+    def _get_transform(self, relation: carla.Transform) -> 'TransformStamped':
+        from geometry_msgs.msg import TransformStamped, Transform, Vector3, Quaternion
+        from std_msgs.msg import Header
+        from builtin_interfaces.msg import Time
+
+        # 位置: CARLA (x, y, z) -> ROS2 (x, y, z)
+        translation_carla = relation.location
+        translation_ros2 = Vector3(
+            x = translation_carla.x,
+            y = -translation_carla.y,  # CARLA Y 轴取反
+            z = translation_carla.z,
+        )
+
+        # 旋转: CARLA 欧拉角 (pitch, yaw, roll) -> ROS2 四元数
+        rotation_carla = relation.rotation
+
+        pitch_rad = math.radians(rotation_carla.pitch)
+        yaw_rad = math.radians(-rotation_carla.yaw)
+        roll_rad = math.radians(-rotation_carla.roll)
+
         cy = math.cos(yaw_rad * 0.5)
         sy = math.sin(yaw_rad * 0.5)
         cp = math.cos(pitch_rad * 0.5)
@@ -84,9 +97,22 @@ class ROS2TfAdapter(AbstractIOAdapter):
         cr = math.cos(roll_rad * 0.5)
         sr = math.sin(roll_rad * 0.5)
 
-        return Quaternion(
-            x=sr * cp * cy - cr * sp * sy,
-            y=cr * sp * cy + sr * cp * sy,
-            z=cr * cp * sy - sr * sp * cy,
-            w=cr * cp * cy + sr * sp * sy,
+        rotation_ros2 = Quaternion(
+            x = sr * cp * cy - cr * sp * sy,
+            y = cr * sp * cy + sr * cp * sy,
+            z = cr * cp * sy - sr * sp * cy,
+            w = cr * cp * cy + sr * sp * sy,
         )
+
+        return TransformStamped(
+            header = Header(
+                stamp = self._context.clock.to_ros2(Time, self._timestamp_source),
+                frame_id = self._frame_id_parent,
+            ),
+            child_frame_id = self._frame_id_child,
+            transform = Transform(
+                translation = translation_ros2,
+                rotation = rotation_ros2,
+            )
+        )
+        

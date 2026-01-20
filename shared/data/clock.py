@@ -10,7 +10,7 @@ from shared.define import TimestampSource
 
 if TYPE_CHECKING:
     from rosgraph_msgs.msg import Clock as ROS2Clock
-    from builtin_interfaces.msg import Time
+    from builtin_interfaces.msg import Time as ROS2Time
 
 class Clock(SimulatorOutput):
     """
@@ -30,30 +30,24 @@ class Clock(SimulatorOutput):
 
     def to_ros2(self, ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2Clock":
         from rosgraph_msgs.msg import Clock as ROS2Clock
+        from builtin_interfaces.msg import Time as ROS2Time
 
         if ros_message_type is None:
             ros_message_type = ROS2Clock
-        assert ros_message_type.__name__ == 'Clock', \
+        assert ros_message_type.__name__ == 'Clock' or ros_message_type.__name__ == 'Time', \
             f"Unsupported ROS2 message type: {ros_message_type.__name__} for Clock data"
-
-        # 获取时间戳并转换为 ROS2 Time 格式
+        
+         # 获取时间戳并转换为 ROS2 Time 格式
         timestamp = self.sim_timestamp if timestamp_source == TimestampSource.SIM else self.os_timestamp
-
-        # 组装 ROS2 消息
-        msg = ROS2Clock()
-        msg.clock.sec = int(timestamp)
-        msg.clock.nanosec = int((timestamp - msg.clock.sec) * 1e9)
-
-        return msg
-
-    def to_ros2_stamp(self, timestamp_source: TimestampSource = TimestampSource.OS) -> "Time":
-        from builtin_interfaces.msg import Time
-
-        timestamp = self.sim_timestamp if timestamp_source == TimestampSource.SIM else self.os_timestamp
-        stamp = Time()
+        stamp = ROS2Time()
         stamp.sec = int(timestamp)
         stamp.nanosec = int((timestamp - stamp.sec) * 1e9)
-        return stamp
+        if ros_message_type.__name__ == 'Clock':
+            msg = ROS2Clock()
+            msg.clock = stamp
+            return msg
+        elif ros_message_type.__name__ == 'Time':
+            return stamp
 
     @classmethod
     def from_ros2(cls, ros2_msg: any) -> Self:
