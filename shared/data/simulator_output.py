@@ -4,6 +4,7 @@ from typing import Any
 from typing_extensions import Self
 
 from shared.data import BaseData
+from shared.define import TimestampSource
 
 
 class SimulatorOutput(BaseData, ABC):
@@ -40,4 +41,9 @@ class SimulatorOutput(BaseData, ABC):
     @abstractmethod
     def from_carla(cls, carla_input: Any) -> Self:
         """从 CARLA 输入数据中创建SimulatorOutput数据"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def to_ros2(self, frame_id: str = 'world', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> Any:
+        """将数据转换为 ROS2 消息"""
         raise NotImplementedError

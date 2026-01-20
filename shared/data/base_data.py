@@ -128,17 +128,6 @@ class BaseData(ABC):
             return default
 
     @abstractmethod
-    def to_ros2(self, frame_id: str = 'world', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> Any:
-        """将数据转换为 ROS2 消息"""
-        raise NotImplementedError
-
-    @classmethod
-    @abstractmethod
-    def from_ros2(cls, ros2_msg: Any) -> Self | None:
-        """从 ROS2 消息中创建数据"""
-        raise NotImplementedError
-
-    @abstractmethod
     def to_file(self, file_path: str | Path) -> Self:
         """将数据保存到文件"""
         raise NotImplementedError
