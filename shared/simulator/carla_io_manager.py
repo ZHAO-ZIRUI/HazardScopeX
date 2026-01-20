@@ -35,10 +35,6 @@ class CarlaIOManager:
 
     def destroy_all(self) -> Self:
         self.destroy_all_shm()
-
-        if self._flag_ros2_enabled:
-            self.destroy_all_ros2()
-
         return self
 
 # region: SharedMemory
