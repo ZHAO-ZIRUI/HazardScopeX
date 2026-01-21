@@ -67,8 +67,8 @@ class FactorLotCaseReverse(Factor):
 
 
 
-        tf_act = self._sa.transform_from_waypoint(transform=tf_ego,front_offset=50,left_offset=-0.5)
-        print("tf_ego:",tf_ego," act tf:",tf_act)
+        tf_act = self._sa.transform_from_waypoint(transform=tf_ego,front_offset=20,left_offset=-0.5)
+        # print("tf_ego:",tf_ego," act tf:",tf_act)
         self._act = self._sa.manual_control_vehicle(
             transform=tf_act,
             bp='vehicle.tesla.model3',
@@ -77,7 +77,7 @@ class FactorLotCaseReverse(Factor):
 
         # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
         v = self._sa.get_ego_forward_vector() * 5
-        print("v:",v)
+        # print("v:",v)
         # v = carla.Vector3D(x=-2, y=-0.002779, z=0.000000)
         # print("v:",v)
         time.sleep(1)
@@ -113,8 +113,8 @@ class FactorLotCaseReverse(Factor):
 
             self.stage = self.FactorStage.TRIGGERED
             self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
-        print("tf_ego:",self.ego.actor.get_transform())
-        print("ego v:",self.ego.actor.get_velocity())
+        # print("tf_ego:",self.ego.actor.get_transform())
+        # print("ego v:",self.ego.actor.get_velocity())
         self._count_before_trigger += 1
         return
 

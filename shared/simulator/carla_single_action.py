@@ -730,7 +730,7 @@ class CarlaSingleAction():
     
     def set_constant_velocity(self, actor, flag: bool, velocity: carla.Vector3D = carla.Vector3D(0,0,0)):
         if flag:
-            print("constant v:",velocity * -1)
+            # print("constant v:",velocity * -1)
             actor.actor.enable_constant_velocity(velocity * -1)
         else:
             actor.actor.disable_constant_velocity()
@@ -738,6 +738,7 @@ class CarlaSingleAction():
     
     def set_velocity_along_the_road(self, actor, speed: float = 0.0):
         self._tm.set_desired_speed(actor.actor, speed)
+        self._tm.auto_lane_change(actor.actor, False)
         return
     
     def normalize_vector(self, vector: carla.Vector3D = None) -> carla.Vector3D:
