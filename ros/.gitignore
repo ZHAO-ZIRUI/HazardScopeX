@@ -1,0 +1,4 @@
+# IGNORE ROS BUILD
+build/
+install/
+log/

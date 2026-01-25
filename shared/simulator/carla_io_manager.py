@@ -1,15 +1,18 @@
 import time
 from multiprocessing.shared_memory import SharedMemory
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 from typing_extensions import Self
 from logging import Logger
+from threading import Thread
 
-from shared.io import SharedMemoryAdapter, ROS2Adapter
+from shared.io import SharedMemoryAdapter, ROS2TfAdapter, ROS2SubAdapter, ROS2PubAdapter
 from shared.utils import Logging
-from shared.data import TimestampSource
+from shared.define import TimestampSource
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
+    from rclpy import Node
+    from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
 
 
 class CarlaIOManager:
@@ -26,8 +29,13 @@ class CarlaIOManager:
         self._registry_shm: set[SharedMemoryAdapter] = set()
 
         # ROS2
-        self._flag_ros2_enabled: bool = False
-        self._registry_ros2: set[ROS2Adapter] = set()
+        self._flag_ros2_enabled = False
+        self._ros2_node: 'Node' | None = None
+        self._ros2_executor = None
+        self._ros2_tf_boardcaster: 'TransformBroadcaster' | None = None
+        self._ros2_tf_static_boardcaster: 'StaticTransformBroadcaster' | None = None
+        self._ros2_adapters: set[ROS2TfAdapter | ROS2SubAdapter | ROS2PubAdapter] = set()
+        self._thread_ros2_spin: Thread | None = None
 
     @property
     def logger(self) -> Logger:
@@ -35,10 +43,8 @@ class CarlaIOManager:
 
     def destroy_all(self) -> Self:
         self.destroy_all_shm()
-
         if self._flag_ros2_enabled:
             self.destroy_all_ros2()
-
         return self
 
 # region: SharedMemory
@@ -85,7 +91,7 @@ class CarlaIOManager:
                     raise SystemExit(321)
 
         # 创建适配器并注册到注册表
-        adapter = SharedMemoryAdapter(shm, topic)
+        adapter = SharedMemoryAdapter(self._context, shm, topic)
         self._registry_shm.add(adapter)
         self.logger.info(f"Created shared memory with topic '{topic}'")
         return adapter
@@ -134,41 +140,148 @@ class CarlaIOManager:
 
 # region: ROS2
 
-    def create_ros2(
-        self, 
-        topic: str, 
-        shm_topic: str = '',
-        ros_node_name: str = ROS2Adapter.DEFAULT_ROS_NODE_NAME,
-        ros_node_qos: int = 10,
-        frame_id: str = 'world',
+    def create_ros2_pub(
+        self,
+        topic: str,
+        msg: type,
+        qos: int = 10,
+        frame_id: str = 'UNDEFINED',
         timestamp_source: TimestampSource = TimestampSource.OS,
-    ) -> ROS2Adapter:
-        """创建 ROS2 高性能适配器"""
-         # 标记启用 ROS2
-        self._flag_ros2_enabled = True
+    ) -> ROS2PubAdapter:
+        self._init_ros2_if_not_initialized()
 
-        # 先创建 SHM
-        if shm_topic is None or shm_topic == '':
-            shm_topic = topic
-        shm = self.create_shm(shm_topic.replace("/", "_"))
+        ros2_pub = self._ros2_node.create_publisher(msg, topic, qos)
 
-        # 创建 ROS2 高性能适配器
-        adapter = ROS2Adapter(
-            shm,
-            topic,
-            ros_node_name=ros_node_name,
-            ros_qos=ros_node_qos,
-            ros_frame_id=frame_id,
+        adapter = ROS2PubAdapter(self._context, ros2_pub, topic, msg, frame_id, timestamp_source, qos)
+        self._ros2_adapters.add(adapter)
+        return adapter
+
+    def create_ros2_tf(
+        self,
+        frame_id_parent: str,
+        frame_id_child: str,
+        timestamp_source: TimestampSource = TimestampSource.OS,
+        *,
+        use_static: bool = True
+    ) -> ROS2TfAdapter:
+        from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
+
+        self._init_ros2_if_not_initialized()
+
+        # 确保建立 Broadcaster
+        if use_static and self._ros2_tf_static_boardcaster is None:
+            self._ros2_tf_static_boardcaster = StaticTransformBroadcaster(self._ros2_node)
+        if not use_static and self._ros2_tf_boardcaster is None:
+            self._ros2_tf_boardcaster = TransformBroadcaster(self._ros2_node)
+
+        adapter = ROS2TfAdapter(
+            context=self._context,
+            ros2_tf_broadcaster=self._ros2_tf_boardcaster if not use_static else self._ros2_tf_static_boardcaster,
+            frame_id_parent=frame_id_parent,
+            frame_id_child=frame_id_child,
             timestamp_source=timestamp_source,
         )
-        self._registry_ros2.add(adapter)
+
+        self._ros2_adapters.add(adapter)
+        return adapter
+        
+
+    def create_ros2_sub(
+        self,
+        topic: str,
+        msg: type,
+        qos: int = 10,
+    ) -> ROS2SubAdapter:
+        self._init_ros2_if_not_initialized()
+
+        # 先创建 adapter
+        adapter = ROS2SubAdapter(self._context, None, msg)
+
+        # 创建订阅器，使用 adapter 的内部回调
+        ros2_sub = self._ros2_node.create_subscription(
+            msg, topic, adapter._internal_callback, qos
+        )
+        adapter._ros2_sub = ros2_sub
+
+        self._ros2_adapters.add(adapter)
         return adapter
 
     def destroy_all_ros2(self) -> Self:
-        """销毁所有 ROS2 高性能适配器"""
-        for adapter in list(self._registry_ros2):
-            adapter.stop_worker()
-        self._registry_ros2.clear()
+        """销毁所有 ROS2 资源"""
+        if not self._flag_ros2_enabled:
+            return self
+
+        import rclpy
+
+        # 销毁所有适配器
+        for adapter in list(self._ros2_adapters):
+            adapter.destroy()
+        self._ros2_adapters.clear()
+
+        # 停止 executor，这会使 spin 线程退出
+        if self._ros2_executor is not None:
+            self._ros2_executor.shutdown()
+
+        # 等待 spin 线程结束
+        if self._thread_ros2_spin is not None:
+            self._thread_ros2_spin.join(timeout=2.0)
+            if self._thread_ros2_spin.is_alive():
+                self._logger.warning("ROS2 spin thread did not stop in time")
+            self._thread_ros2_spin = None
+
+        # 从 executor 移除并销毁 node
+        if self._ros2_node is not None:
+            if self._ros2_executor is not None:
+                self._ros2_executor.remove_node(self._ros2_node)
+            self._ros2_node.destroy_node()
+            self._ros2_node = None
+            self._logger.debug("Destroyed ROS2 node")
+
+        # 清理 executor
+        self._ros2_executor = None
+
+        # 关闭 rclpy
+        if rclpy.ok():
+            rclpy.shutdown()
+            self._logger.info("ROS2 shutdown completed")
+
+        self._flag_ros2_enabled = False
         return self
+
+    def _init_ros2_if_not_initialized(self):
+        """延迟初始化 ROS2 资源"""
+        if self._flag_ros2_enabled:
+            return
+
+        import rclpy
+        from rclpy.executors import SingleThreadedExecutor
+
+        self._flag_ros2_enabled = True
+
+        # rclpy 初始化
+        if not rclpy.ok():
+            rclpy.init()
+
+        # node 初始化
+        node_name = self._config.ros2_node_name
+        self._ros2_node = rclpy.create_node(node_name, enable_rosout=False)
+        self._logger.info(f"Created ROS2 node '{node_name}'")
+
+        # executor 初始化并添加 node
+        self._ros2_executor = SingleThreadedExecutor()
+        self._ros2_executor.add_node(self._ros2_node)
+
+        # spin 线程初始化
+        self._thread_ros2_spin = Thread(target=self._threadfunc_ros2_spin, daemon=True)
+        self._thread_ros2_spin.start()
+
+    def _threadfunc_ros2_spin(self):
+        """ROS2 spin 线程函数"""
+        try:
+            self._ros2_executor.spin()
+        except Exception as e:
+            self._logger.debug(f"ROS2 spin stopped: {e}")
+        finally:
+            self._logger.info("ROS2 spin thread stopped")
 
 # endregion: ROS2 High Performance

@@ -1,0 +1,6 @@
+[submodule "ros/src/autoware_msgs"]
+	path = ros/src/autoware_msgs
+	url = https://github.com/autowarefoundation/autoware_msgs.git
+[submodule "ros/src/tier4_autoware_msgs"]
+	path = ros/src/tier4_autoware_msgs
+	url = https://github.com/tier4/tier4_autoware_msgs.git

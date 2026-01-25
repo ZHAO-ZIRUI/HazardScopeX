@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from shared.configs import ExternalConfigReader, ConfigManager
 from shared.utils import Logging
 from shared.simulator import CarlaTickBlocker, CarlaActorManager, CarlaMaps, CarlaIOManager, CarlaRecorder
-
+from shared.data import Clock
 
 class CarlaContext:
     """
@@ -52,10 +52,13 @@ class CarlaContext:
 
         self._hook_on_tick: list[Callable[[carla.WorldSnapshot], None]] = []
         self._hook_befre_next_tick: list[Callable[[carla.WorldSnapshot], None]] = []
+
+        self._clock: Clock = Clock(0, 0)
         
         self.__post_init__()
 
     def __post_init__(self):
+        self._hook_on_tick.append(self._hookfunc_clock_update)
         self.logger.debug('Initialized')
 
     def __enter__(self) -> Self:
@@ -132,6 +135,10 @@ class CarlaContext:
     def recorder(self) -> CarlaRecorder:
         return self._service_recorder
 
+    @property
+    def clock(self) -> Clock:
+        return self._clock
+
     @contextmanager
     def heavy_operation(self):
         """重操作, 该模式下会设置所有的 Timeout 为 heavy_operation_timeout_seconds, 并临时跳过死检"""
@@ -188,6 +195,7 @@ class CarlaContext:
 
         # 清理 hook
         self._hook_on_tick.clear()
+        self._hook_befre_next_tick.clear()
 
         # 清理 tick blockers
         self._tick_blockers.clear()
@@ -564,6 +572,9 @@ class CarlaContext:
         finally:
             del detector_client
             self.logger.debug('Server dead detector stopped')
+
+    def _hookfunc_clock_update(self, snapshot: carla.WorldSnapshot):
+        self._clock = Clock.from_carla(snapshot)
 
     @property
     def hook_on_tick(self) -> list[Callable[[carla.WorldSnapshot], None]]:

@@ -5,6 +5,7 @@ from typing_extensions import Self, Unpack
 from enum import Enum
 
 from shared.simulator import CarlaActor, CarlaBlueprints, CarlaTransform
+from shared.data import VehicleDirectControl
 
 if TYPE_CHECKING:
     from shared.simulator import CarlaContext
@@ -20,6 +21,8 @@ class CarlaVehicle(CarlaActor):
     class ControlMode(Enum):
         NONE = 0
         CARLA_AUTOPILOT = 1
+        EXTERNAL_AUTOPILOT = 2
+        MANUAL = 3
 
     def __init__(
         self,
@@ -72,6 +75,39 @@ class CarlaVehicle(CarlaActor):
     def control_mode(self, value: ControlMode):
         self._control_mode = value
         self.logger.info(f"Set control mode to {value.name}")
+
+    @property
+    def velocity(self) -> carla.Vector3D:
+        """当前帧车辆在世界坐标系下的速度, 只读"""
+        return self.actor.get_velocity()
+
+    @property
+    def velocity_self(self) -> carla.Vector3D:
+        """当前帧车辆在自身坐标系下的速度, 只读"""
+        vel = self.velocity
+        yaw = np.radians(self.tf_now.rotation.yaw)
+        cos_yaw = np.cos(yaw)
+        sin_yaw = np.sin(yaw)
+        # 世界坐标系到车辆坐标系的旋转 (绕Z轴旋转-yaw)
+        return carla.Vector3D(
+            x = vel.x * cos_yaw + vel.y * sin_yaw,
+            y = -vel.x * sin_yaw + vel.y * cos_yaw,
+            z = vel.z,
+        )
+
+    @property
+    def angular_velocity(self) -> carla.Vector3D:
+        """当前帧车辆在世界坐标系下的角速度, 只读"""
+        return self.actor.get_angular_velocity()
+
+    @property
+    def control(self) -> carla.VehicleControl:
+        """当前帧车辆的控制, 只读"""
+        return self.actor.get_control()
+
+    def apply_direct_control(self, control: carla.VehicleControl | VehicleDirectControl) -> Self:
+        self.actor.apply_control(control.to_carla() if isinstance(control, VehicleDirectControl) else control)
+        return self
 
     def set_carla_autopilot(self, enable: bool = True) -> Self:
         """设置 CARLA 自动驾驶模式"""

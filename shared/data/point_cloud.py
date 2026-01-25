@@ -5,7 +5,8 @@ from pathlib import Path
 from typing_extensions import Self
 from io import StringIO
 
-from shared.data import SimulatorOutput, TimestampSource
+from shared.data import SimulatorOutput
+from shared.define import TimestampSource
 
 
 if TYPE_CHECKING:
@@ -127,9 +128,13 @@ class PointCloud(SimulatorOutput):
 
         raise TypeError(f'Unsupported CARLA input type: {type(carla_input)}')
 
-    def to_ros2(self, frame_id: str = 'lidar', timestamp_source: TimestampSource = TimestampSource.OS) -> "PointCloud2":
+    def to_ros2(self, frame_id: str = 'lidar', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> "PointCloud2":
         from sensor_msgs.msg import PointCloud2, PointField
         from builtin_interfaces.msg import Time
+
+        if ros_message_type is None:
+            ros_message_type = PointCloud2
+        assert ros_message_type.__name__ == 'PointCloud2', f"Unsupported ROS2 message type: {ros_message_type.__name__} for PointCloud data"
 
         # 获取时间戳并转换为 ROS2 Time 格式
         timestamp = self.sim_timestamp if timestamp_source == TimestampSource.SIM else self.os_timestamp

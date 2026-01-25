@@ -3,14 +3,11 @@ import struct
 import time
 from abc import ABC, abstractmethod
 from typing import Any
-from enum import Enum
 from pathlib import Path
 from typing_extensions import Self
 from multiprocessing.shared_memory import SharedMemory
 
-class TimestampSource(Enum):
-    SIM = 'sim'
-    OS = 'os'
+from shared.define import TimestampSource
 
 class BaseData(ABC):
 
@@ -129,17 +126,6 @@ class BaseData(ABC):
             return frame if frame is not None else default
         except (struct.error, ValueError, TypeError, AttributeError) as e:
             return default
-
-    @abstractmethod
-    def to_ros2(self, frame_id: str = 'world', timestamp_source: TimestampSource = TimestampSource.OS) -> Any:
-        """将数据转换为 ROS2 消息"""
-        raise NotImplementedError
-
-    @classmethod
-    @abstractmethod
-    def from_ros2(cls, ros2_msg: Any) -> Self | None:
-        """从 ROS2 消息中创建数据"""
-        raise NotImplementedError
 
     @abstractmethod
     def to_file(self, file_path: str | Path) -> Self:

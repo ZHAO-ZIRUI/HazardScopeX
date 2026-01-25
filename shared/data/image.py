@@ -6,7 +6,8 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from typing_extensions import Self
 
-from shared.data import SimulatorOutput, TimestampSource
+from shared.data import SimulatorOutput
+from shared.define import TimestampSource
 
 
 if TYPE_CHECKING:
@@ -67,9 +68,13 @@ class Image(SimulatorOutput):
             format=cls.Format.BGRA8,
         )
 
-    def to_ros2(self, frame_id: str = 'world', timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2Image":
+    def to_ros2(self, frame_id: str = 'world', ros_message_type: type = None, timestamp_source: TimestampSource = TimestampSource.OS) -> "ROS2Image":
         from sensor_msgs.msg import Image as ROS2Image
         from builtin_interfaces.msg import Time
+
+        if ros_message_type is None:
+            ros_message_type = ROS2Image
+        assert ros_message_type.__name__ == 'Image', f"Unsupported ROS2 message type: {ros_message_type.__name__} for Image data"
 
         # 获取时间戳并转换为 ROS2 Time 格式
         timestamp = self.sim_timestamp if timestamp_source == TimestampSource.SIM else self.os_timestamp
