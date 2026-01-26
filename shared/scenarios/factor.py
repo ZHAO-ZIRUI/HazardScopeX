@@ -44,12 +44,16 @@ class Factor(metaclass=PostInitMeta):
         ego_vehicle: CarlaVehicle,
         *,
         ignore_factor_ego_control: bool = False,
+        keepalive_after_triggered_seconds: int = 5,
     ):
         self._context = context
         self._vehicle_ego = ego_vehicle
         self._stage = self.FactorStage.BRINGUP
         self._logger = Logging().get_logger(self.NAME)
         self._factor_actors: dict[str, CarlaActor] = {}
+
+        self._keepalive_begin_frames = 0
+        self._keepalive_after_triggered_frames = keepalive_after_triggered_seconds * self._context.fps
 
         self._flag_ignore_factor_ego_control = ignore_factor_ego_control
 
@@ -147,9 +151,25 @@ class Factor(metaclass=PostInitMeta):
             )
             self._factor_actors[f'STOP_{stop_sp_idx}'] = stop
 
+    def apply_npc_vehicles_carla_autopilot(self) -> None:
+        for actor in self._factor_actors.values():
+            if isinstance(actor, CarlaVehicle):
+                actor.set_carla_autopilot(enable=True)
+                self._context.traffic.auto_lane_change(actor.actor, False)
+
     def spawn_all_factor_actors(self) -> None:
         self._context.actors.spawn_all(*self._factor_actors.values())
         self._context.actors.wait_stable()
+        return self
+
+    def keepalive_after_triggered(self) -> None:
+        if self.stage != self.FactorStage.TRIGGERED:
+            return
+        if self._keepalive_begin_frames == 0:
+            self.logger.info(f'Keepalive after triggered begin at frame {self._count_update_frames}, will keep alive for {self._keepalive_after_triggered_frames} frames')
+            self._keepalive_begin_frames = self._count_update_frames
+        if self._count_update_frames - self._keepalive_begin_frames >= self._keepalive_after_triggered_frames:
+            self.stage = self.FactorStage.COMPLETED
         return self
 
     @property
