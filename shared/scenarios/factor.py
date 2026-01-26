@@ -107,9 +107,12 @@ class Factor(metaclass=PostInitMeta):
         # 状态转移 Any -> TEARDOWN
         self.stage = self.FactorStage.TEARDOWN
 
+        self.hook_bringup.clear()
+        self.hook_update.clear()
+
         # 销毁因子 Actor
         self.destroy_factor_actors()
-
+    
         for hook in self._hook_teardown:
             hook()
 
