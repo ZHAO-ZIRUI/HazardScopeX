@@ -9,11 +9,11 @@ from shared.data import SimulatorInput
 
 @dataclass
 class VehicleDirectControl(SimulatorInput):
-    throttle: float     # [CARLA DEFINED] Range: 0.0 to 1.0 (normalized)
-    steer: float        # [CARLA DEFINED] Range: -1.0 to 1.0 (normalized)
-    brake: float        # [CARLA DEFINED] Range: 0.0 to 1.0 (normalized)
-    hand_brake: bool    # [CARLA DEFINED]
-    reverse: bool       # [CARLA DEFINED]
+    throttle: float = 0.0       # [CARLA DEFINED] Range: 0.0 to 1.0 (normalized)
+    steer: float = 0.0          # [CARLA DEFINED] Range: -1.0 to 1.0 (normalized)
+    brake: float = 0.0          # [CARLA DEFINED] Range: 0.0 to 1.0 (normalized)
+    hand_brake: bool = False    # [CARLA DEFINED]
+    reverse: bool = False       # [CARLA DEFINED]
 
     def to_carla(self) -> carla.VehicleControl:
         return carla.VehicleControl(
