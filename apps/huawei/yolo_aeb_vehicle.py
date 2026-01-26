@@ -47,8 +47,9 @@ class YoloAEBVehicle(CarlaVehicle):
     DETECT_DRAW_DEBUG = False
     DETECT_DRAW_DEBUG_FILE = 'yolo_detect_debug.png'
 
-    DETECT_THR_CONF = 0.75
-    DETECT_THR_AREA = 0.3
+    DETECT_THR_CONF = 0.75          # 置信度阈值
+    DETECT_THR_AREA = 0.3           # 检测框面积 与 同检测区域相交面积 的比值
+    DETECT_THR_CONTINUOUS = 2       # 连续检测到目标的帧数
 
     PERF_MAX_BRAKE_G = 1.0
     PREF_THR_STOP_SPEED_KMH = 3.0
@@ -75,6 +76,7 @@ class YoloAEBVehicle(CarlaVehicle):
         self._control_mode = self.ControlMode.NONE
         self._reached_speed_kmh = 0.0
         self._target_speed_kmh = 0.0
+        self._detect_continuous_count = 0
 
         # RESULTS
         self.is_safe_stop = False
@@ -206,6 +208,11 @@ class YoloAEBVehicle(CarlaVehicle):
         results = self._filter_detect_area(results, image.width, image.height)
         results = self._filter_detect_conf(results)
 
+        if len(results) == 0:
+            self._detect_continuous_count = 0
+        else:
+            self._detect_continuous_count += 1
+
         # 打印检测结果
         results_str = ""
         for result in results:
@@ -217,14 +224,20 @@ class YoloAEBVehicle(CarlaVehicle):
         if len(results) > 0:
             self.logger.debug(f"Detect results: {results_str}")
 
-        if len(results) > 0 and (self._control_mode != self.ControlMode.AEB and self._control_mode != self.ControlMode.STOP):
-            self._control_mode = self.ControlMode.AEB
-            self.apply_aeb()
-
         if self.DETECT_DRAW_DEBUG:
             debug_image = self._draw_detect_area(image)
             debug_image = self._draw_boxes(debug_image, results)
             debug_image.to_file(self.DETECT_DRAW_DEBUG_FILE)
+
+        if len(results) == 0:
+            return
+        if self._detect_continuous_count < self.DETECT_THR_CONTINUOUS:
+            return
+        if self._control_mode == self.ControlMode.AEB or self._control_mode == self.ControlMode.STOP:
+            return
+
+        self._control_mode = self.ControlMode.AEB
+        self.apply_aeb()
 
     def _filter_detect_class(self, results: List[Results]) -> List[Results]:
         """根据类别名称过滤检测结果"""
