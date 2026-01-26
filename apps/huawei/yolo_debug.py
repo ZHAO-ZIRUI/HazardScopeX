@@ -35,10 +35,12 @@ if __name__ == "__main__":
         while True:
             if v_ego.is_safe_stop:
                 logger.warning('EXPERIMENT END WITH SAFE STOP')
+                # TODO: 计算安全停下时的结果
                 context.wait_ticks(5, no_log=True)
                 break
             if v_ego.is_collision:
                 logger.warning('EXPERIMENT END WITH COLLISION')
+                # TODO: 计算碰撞时的结果
                 context.wait_ticks(5, no_log=True)
                 break
             context.wait_ticks(1, no_log=True)
