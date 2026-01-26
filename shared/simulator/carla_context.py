@@ -139,6 +139,10 @@ class CarlaContext:
     def clock(self) -> Clock:
         return self._clock
 
+    @property
+    def map_name(self) -> str:
+        return self.world.get_map().name
+
     @contextmanager
     def heavy_operation(self):
         """重操作, 该模式下会设置所有的 Timeout 为 heavy_operation_timeout_seconds, 并临时跳过死检"""
