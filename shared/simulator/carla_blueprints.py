@@ -234,11 +234,13 @@ class CarlaBlueprints(Enum):
     WALKER_PEDESTRIAN_0051 = 'walker.pedestrian.0051'
     WALKER_PEDESTRIAN_0052 = 'walker.pedestrian.0052'
 
-    def walkers(self) -> list[str]:
+    @classmethod
+    def walkers(cls) -> list[str]:
         """获取所有行人蓝图"""
-        return [walker.value for walker in self.__members__.values() if walker.value.startswith('walker.pedestrian.')]
+        return [walker.value for walker in cls.__members__.values() if walker.value.startswith('walker.pedestrian.')]
     
-    def vehicles(self, filter: Literal[None, 'car', 'large', 'emergency', '2wheel'] = None) -> list[str]:
+    @classmethod
+    def vehicles(cls, filter: Literal[None, 'car', 'large', 'emergency', '2wheel'] = None) -> list[str]:
         """获取所有车辆蓝图
         
         Args:
@@ -252,7 +254,7 @@ class CarlaBlueprints(Enum):
         Returns:
             list[str]: 符合条件的车辆蓝图列表
         """
-        all_vehicles = [vehicle.value for vehicle in self.__members__.values() if vehicle.value.startswith('vehicle.')]
+        all_vehicles = [vehicle.value for vehicle in cls.__members__.values() if vehicle.value.startswith('vehicle.')]
         
         if filter is None:
             return all_vehicles
