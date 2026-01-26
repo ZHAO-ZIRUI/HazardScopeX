@@ -155,7 +155,7 @@ class CarlaActor(metaclass=PostInitMeta):
         else:
             self.logger.warning(f"Actor '{self.name}' is no longer managed by CarlaContext")
 
-    def spawn(self) -> Self:
+    def spawn(self, no_tick: bool = False) -> Self:
         """在仿真中生成 Actor 实例"""
         # 获取父级 Actor 实例
         if self.parent is not None:
@@ -171,7 +171,8 @@ class CarlaActor(metaclass=PostInitMeta):
             actor = self._context.world.spawn_actor(self._bp, self._tf, attach_to=attach_to)
 
             # 强制 Tick 一次, 让 Actor 实例有机会生成
-            self._context.tick(force=True)
+            if not no_tick:
+                self._context.tick(force=True)
 
             # 更新 Actor 实例引用
             self._actor_ref[0] = actor
