@@ -16,18 +16,21 @@ class FactorCaseDropObstical(Factor):
         },
     }
 
-    OBSTACLE_CREATE_OFFSET_XY = 2.0
-    OBSTACLE_CREATE_OFFSET_Z = 1.5
-
     def __init__(
         self,
         context: CarlaContext,
         ego_vehicle: CarlaVehicle,
+        obstical_bp: carla.ActorBlueprint | CarlaBlueprints | str = CarlaBlueprints.STATIC_PROP_BOX01,
+        obstical_create_offset_xy: float = 2.0,
+        obstical_create_offset_z: float = 1.5,
         *,
         ignore_factor_ego_control: bool = False,
     ):
         super().__init__(context, ego_vehicle, ignore_factor_ego_control=ignore_factor_ego_control)
         self._act: CarlaVehicle | None = None
+        self._obstical_bp = obstical_bp
+        self._obstical_create_offset_xy = obstical_create_offset_xy
+        self._obstical_create_offset_z = obstical_create_offset_z
         self._is_obstacle_created = False
 
     def __post_init__(self) -> Self:
@@ -72,14 +75,14 @@ class FactorCaseDropObstical(Factor):
             z=0
         )
 
-        obstacle_create_offset = self._act.actor.bounding_box.extent.x + self.OBSTACLE_CREATE_OFFSET_XY
+        obstacle_create_offset = self._act.actor.bounding_box.extent.x + self._obstical_create_offset_xy
         act_heading_vector = self._act.actor.get_transform().get_forward_vector()
 
         obstacle_create_tf = carla.Transform(
             location=carla.Location(
                 x=act_location_xy.x - obstacle_create_offset * act_heading_vector.x,
                 y=act_location_xy.y - obstacle_create_offset * act_heading_vector.y,
-                z=obstacle_tf.location.z + self.OBSTACLE_CREATE_OFFSET_Z,
+                z=obstacle_tf.location.z + self._obstical_create_offset_z,
             ),
             rotation=obstacle_tf.rotation,
         )
@@ -87,7 +90,7 @@ class FactorCaseDropObstical(Factor):
         if act_location_xy.distance(obstacle_loc_xy) < 0.5:
             self.logger.info(f'Creating obstacle at {obstacle_tf.location}')
             obstacle = self._context.actors.create_actor(
-                bp=CarlaBlueprints.STATIC_PROP_BOX01,
+                bp=self._obstical_bp,
                 tf=obstacle_create_tf,
                 name='OBSTACLE',
             )
