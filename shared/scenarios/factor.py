@@ -13,11 +13,11 @@ class Factor(metaclass=PostInitMeta):
     Factor 基类, 用于定义可以注入的因子
     """
 
-    K_EGO= 'ego'
-    K_ACT = 'act'
-    K_OBSTACLE = 'obstacle'
-    K_NPC_VEHICLE = 'npc_vehicle'
-    K_STOP_VEHICLE = 'stop_vehicle'
+    K_EGO= 'EGO'
+    K_ACT = 'ACT'
+    K_OBSTACLE = 'OBSTACLE'
+    K_NPC_VEHICLE = 'NPC_VEHICLE'
+    K_STOP_VEHICLE = 'STOP_VEHICLE'
 
     # 因子名称
     NAME = 'F_Abstract'
@@ -135,9 +135,9 @@ class Factor(metaclass=PostInitMeta):
             npc = self._context.actors.create_vehicle(
                 bp=random.choice(bps),
                 tf=npc_tf,
-                name=f'NPC_{npc_sp_idx}',
+                name=f'{self.K_NPC_VEHICLE}_{npc_sp_idx}',
             )
-            self._factor_actors[f'NPC_{npc_sp_idx}'] = npc
+            self._factor_actors[f'{self.K_NPC_VEHICLE}_{npc_sp_idx}'] = npc
 
     def create_stop_vehicles(self) -> None:
         spawn_point_mapping = self.MAPPING_WORLD_LOCATION[self._context.map_name]
@@ -147,9 +147,9 @@ class Factor(metaclass=PostInitMeta):
             stop = self._context.actors.create_vehicle(
                 bp=random.choice(bps),
                 tf=stop_tf,
-                name=f'STOP_{stop_sp_idx}',
+                name=f'{self.K_STOP_VEHICLE}_{stop_sp_idx}',
             )
-            self._factor_actors[f'STOP_{stop_sp_idx}'] = stop
+            self._factor_actors[f'{self.K_STOP_VEHICLE}_{stop_sp_idx}'] = stop
 
     def apply_npc_vehicles_carla_autopilot(self) -> None:
         for actor in self._factor_actors.values():
