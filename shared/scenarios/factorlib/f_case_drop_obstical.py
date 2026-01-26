@@ -41,6 +41,7 @@ class FactorCaseDropObstical(Factor):
         self.hook_bringup.append(self.apply_npc_vehicles_carla_autopilot)
         self.hook_bringup.append(self.apply_act_vehicle_carla_autopilot)
 
+        self.hook_update.append(self.update_npc_vehicles_auto_lights)
         self.hook_update.append(self.create_obstacle_on_act_reach_obstacle_spawn_point)
         self.hook_update.append(self.keepalive_after_triggered)
         return super().__post_init__()

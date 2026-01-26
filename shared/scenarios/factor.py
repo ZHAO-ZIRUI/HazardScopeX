@@ -160,6 +160,12 @@ class Factor(metaclass=PostInitMeta):
                 actor.set_carla_autopilot(enable=True)
                 self._context.traffic.auto_lane_change(actor.actor, False)
 
+    def update_npc_vehicles_auto_lights(self) -> None:
+        for name, actor in self._factor_actors.items():
+            if isinstance(actor, CarlaVehicle) and name.startswith(self.K_NPC_VEHICLE) and actor.is_alive:
+                self._context.traffic.update_vehicle_lights(actor.actor, True)
+        return self
+
     def spawn_all_factor_actors(self) -> None:
         self._context.actors.spawn_all(*self._factor_actors.values())
         self._context.actors.wait_stable()
