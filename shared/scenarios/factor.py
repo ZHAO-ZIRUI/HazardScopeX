@@ -1,9 +1,11 @@
+import carla
+import random
 from logging import Logger
-from typing import Callable, final
+from typing import Callable, final, TypeVar
 from typing_extensions import Self
 from enum import Enum, auto
 
-from shared.simulator import CarlaContext, CarlaActor, CarlaVehicle
+from shared.simulator import CarlaContext, CarlaActor, CarlaVehicle, CarlaBlueprints
 from shared.utils import Logging, PostInitMeta
 
 class Factor(metaclass=PostInitMeta):
@@ -11,11 +13,22 @@ class Factor(metaclass=PostInitMeta):
     Factor 基类, 用于定义可以注入的因子
     """
 
+    K_EGO= 'ego'
+    K_ACT = 'act'
+    K_OBSTACLE = 'obstacle'
+    K_NPC_VEHICLE = 'npc_vehicle'
+    K_STOP_VEHICLE = 'stop_vehicle'
+
     # 因子名称
     NAME = 'F_Abstract'
 
     # 因子优先级, 数值越小优先级越高
     PRIORITY: int = 0
+
+    T_LOCATION = TypeVar('T_LOCATION', bound=carla.Location | carla.Transform | int | list[int] | list[carla.Transform] | list[carla.Location])
+
+    # 特调地图与地点的映射关系
+    MAPPING_WORLD_LOCATION: dict[str, dict[str, T_LOCATION]] = {}
 
     class FactorStage(Enum):
         """因子生命周期的阶段枚举类"""
@@ -29,12 +42,16 @@ class Factor(metaclass=PostInitMeta):
         self, 
         context: CarlaContext,
         ego_vehicle: CarlaVehicle,
+        *,
+        ignore_factor_ego_control: bool = False,
     ):
         self._context = context
         self._vehicle_ego = ego_vehicle
         self._stage = self.FactorStage.BRINGUP
         self._logger = Logging().get_logger(self.NAME)
         self._factor_actors: dict[str, CarlaActor] = {}
+
+        self._flag_ignore_factor_ego_control = ignore_factor_ego_control
 
         self._count_update_frames: int = 0
 
@@ -96,6 +113,44 @@ class Factor(metaclass=PostInitMeta):
         for actor in self._factor_actors.values():
             actor.destroy()
         self._factor_actors.clear()
+
+    def move_ego_vehicle_to_init_tf(self) -> None:
+        if self._flag_ignore_factor_ego_control:
+            return
+
+        spawn_point_mapping = self.MAPPING_WORLD_LOCATION[self._context.map_name]
+        tf_ego = self._context.spawn_points[spawn_point_mapping[self.K_EGO]]
+        self._vehicle_ego.actor.set_transform(tf_ego)
+        return self
+
+    def generate_npc_vehicles(self) -> None:
+        spawn_point_mapping = self.MAPPING_WORLD_LOCATION[self._context.map_name]
+        bps = CarlaBlueprints.vehicles('car')
+        for npc_sp_idx in spawn_point_mapping[self.K_NPC_VEHICLE]:
+            npc_tf = self._context.spawn_points[npc_sp_idx]
+            npc = self._context.actors.create_vehicle(
+                bp=random.choice(bps),
+                tf=npc_tf,
+                name=f'NPC_{npc_sp_idx}',
+            )
+            self._factor_actors[f'NPC_{npc_sp_idx}'] = npc
+
+    def generate_stop_vehicles(self) -> None:
+        spawn_point_mapping = self.MAPPING_WORLD_LOCATION[self._context.map_name]
+        bps = CarlaBlueprints.vehicles('car')
+        for stop_sp_idx in spawn_point_mapping[self.K_STOP_VEHICLE]:
+            stop_tf = self._context.spawn_points[stop_sp_idx]
+            stop = self._context.actors.create_vehicle(
+                bp=random.choice(bps),
+                tf=stop_tf,
+                name=f'STOP_{stop_sp_idx}',
+            )
+            self._factor_actors[f'STOP_{stop_sp_idx}'] = stop
+
+    def spawn_all_factor_actors(self) -> None:
+        self._context.actors.spawn_all(*self._factor_actors.values())
+        self._context.actors.wait_stable()
+        return self
 
     @property
     def hook_bringup(self) -> list[Callable[[Self], None]]:
