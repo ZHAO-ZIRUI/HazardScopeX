@@ -52,7 +52,6 @@ class YoloAEBVehicle(CarlaVehicle):
     DETECT_THR_AREA = 0.3           # 检测框面积 与 同检测区域相交面积 的比值
     DETECT_THR_CONTINUOUS = 2       # 连续检测到目标的帧数
 
-    PERF_MAX_BRAKE_G = 1.0
     PREF_THR_STOP_SPEED_KMH = 3.0
 
     class ControlMode(Enum):
