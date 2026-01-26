@@ -3,7 +3,7 @@ from typing import Callable, final
 from typing_extensions import Self
 from enum import Enum, auto
 
-from shared.simulator import CarlaContext, CarlaActor
+from shared.simulator import CarlaContext, CarlaActor, CarlaVehicle
 from shared.utils import Logging, PostInitMeta
 
 class Factor(metaclass=PostInitMeta):
@@ -25,8 +25,13 @@ class Factor(metaclass=PostInitMeta):
         COMPLETED = auto()           # 完成阶段, 处于 update() 阶段, 用于标记因子完成所有操作或达成特定条件, 需要手动设置 self.stage 进入该阶段
         TEARDOWN = auto()            # 销毁阶段, 用于销毁因子所需的 Actor 等操作, 对应 hook_teardown 钩子, 只会执行一次
 
-    def __init__(self, context: CarlaContext):
+    def __init__(
+        self, 
+        context: CarlaContext,
+        ego_vehicle: CarlaVehicle,
+    ):
         self._context = context
+        self._vehicle_ego = ego_vehicle
         self._stage = self.FactorStage.BRINGUP
         self._logger = Logging().get_logger(self.NAME)
         self._factor_actors: dict[str, CarlaActor] = {}
@@ -49,6 +54,10 @@ class Factor(metaclass=PostInitMeta):
     def stage(self) -> FactorStage:
         """因子当前阶段, 只读"""
         return self._stage
+
+    @property
+    def vehicle_ego(self) -> CarlaVehicle:
+        return self._vehicle_ego
 
     @stage.setter
     def stage(self, value: FactorStage):
