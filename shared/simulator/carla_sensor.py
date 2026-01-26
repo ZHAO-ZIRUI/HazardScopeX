@@ -29,6 +29,7 @@ class CarlaSensor(CarlaActor):
         name: str | None = None,
         ignore_attribute_failure: bool = False,
         ignore_spawn_failure: bool = False,
+        ignore_tick_blocker: bool = False,
         is_managed_actor: bool = True,
         image_color_converter: carla.ColorConverter | None = None,  # ONLY FOR CAMERA SENSOR
         **attributes: Unpack[dict[str, Any]],
@@ -55,7 +56,10 @@ class CarlaSensor(CarlaActor):
             tick_blocker_name = self.id_local
         else:
             tick_blocker_name = f"{self.name}_{self.id_local}"
-        self._tick_blocker: CarlaTickBlocker = CarlaTickBlocker(name=tick_blocker_name, auto_set_after_tick=True)
+        if ignore_tick_blocker or self.is_trigger_sensor:
+            self._tick_blocker = None
+        else:
+            self._tick_blocker = CarlaTickBlocker(name=tick_blocker_name, auto_set_after_tick=True)
 
         # 传感器事件钩子
         self._hook_sensor_data_recv: List[Callable[[SimulatorOutput], None]] = []
@@ -107,6 +111,11 @@ class CarlaSensor(CarlaActor):
     def is_lidar(self) -> bool:
         """是否为激光雷达传感器"""
         return self.bp.id.lower().startswith('sensor.lidar.')
+
+    @property
+    def is_trigger_sensor(self) -> bool:
+        """是否为触发传感器"""
+        return self.bp.id.lower().startswith('sensor.other.collision')
 
     def spawn(self) -> Self:
         """在仿真中生成 Sensor 实例并开始监听"""
@@ -183,7 +192,8 @@ class CarlaSensor(CarlaActor):
 
     def _listen_callback(self, data: carla.SensorData):
         # 设置 TICK 阻塞器
-        self.tick_blocker.set()
+        if self.tick_blocker is not None:
+            self.tick_blocker.set()
 
         self._data = self._reformat_sensor_data(data)
 
@@ -205,7 +215,8 @@ class CarlaSensor(CarlaActor):
                 self._data = hook_return
         
         # 清除 TICK 阻塞器
-        self.tick_blocker.clear()
+        if self.tick_blocker is not None:
+            self.tick_blocker.clear()
 
     def _reformat_sensor_data(self, data: carla.SensorData) -> SimulatorOutput:
         """将 carla.SensorData 转换为 SimulatorOutput 格式的数据
