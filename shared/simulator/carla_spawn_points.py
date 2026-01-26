@@ -6,19 +6,34 @@ class CarlaSpawnPoints(Enum):
     """CARLA spawnpoint 枚举类
     
     """
-    
-    # # AI 控制器
-    # CONTROLLER_AI_WALKER = 'controller.ai.walker'
-    
-    # # 传感器 - 相机
-    # SENSOR_CAMERA_COSMOS_VISUALIZATION = 'sensor.camera.cosmos_visualization'
-    # SENSOR_CAMERA_DEPTH = 'sensor.camera.depth'
-    # SENSOR_CAMERA_DVS = 'sensor.camera.dvs'
-    # SENSOR_CAMERA_INSTANCE_SEGMENTATION = 'sensor.camera.instance_segmentation'
-    # SENSOR_CAMERA_NORMALS = 'sensor.camera.normals'
-    # SENSOR_CAMERA_OPTICAL_FLOW = 'sensor.camera.optical_flow'
-    # SENSOR_CAMERA_RGB = 'sensor.camera.rgb'
-    # SENSOR_CAMERA_SEMANTIC_SEGMENTATION = 'sensor.camera.semantic_segmentation'
+
+    'Carla/Maps/SUSTech_COE_ParkingLot' = {
+        'straight_roads': [],
+        'turning_roads': [],
+        'entry_lanes': [],
+        'export_lanes': [],
+        'crossroads': [],
+        'T_shaped_intersections': [],
+        'circular_island_roads': [],
+    },
+    'Carla/Maps/Town10HD_Opt' = {
+        'straight_roads': [],
+        'turning_roads': [],
+        'entry_lanes': [],
+        'export_lanes': [],
+        'crossroads': [],
+        'T_shaped_intersections': [],
+        'circular_island_roads': [],
+    },
+    'Carla/Maps/Town04' = {
+        'straight_roads': [],
+        'turning_roads': [],
+        'entry_lanes': [],
+        'export_lanes': [],
+        'crossroads': [],
+        'T_shaped_intersections': [],
+        'circular_island_roads': [],
+    },
     
     @classmethod
     def straight_roads(cls) -> list[int]:

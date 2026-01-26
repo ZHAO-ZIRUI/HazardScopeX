@@ -132,7 +132,7 @@ class FactorCaseConstructionArea(Factor):
         self.debug.draw_point(sa.transform_from_transform(end_tf, left_offset=3.95, front_offset=-2, height_offset=0.5, yaw_offset=0).location,size=0.3,color=carla.Color(0,0,255),life_time=1000)
 
 
-        # self.ego.set_carla_autopilot(enable=True)
+        self.ego.set_carla_autopilot(enable=True)
 
         return super().bringup()
     

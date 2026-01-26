@@ -15,7 +15,7 @@ class FactorLotCaseReverse(Factor):
         },
         'Carla/Maps/Town10HD_Opt': {
             'ego': 50, # 12   4   50 
-            'npc': [93, 53, 56, 107, 58]
+            'npc': [93, 53, 56, 107, 58, 11, 1, 9, 90]
         },
     }
 
@@ -64,10 +64,7 @@ class FactorLotCaseReverse(Factor):
         self._vehicles.extend(vehicles)
 
 
-
-
-
-        tf_act = self._sa.transform_from_waypoint(transform=tf_ego,front_offset=20,left_offset=-0.5)
+        tf_act = self._sa.transform_from_waypoint(transform=tf_ego,front_offset=25,left_offset=-0.5)
         # print("tf_ego:",tf_ego," act tf:",tf_act)
         self._act = self._sa.manual_control_vehicle(
             transform=tf_act,
@@ -105,6 +102,7 @@ class FactorLotCaseReverse(Factor):
             self._sa.set_constant_velocity(self._act, flag=False)
             self._sa.set_constant_velocity(self._ego, flag=False)
             self._act.set_carla_autopilot(enable=False)
+            self._ego.set_carla_autopilot(enable=True)
             self._act = self._sa.manual_control_vehicle(
                 vehicle=self._act,
                 throttle=1.0,

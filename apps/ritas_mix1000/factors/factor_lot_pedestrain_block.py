@@ -1,5 +1,6 @@
 import numpy as np
 import carla
+import random
 from shared.scenarios import Factor
 from shared.simulator import *
 
@@ -11,6 +12,10 @@ class FactorLotPedestrainBlock(Factor):
         'Carla/Maps/SUSTech_COE_ParkingLot': {
             'ego': 11,
             'npc': [1, 12, 15, 18, 25]
+        },
+        'Carla/Maps/Town10HD_Opt': {
+            'ego': 50,
+            'npc': [93, 53, 56, 107, 58, 20, 11, 9, 52, 30, 40]
         },
     }
 
@@ -56,11 +61,25 @@ class FactorLotPedestrainBlock(Factor):
         )
         self._vehicles.extend(vehicles)
 
+
+        tf_list = []
+        for i in range(0,100):
+            tf = sa.transform_from_ego(front_offset=random.uniform(0,20),left_offset=random.uniform(-8,8),yaw_offset=random.uniform(-180,180))
+            print("pedestrain tf:",tf)
+            tf_list.append(tf)
         walkers = sa.random_move_pedestrains(
-            nums=30,
+            nums=100,
             distance=40,
-            spawn_transform_list=self._context.spawn_points
+            spawn_transform_list=tf_list
         )
+
+
+
+        # walkers = sa.random_move_pedestrains(
+        #     nums=300,
+        #     distance=40,
+        #     spawn_transform_list=self._context.spawn_points
+        # )
 
         self._walkers.extend(walkers)
         self.ego.set_carla_autopilot(enable=True)

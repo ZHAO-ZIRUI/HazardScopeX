@@ -12,7 +12,7 @@ class FactorCaseBoxesFallDown(Factor):
     MAP_SPAWN_POINT_MAPPING = {
         'Carla/Maps/Town10HD_Opt': {
             'ego': 50,
-            'npc': [93, 53, 56, 107, 58]
+            'npc': [93, 53, 56, 107, 58, 20, 11, 9, 52, 30, 40]
         },
     }
 

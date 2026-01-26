@@ -16,31 +16,23 @@ if __name__ == "__main__":
     logger = Logging.load(configReader).get_logger('Main') # 设置日志记录器
 
     with CarlaContext(configReader) as context:
-        # context.bringup()
         # context.change_map('Town04')
         context.change_map('Town10HD_Opt')
-        # context.change_map('SUSTech_COE_ParkingLot')
 
         vehicle = PlayerVehicle(context, context.spawn_points[0])
 
         context.actors.spawn_all()
         context.actors.wait_stable(vehicle)
 
-        # context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
-        # context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
+        f1 = FactorCase2WheelApproaching(context, vehicle)
+        # f2 = FactorWeatherDustStorm(context, vehicle.lidar)
 
-        # tm = context.traffic
-        # tm.set_route(vehicle.actor, ['Straight']) 
-        # vehicle.set_carla_autopilot(enable=True)
+        # f2 = FactorCameraChromaticAberration
+        # f2 = FactorCameraColorCast
+        f2 = FactorCameraOverexposure(context, vehicle)
+        # f2 = FactorCameraUnderexposure
 
-        # f1 = FactorCaseConstructionArea(context, vehicle)
-        # f1 = FactorCaseObstaclesSequence(context, vehicle)
-        # f1 = FactorCaseObstaclesTwoSideSequences(context, vehicle)
-        # f1 = FactorCaseObstaclesSequenceApproaching(context, vehicle)
-        f1 = FactorLotCaseReverse(context, vehicle)
-
-
-        factors = [f1]
+        factors = [f1, f2]
         
         with Injector(context, *factors) as injector:       # 执行注入
             injector.spin_until_finished(*factors)

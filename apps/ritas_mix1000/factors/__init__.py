@@ -21,10 +21,15 @@ from .factor_camera_trail import FactorCameraTrail
 from .factor_camera_noise import FactorCameraNoise
 from .factor_camera_jelly import FactorCameraJelly
 from .factor_camera_tera import FactorCameraTera
+from .factor_camera_chromatic_aberration import FactorCameraChromaticAberration
+from .factor_camera_color_cast import FactorCameraColorCast
+from .factor_camera_underexposure import FactorCameraUnderexposure
+from .factor_camera_overexposure import FactorCameraOverexposure
 from .factor_lidar_block import FactorLidarBlock
 from .factor_lidar_runtime_block import FactorLidarRuntimeBlock
 from .factor_traffic_large_vehicles import FactorTrafficLargeVehicles
 from .factor_traffic_two_wheels import FactorTrafficTwoWheels
+from .factor_case_2wheel_approaching import FactorCase2WheelApproaching
 from .factor_case_front_aeb import FactorCaseFrontAeb
 from .factor_case_front_avoid import FactorCaseFrontAvoid
 from .factor_case_force_cutin import FactorCaseForceCutin
@@ -57,6 +62,7 @@ from .factor_case_obstacles_sequence import FactorCaseObstaclesSequence
 from .factor_case_obstacles_two_side_sequences import FactorCaseObstaclesTwoSideSequences
 from .factor_case_obstacles_sequence_approaching import FactorCaseObstaclesSequenceApproaching
 from .factor_case_construction_area import FactorCaseConstructionArea
+from .factor_case_highway_merge import FactorCaseHighwayMerge
 from .factor_traffic_cross_road import FactorTrafficCrossRoad
 from .factor_lot_mess_park import FactorLotMessPark
 from .factor_lot_traffic_two_wheels import FactorLotTrafficTwoWheels
@@ -113,10 +119,15 @@ __all__ = [
     "FactorCameraNoise",
     "FactorCameraJelly",
     "FactorCameraTera",
+    "FactorCameraChromaticAberration",
+    "FactorCameraColorCast",
+    "FactorCameraUnderexposure",
+    "FactorCameraOverexposure",
     "FactorLidarBlock",
     "FactorLidarRuntimeBlock",
     "FactorTrafficLargeVehicles",
     "FactorTrafficTwoWheels",
+    "FactorCase2WheelApproaching",
     "FactorCaseFrontAeb",
     "FactorCaseFrontAvoid",
     "FactorCaseForceCutin",
@@ -149,6 +160,7 @@ __all__ = [
     "FactorCaseObstaclesTwoSideSequences",
     "FactorCaseObstaclesSequenceApproaching",
     "FactorCaseConstructionArea",
+    "FactorCaseHighwayMerge",
     "FactorTrafficCrossRoad",
     "FactorLotMessPark",
     "FactorLotTrafficTwoWheels",

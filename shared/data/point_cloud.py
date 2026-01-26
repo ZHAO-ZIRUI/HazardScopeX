@@ -72,7 +72,7 @@ class PointCloud(SimulatorOutput):
             cloud[cls.FIELD_Z] = cloud_raw[:, 2]
             cloud[cls.FIELD_INTENSITY] = cloud_raw[:, 3]
             cloud[cls.FIELD_CHANNEL] = col_channel
-
+            # print("cloud shape:",cloud.shape)
             return cls(
                 sim_frame=carla_input.frame,
                 sim_timestamp=carla_input.timestamp,
@@ -117,7 +117,7 @@ class PointCloud(SimulatorOutput):
             cloud[cls.FIELD_OBJECT_ID] = cloud_raw[cls.FIELD_OBJECT_ID]
             cloud[cls.FIELD_OBJECT_SEMANTIC_TAG] = cloud_raw[cls.FIELD_OBJECT_SEMANTIC_TAG]
             cloud[cls.FIELD_CHANNEL] = col_channel
-
+            # print("semantic cloud shape:",cloud.shape)
             return cls(
                 sim_frame=carla_input.frame,
                 sim_timestamp=carla_input.timestamp,

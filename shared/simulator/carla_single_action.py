@@ -469,6 +469,7 @@ class CarlaSingleAction():
                            front_offset: float = 0.0,
                            height_offset: float = 0.0,
                            yaw_offset: float = 0.0) -> carla.Transform:
+        # ERROR!
         tf_ego = self._ego.tf_now_baselink
 
         ego_yaw_rad = np.radians(tf_ego.rotation.yaw)
@@ -585,37 +586,7 @@ class CarlaSingleAction():
             return
         
         final_transform = current_wp.transform
-    
-        # # 应用横向偏移
-        # if left_offset != 0:
-        #     right_vector = final_transform.get_right_vector()
-        #     # 应用横向偏移（left_offset为正表示向左，即-right_vector方向）
-        #     offset_location = final_transform.location + carla.Location(
-        #         x=-left_offset * right_vector.x,
-        #         y=-left_offset * right_vector.y,
-        #         z=-left_offset * right_vector.z
-        #     )
-        #     final_transform.location = offset_location
-        
-        # # 应用高度偏移
-        # if height_offset != 0:
-        #     up_vector = final_transform.get_up_vector()
-        #     final_transform.location += carla.Location(
-        #         x=height_offset * up_vector.x,
-        #         y=height_offset * up_vector.y,
-        #         z=height_offset * up_vector.z
-        #     )
-        
-        # # 应用航向偏移
-        # if yaw_offset != 0:
-        #     new_rotation = final_transform.rotation
-        #     new_rotation.yaw += yaw_offset
-        #     # 规范化角度到[-180, 180]
-        #     new_rotation.yaw = (new_rotation.yaw + 180) % 360 - 180
-        #     final_transform.rotation = new_rotation
-
         final_transform = self.transform_from_transform(final_transform, left_offset=left_offset, height_offset=height_offset, yaw_offset=yaw_offset)
-        
         final_transform.location += carla.Location(z=1)
         return final_transform
     
@@ -724,13 +695,11 @@ class CarlaSingleAction():
         return
     
     def set_velocity(self, actor, velocity: carla.Vector3D = carla.Vector3D(0,0,0)):
-        # print("set v:",velocity)
         actor.actor.set_target_velocity(velocity)
         return actor
     
     def set_constant_velocity(self, actor, flag: bool, velocity: carla.Vector3D = carla.Vector3D(0,0,0)):
         if flag:
-            # print("constant v:",velocity * -1)
             actor.actor.enable_constant_velocity(velocity * -1)
         else:
             actor.actor.disable_constant_velocity()

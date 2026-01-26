@@ -78,6 +78,19 @@ class PlayerVehicle(CarlaVehicle):
             upper_fov=2,
             lower_fov=-24.5,
         )
+    
+    def recreate_camera(self, bp) -> CarlaSensor:
+        if self._cam_front is not None:
+            self._cam_front.destroy()
+            self._cam_front = self._context.actors.create_sensor(
+                bp=bp,
+                name=self.name + '_' + self.CAM_FRONT_NAME,
+                tf=self.CAM_FRONT_TF,
+                parent=self,
+            )
+            self._cam_front.spawn()
+            
+        return self._cam_front
 
     @property
     def cam_front(self) -> CarlaSensor:
