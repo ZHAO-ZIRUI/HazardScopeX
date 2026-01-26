@@ -101,6 +101,11 @@ class CarlaVehicle(CarlaActor):
         return self.actor.get_angular_velocity()
 
     @property
+    def speed_kmh(self) -> float:
+        """当前帧车辆的表显速度, 单位: km/h, 只读"""
+        return self.velocity.length() * 3.6
+
+    @property
     def control(self) -> carla.VehicleControl:
         """当前帧车辆的控制, 只读"""
         return self.actor.get_control()
