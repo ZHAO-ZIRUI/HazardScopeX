@@ -123,7 +123,7 @@ class Factor(metaclass=PostInitMeta):
         self._vehicle_ego.actor.set_transform(tf_ego)
         return self
 
-    def generate_npc_vehicles(self) -> None:
+    def create_npc_vehicles(self) -> None:
         spawn_point_mapping = self.MAPPING_WORLD_LOCATION[self._context.map_name]
         bps = CarlaBlueprints.vehicles('car')
         for npc_sp_idx in spawn_point_mapping[self.K_NPC_VEHICLE]:
@@ -135,7 +135,7 @@ class Factor(metaclass=PostInitMeta):
             )
             self._factor_actors[f'NPC_{npc_sp_idx}'] = npc
 
-    def generate_stop_vehicles(self) -> None:
+    def create_stop_vehicles(self) -> None:
         spawn_point_mapping = self.MAPPING_WORLD_LOCATION[self._context.map_name]
         bps = CarlaBlueprints.vehicles('car')
         for stop_sp_idx in spawn_point_mapping[self.K_STOP_VEHICLE]:
