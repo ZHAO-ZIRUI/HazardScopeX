@@ -9,9 +9,10 @@ if __name__ == "__main__":
     logger = Logging.load('config.yaml').get_logger('Main')
     logger.info('YOLO DEBUG')
 
-    SPAWN_POINT_EGO = 93
-    SPAWN_POINT_ACT = 53
-
+    # THIS ROAD SPAWN POINTS
+    # 96-107-0-<CROSS>-109-49-51-123-53
+    SPAWN_POINT_EGO = 107 
+    SPAWN_POINT_ACT = 49
 
     with CarlaContext() as context:
 
