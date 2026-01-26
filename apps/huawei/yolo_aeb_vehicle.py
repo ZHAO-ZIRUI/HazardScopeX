@@ -1,3 +1,4 @@
+from queue import Queue
 import carla
 import numpy as np
 import cv2
@@ -77,10 +78,13 @@ class YoloAEBVehicle(CarlaVehicle):
         self._reached_speed_kmh = 0.0
         self._target_speed_kmh = 0.0
         self._detect_continuous_count = 0
+        self._is_reached_speed = False
+        self._cache_speed: Queue[float] = Queue(maxsize=4)
 
         # RESULTS
         self.is_safe_stop = False
         self.is_collision = False
+        self.last_accpet_acceleration = 0.0
 
         super().__init__(
             context=context,
@@ -131,10 +135,20 @@ class YoloAEBVehicle(CarlaVehicle):
         self._collision.hook_sensor_data_ready.append(self._on_collision)
         self._context.hook_on_tick.append(self._hookfunc_update_speed)
         self._context.hook_on_tick.append(self._hookfunc_on_stop)
+        self._context.hook_on_tick.append(self._hookfunc_on_reached_speed)
+        self._context.hook_on_tick.append(self._hookfunc_dump_accept_acceleration)
+
+    @property
+    def last_accept_speed(self) -> float:
+        if self._cache_speed.empty():
+            return 0
+        return self._cache_speed.queue[-2]
 
     def destroy(self):
         self._context.hook_on_tick.remove(self._hookfunc_update_speed)
         self._context.hook_on_tick.remove(self._hookfunc_on_stop)
+        self._context.hook_on_tick.remove(self._hookfunc_on_reached_speed)
+        self._context.hook_on_tick.remove(self._hookfunc_dump_accept_acceleration)
         return super().destroy()
 
     def apply_speed(self, speed_kmh: float):
@@ -173,6 +187,9 @@ class YoloAEBVehicle(CarlaVehicle):
         if not self.is_alive:
             return
         self._reached_speed_kmh = max(self.speed_kmh, self._reached_speed_kmh)
+        if self._cache_speed.full():
+            self._cache_speed.get()
+        self._cache_speed.put(self.speed_ms)
 
     def _hookfunc_on_stop(self, snapshot: carla.WorldSnapshot):
         if not self.is_alive:
@@ -189,6 +206,29 @@ class YoloAEBVehicle(CarlaVehicle):
         self.logger.info(f"Speed below threshold, detected stop")
         self.is_safe_stop = True
         self.apply_stop()
+
+    def _hookfunc_on_reached_speed(self, snapshot: carla.WorldSnapshot):
+        if not self.is_alive:
+            return
+        if self._reached_speed_kmh < self._target_speed_kmh * 0.95:
+            return
+        if self._is_reached_speed:
+            return
+        self._is_reached_speed = True
+        self.logger.info(f"Reached speed: {self._reached_speed_kmh:.2f} km/h")
+        self.actor.disable_constant_velocity()
+        return self
+
+    def _hookfunc_dump_accept_acceleration(self, snapshot: carla.WorldSnapshot):
+        """
+        记录当前帧的加速度, 用于弥补 CARLA 的物理模拟误差
+        """
+        if not self.is_alive:
+            return
+        a = self.actor.get_acceleration().length()
+        if a < 2.0 or a > 40.0:
+            return
+        self.last_accpet_acceleration = a
 
     def _on_collision(self, collision: Collision):
         self.logger.info(f"Collision detected")

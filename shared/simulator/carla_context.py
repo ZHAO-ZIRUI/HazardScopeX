@@ -143,6 +143,10 @@ class CarlaContext:
     def map_name(self) -> str:
         return self.world.get_map().name
 
+    @property
+    def dt(self) -> float:
+        return self.world.get_settings().fixed_delta_seconds
+
     @contextmanager
     def heavy_operation(self):
         """重操作, 该模式下会设置所有的 Timeout 为 heavy_operation_timeout_seconds, 并临时跳过死检"""
