@@ -18,6 +18,7 @@ class Factor(metaclass=PostInitMeta):
     K_OBSTACLE = 'OBSTACLE'
     K_NPC_VEHICLE = 'NPC_VEHICLE'
     K_STOP_VEHICLE = 'STOP_VEHICLE'
+    K_PARKING_VEHICLE = 'PARKING_VEHICLE'
 
     # 因子名称
     NAME = 'F_Abstract'
