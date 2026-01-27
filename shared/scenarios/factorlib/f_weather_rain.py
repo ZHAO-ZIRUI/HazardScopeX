@@ -10,9 +10,9 @@ class FactorWeatherRain(Factor):
     # (precipitation, precipitation_deposits, wetness, cloudiness, wind_intensity, fog_density, fog_distance, fog_falloff, scattering_intensity)
     MAPPING_WPARAM_LEVEL = {
         FactorLevel.NONE: (0.0, 0.0, 0.0, 80.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-        FactorLevel.LOW: (15.0, 20.0, 25.0, 80.0, 15.0, 4.0, 100.0, 0.8, 0.2),
-        FactorLevel.MEDIUM: (55.0, 50.0, 55.0, 100.0, 30.0, 10.0, 100.0, 1.5, 0.5),
-        FactorLevel.HIGH: (90.0, 80.0, 85.0, 100.0, 60.0, 16.0, 70.0, 2.2, 0.8),
+        FactorLevel.LOW: (45.0, 30.0, 55.0, 80.0, 15.0, 4.0, 100.0, 0.8, 0.2),
+        FactorLevel.MEDIUM: (75.0, 60.0, 85.0, 100.0, 30.0, 10.0, 100.0, 1.5, 0.5),
+        FactorLevel.HIGH: (90.0, 100.0, 100.0, 100.0, 60.0, 16.0, 70.0, 2.2, 0.8),
     }
 
     def __init__(
@@ -53,8 +53,8 @@ class FactorWeatherRain(Factor):
         weather.wetness = wetness
         weather.cloudiness = cloudiness
         weather.wind_intensity = wind_intensity
-        weather.fog_density = fog_density
-        weather.fog_distance = fog_distance
-        weather.fog_falloff = fog_falloff
+        # weather.fog_density = fog_density
+        # weather.fog_distance = fog_distance
+        # weather.fog_falloff = fog_falloff
         weather.scattering_intensity = scattering_intensity
         self._context.world.set_weather(weather)
