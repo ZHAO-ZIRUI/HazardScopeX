@@ -4,8 +4,8 @@ from typing_extensions import Self
 from shared.scenarios import Factor
 from shared.simulator import CarlaContext, CarlaVehicle, CarlaBlueprints, CarlaActor
 
-class FactorCaseVehicleDropObstical(Factor):
-    NAME = 'F_CaseVehicleDropObstical'
+class FactorCaseVehicleDropObstacle(Factor):
+    NAME = 'F_CaseVehicleDropObstacle'
 
     MAPPING_WORLD_LOCATION = {
         'Carla/Maps/Town10HD_Opt': {
