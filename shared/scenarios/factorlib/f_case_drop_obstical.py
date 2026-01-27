@@ -23,14 +23,17 @@ class FactorCaseDropObstical(Factor):
         obstical_bp: carla.ActorBlueprint | CarlaBlueprints | str = CarlaBlueprints.STATIC_PROP_BOX01,
         obstical_create_offset_xy: float = 2.0,
         obstical_create_offset_z: float = 1.5,
+        obstical_create_rotation: carla.Rotation = carla.Rotation(yaw=0.0, pitch=0.0, roll=0.0),
         *,
         ignore_factor_ego_control: bool = False,
+        keepalive_after_triggered_seconds: int = 5,
     ):
-        super().__init__(context, ego_vehicle, ignore_factor_ego_control=ignore_factor_ego_control)
+        super().__init__(context, ego_vehicle, ignore_factor_ego_control=ignore_factor_ego_control, keepalive_after_triggered_seconds=keepalive_after_triggered_seconds)
         self._act: CarlaVehicle | None = None
         self._obstical_bp = obstical_bp
         self._obstical_create_offset_xy = obstical_create_offset_xy
         self._obstical_create_offset_z = obstical_create_offset_z
+        self._obstical_create_rotation = obstical_create_rotation
         self._is_obstacle_created = False
 
     def __post_init__(self) -> Self:
@@ -85,7 +88,7 @@ class FactorCaseDropObstical(Factor):
                 y=act_location_xy.y - obstacle_create_offset * act_heading_vector.y,
                 z=obstacle_tf.location.z + self._obstical_create_offset_z,
             ),
-            rotation=obstacle_tf.rotation,
+            rotation=self._obstical_create_rotation,
         )
 
         if act_location_xy.distance(obstacle_loc_xy) < 0.5:
