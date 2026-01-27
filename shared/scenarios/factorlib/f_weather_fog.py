@@ -11,7 +11,7 @@ class FactorWeatherFog(Factor):
     MAPPING_WPARAM_LEVEL = {
         FactorLevel.NONE: (0.0, 0.0, 0.0, 0.0),
         FactorLevel.LOW: (30.0, 80.0, 1.0, 0.2),
-        FactorLevel.MEDIUM: (70.0, 40.0, 2.0, 0.6),
+        FactorLevel.MEDIUM: (60.0, 40.0, 2.0, 0.6),
         FactorLevel.HIGH: (100.0, 10.0, 3.0, 0.9),
     }
 
