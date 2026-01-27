@@ -70,7 +70,7 @@ class DatasetDumper(metaclass=PostInitMeta):
         self._append_hook_on_tick(self._log_on_tick)
         self._append_hook_on_tick(self._flash_on_memory_usage_high)
         
-        self._hook_after_final_flush.append(self._log_result)
+        # self._hook_after_final_flush.append(self._log_result)
         return self
 
     def __enter__(self) -> Self:
