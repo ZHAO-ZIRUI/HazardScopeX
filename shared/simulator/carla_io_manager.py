@@ -5,7 +5,7 @@ from typing_extensions import Self
 from logging import Logger
 from threading import Thread
 
-from shared.io import SharedMemoryAdapter, ROS2TfAdapter, ROS2SubAdapter, ROS2PubAdapter
+from shared.io import SharedMemoryAdapter, ROS2TfAdapter, ROS2SubAdapter
 from shared.utils import Logging
 from shared.define import TimestampSource
 
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from shared.simulator import CarlaContext
     from rclpy import Node
     from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
+    from shared.io import ROS2PubAdapter
 
 
 class CarlaIOManager:
@@ -34,7 +35,7 @@ class CarlaIOManager:
         self._ros2_executor = None
         self._ros2_tf_boardcaster: 'TransformBroadcaster' | None = None
         self._ros2_tf_static_boardcaster: 'StaticTransformBroadcaster' | None = None
-        self._ros2_adapters: set[ROS2TfAdapter | ROS2SubAdapter | ROS2PubAdapter] = set()
+        self._ros2_adapters: set['ROS2TfAdapter | ROS2SubAdapter | ROS2PubAdapter'] = set()
         self._thread_ros2_spin: Thread | None = None
 
     @property
@@ -147,7 +148,9 @@ class CarlaIOManager:
         qos: int = 10,
         frame_id: str = 'UNDEFINED',
         timestamp_source: TimestampSource = TimestampSource.OS,
-    ) -> ROS2PubAdapter:
+    ) -> 'ROS2PubAdapter':
+        from shared.io import ROS2PubAdapter
+        
         self._init_ros2_if_not_initialized()
 
         ros2_pub = self._ros2_node.create_publisher(msg, topic, qos)

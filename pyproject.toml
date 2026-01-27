@@ -19,6 +19,7 @@ dependencies = [
     "typing-extensions>=4.15.0",
     "pyquaternion==0.9.9",
     "pandas<3",
+    "ultralytics>=8.4.7",
 ]
 
 [build-system]

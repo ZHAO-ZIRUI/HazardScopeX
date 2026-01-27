@@ -10,13 +10,12 @@ from typing_extensions import Self
 from shared.utils import Logging
 from shared.define import TimestampSource
 from shared.data import *
-from shared.simulator import CarlaSensor
 from shared.io import SharedMemoryAdapter
 
 MsgT = TypeVar('MsgT')
 
 if TYPE_CHECKING:
-    from shared.simulator import CarlaContext
+    from shared.simulator import CarlaContext, CarlaSensor
     from rclpy.publisher import Publisher
 
 class ROS2PubAdapter(Generic[MsgT]):
@@ -64,7 +63,7 @@ class ROS2PubAdapter(Generic[MsgT]):
             self._is_sensor_worker_running = False
         return self
 
-    def bind_sensor(self, sensor: CarlaSensor) -> Self:
+    def bind_sensor(self, sensor: 'CarlaSensor') -> Self:
         self._ros2_pub = None
 
         self._sensor_id_local = sensor.id_local

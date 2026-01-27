@@ -139,6 +139,14 @@ class CarlaContext:
     def clock(self) -> Clock:
         return self._clock
 
+    @property
+    def map_name(self) -> str:
+        return self.world.get_map().name
+
+    @property
+    def dt(self) -> float:
+        return self.world.get_settings().fixed_delta_seconds
+
     @contextmanager
     def heavy_operation(self):
         """重操作, 该模式下会设置所有的 Timeout 为 heavy_operation_timeout_seconds, 并临时跳过死检"""
@@ -333,12 +341,12 @@ class CarlaContext:
         # TickBlocker 阻塞
         try:
             while not force and not self._event_shutdown.is_set():
-                all_passed = all(not blocker.is_set() for blocker in self._tick_blockers)
+                all_passed = all(not blocker.is_set() for blocker in self._tick_blockers if blocker is not None)
                 if all_passed:
                     break
                 if time.perf_counter() - time_begin > self.configs.context.runtime_blocker_timeout_seconds:
                     # 报告 TickBlocker 阻塞统计状态
-                    count_blocked = len([blocker for blocker in self._tick_blockers if blocker.is_set()])
+                    count_blocked = len([blocker for blocker in self._tick_blockers if blocker is not None and blocker.is_set()])
                     count_all = len(self._tick_blockers)
                     msg = f"Tick blocker timeout, status: {count_blocked} blocked, total: {count_all}"
                     Logging.interval(1, self.logger.warning, msg, 'tick_blocker_timeout_msg')
@@ -372,6 +380,8 @@ class CarlaContext:
 
         # 自动设置 TickBlocker
         for blocker in self._tick_blockers:
+            if blocker is None:
+                continue
             if blocker.auto_set_after_tick:
                 blocker.set()
 

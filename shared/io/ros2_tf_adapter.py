@@ -5,10 +5,9 @@ from typing import TYPE_CHECKING, Callable
 from typing_extensions import Self
 
 from shared.define import TimestampSource
-from shared.simulator import CarlaTransform
 
 if TYPE_CHECKING:
-    from shared.simulator import CarlaContext
+    from shared.simulator import CarlaContext, CarlaTransform
     from tf2_ros import TransformBroadcaster, StaticTransformBroadcaster
     from geometry_msgs.msg import TransformStamped
 
@@ -36,8 +35,10 @@ class ROS2TfAdapter():
         self._relation = None
         
 
-    def bind_relation(self, relation: carla.Transform | CarlaTransform | Callable[[], carla.Transform]) -> Self:
+    def bind_relation(self, relation: carla.Transform | Callable[[], carla.Transform]) -> Self:
         # 整理输入
+        # 延迟导入以避免循环引用
+        from shared.simulator import CarlaTransform
         relation = relation.to_carla() if isinstance(relation, CarlaTransform) else relation
         assert isinstance(relation, carla.Transform) or callable(relation), f"Unsupported relation type: {type(relation)}"
 

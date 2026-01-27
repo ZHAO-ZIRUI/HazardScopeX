@@ -1,5 +1,6 @@
 import carla
 from typing_extensions import Self
+from pathlib import Path
 
 from shared.data import SimulatorOutput
 
@@ -36,3 +37,9 @@ class Collision(SimulatorOutput):
             other_actor_id=carla_input.other_actor.id,
             other_actor_bp_name=carla_input.other_actor.type_id,
         )
+
+    def to_ros2(self, ros_message_type: type = None):
+        raise NotImplementedError
+
+    def to_file(self, file_path: str | Path) -> Self:
+        raise NotImplementedError

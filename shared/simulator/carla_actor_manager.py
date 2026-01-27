@@ -155,6 +155,7 @@ class CarlaActorManager:
         name: str | None = None,
         ignore_attribute_failure: bool = False,
         ignore_spawn_failure: bool = False,
+        ignore_tick_blocker: bool = False,
         is_managed_actor: bool = True,
         image_color_converter: carla.ColorConverter | None = None,
         **attributes: Unpack[dict[str, Any]],
@@ -183,17 +184,18 @@ class CarlaActorManager:
             name=name,
             ignore_attribute_failure=ignore_attribute_failure,
             ignore_spawn_failure=ignore_spawn_failure,
+            ignore_tick_blocker=ignore_tick_blocker,
             is_managed_actor=is_managed_actor,
             image_color_converter=image_color_converter,
             **attributes,
         )
         return actor
 
-    def spawn_all(self) -> Self:
+    def spawn_all(self, *actors: CarlaActor) -> Self:
         """生成所有注册表中的 Actor"""
 
         # 按照父级关系排序
-        sorted_actors = self._topological_sort_by_parent()
+        sorted_actors = self._topological_sort_by_parent(*actors)
         self.logger.debug(f"Sorted actors: {[actor.name for actor in sorted_actors]}")
         
         for actor in sorted_actors:
@@ -350,16 +352,21 @@ class CarlaActorManager:
     def serialize_all(self) -> list[dict[str, Any]]:
         return [actor.serialize() for actor in self._known_actors]
         
-    def _topological_sort_by_parent(self) -> list[CarlaActor]:
+    def _topological_sort_by_parent(self, *actors: CarlaActor) -> list[CarlaActor]:
         """根据父级依赖关系对 Actor 进行拓扑排序
         
+        Args:
+            *actors (CarlaActor): 指定的 Actor, 如果为空, 则使用注册表中的所有 actors
+
         Returns:
             list[CarlaActor]: 排序后的 Actor 列表，父级 Actor 在子级之前
         """
         # 构建依赖图：记录每个 actor 的子级列表
         children_map: Dict[CarlaActor, list[CarlaActor]] = {}
         # 记录所有 actors
-        all_actors = list(self._known_actors)
+        all_actors = list(actors)
+        if not all_actors:
+            all_actors = list(self._known_actors)
         
         # 初始化 children_map
         for actor in all_actors:
@@ -369,7 +376,7 @@ class CarlaActorManager:
         # 实际上我们需要的是：parent -> children 的映射
         for actor in all_actors:
             parent = actor.parent
-            if parent is not None and parent in self._known_actors:
+            if parent is not None and parent in all_actors:
                 children_map[parent].append(actor)
         
         # Kahn's algorithm: 拓扑排序
@@ -380,7 +387,7 @@ class CarlaActorManager:
         
         # 计算入度：如果 actor 有 parent，则 actor 的入度为 1
         for actor in all_actors:
-            if actor.parent is not None and actor.parent in self._known_actors:
+            if actor.parent is not None and actor.parent in all_actors:
                 in_degree[actor] = 1
         
         # 找到所有入度为 0 的节点（没有 parent 的 actors）
