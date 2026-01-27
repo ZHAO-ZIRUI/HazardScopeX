@@ -4,6 +4,7 @@ from .f_case_static_obstacle import FactorStaticObstacle
 from .f_case_construction_area import FactorCaseConstructionArea
 from .f_weather_rain import FactorWeatherRain
 from .f_weather_fog import FactorWeatherFog
+from .f_temp import FactorTemp
 
 __all__ = [
     "FactorCaseVehicleDropObstacle",
@@ -12,4 +13,5 @@ __all__ = [
     "FactorCaseConstructionArea",
     "FactorWeatherRain",
     "FactorWeatherFog",
+    "FactorTemp",
 ]
