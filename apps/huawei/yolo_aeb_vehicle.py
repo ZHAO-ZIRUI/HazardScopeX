@@ -71,7 +71,7 @@ class YoloAEBVehicle(CarlaVehicle):
         **attributes: Unpack[Dict[str, Any]],
     ):
         self._context = context
-        self._yolo_model = YOLO(context.project_root / 'apps' / 'huawei' / 'yolo26n.pt')
+        self._yolo_model = YOLO(context.project_root / 'apps' / 'huawei' / 'yolo26m.pt')
         self._brake_force: carla.Vector3D | None = None
         self._control_mode = self.ControlMode.NONE
         self._reached_speed_kmh = 0.0
