@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10, !=3.11.*, <3.13"
 dependencies = [
-    "carla==0.9.15",
     "em>=0.4.0",
     "lark>=1.3.0",
     "matplotlib>=3.10.7",
@@ -20,6 +19,7 @@ dependencies = [
     "pyquaternion==0.9.9",
     "pandas<3",
     "ultralytics>=8.4.7",
+    "carla>=0.9.16",
 ]
 
 [build-system]
