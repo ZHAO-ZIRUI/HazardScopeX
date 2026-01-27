@@ -18,7 +18,7 @@ class FactorCameraColorCast(Factor):
         vehicle: PlayerVehicle,
         *,
         path: str = "./images",
-        exposure_level = 1, # 1 2 3
+        cast_level = 1, # 1 2 3
     ):
         super().__init__(context)
         self._path = path
@@ -31,12 +31,12 @@ class FactorCameraColorCast(Factor):
             3: {"name": "III级", "data": 2500}
         }
         
-        if exposure_level in level_map:
-            info = level_map[exposure_level]
+        if cast_level in level_map:
+            info = level_map[cast_level]
             self._temp = info["data"]
             self._level_name = info["name"]
         else:
-            raise ValueError(f"无效的等级: {exposure_level}")
+            raise ValueError(f"无效的等级: {cast_level}")
 
     def bringup(self) -> None:
         world = self._context.world

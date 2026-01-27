@@ -25,6 +25,7 @@ from .factor_camera_chromatic_aberration import FactorCameraChromaticAberration
 from .factor_camera_color_cast import FactorCameraColorCast
 from .factor_camera_underexposure import FactorCameraUnderexposure
 from .factor_camera_overexposure import FactorCameraOverexposure
+from .factor_camera_multiple import FactorCameraMultiple
 from .factor_lidar_block import FactorLidarBlock
 from .factor_lidar_runtime_block import FactorLidarRuntimeBlock
 from .factor_traffic_large_vehicles import FactorTrafficLargeVehicles
@@ -123,6 +124,7 @@ __all__ = [
     "FactorCameraColorCast",
     "FactorCameraUnderexposure",
     "FactorCameraOverexposure",
+    "FactorCameraMultiple",
     "FactorLidarBlock",
     "FactorLidarRuntimeBlock",
     "FactorTrafficLargeVehicles",

@@ -592,7 +592,6 @@ class CarlaSingleAction():
     
     def get_ego_forward_vector(self) -> carla.Vector3D:
         tf_ego = self._ego.tf_now_baselink
-        # print("tf_ego:",tf_ego)
         forward_vector = tf_ego.get_forward_vector()
         return forward_vector
     

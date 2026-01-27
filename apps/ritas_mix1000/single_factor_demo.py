@@ -27,10 +27,11 @@ if __name__ == "__main__":
         f1 = FactorCase2WheelApproaching(context, vehicle)
         # f2 = FactorWeatherDustStorm(context, vehicle.lidar)
 
-        f2 = FactorCameraChromaticAberration(context, vehicle)
+        # f2 = FactorCameraChromaticAberration(context, vehicle)
         # f2 = FactorCameraColorCast(context, vehicle)
         # f2 = FactorCameraOverexposure(context, vehicle)
         # f2 = FactorCameraUnderexposure(context, vehicle)
+        f2 = FactorCameraMultiple(context, vehicle, exposure_level=3, cast_level=3, aberration_level=3)
 
         factors = [f1, f2]
         
