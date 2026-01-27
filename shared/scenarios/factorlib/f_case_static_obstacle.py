@@ -16,6 +16,11 @@ class FactorStaticObstacle(Factor):
             ),
             Factor.K_NPC_VEHICLE: [124, 30, 31, 33]
         },
+        'Carla/Maps/Town03': {
+            Factor.K_EGO: 146,
+            Factor.K_OBSTACLE: 247,
+            Factor.K_NPC_VEHICLE: [248, 121, 149]
+        },
     }
 
     def __init__(
@@ -45,7 +50,16 @@ class FactorStaticObstacle(Factor):
         return super().__post_init__()
 
     def create_obstical(self) -> None:
-        obstacle_tf: carla.Transform = self.MAPPING_WORLD_LOCATION[self._context.map_name][Factor.K_OBSTACLE]
+        obstacle_tf: carla.Transform | int = self.MAPPING_WORLD_LOCATION[self._context.map_name][Factor.K_OBSTACLE]
+        if isinstance(obstacle_tf, int):
+            obstacle_tf = self._context.spawn_points[obstacle_tf]
+        else:
+            obstacle_tf = obstacle_tf
+
+        obstacle_tf = carla.Transform(
+            location=carla.Location(x=obstacle_tf.location.x, y=obstacle_tf.location.y - 1.5, z=obstacle_tf.location.z + 1.0),
+            rotation=obstacle_tf.rotation,
+        )
         obstacle = self._context.actors.create_actor(
             bp=self._obstical_bp,
             tf=obstacle_tf,

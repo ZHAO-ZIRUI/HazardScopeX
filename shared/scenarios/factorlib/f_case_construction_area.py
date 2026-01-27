@@ -16,6 +16,25 @@ class FactorCaseConstructionArea(Factor):
             Factor.K_OBSTACLE: 4,
             Factor.K_NPC_VEHICLE: [11, 12, 13, 14, 5],
         },
+        'Carla/Maps/Town04': {
+            Factor.K_EGO: 125,
+            Factor.K_OBSTACLE: 118,
+            Factor.K_NPC_VEHICLE: [124, 123, 117, 116, 115, 113, 112, 111, 109, 108, 107],
+        },
+
+        # 'Carla/Maps/Town03': {
+        #     Factor.K_EGO: 51,
+        #     Factor.K_OBSTACLE: 144,
+        #     Factor.K_NPC_VEHICLE: [],
+        # },
+
+        'Carla/Maps/Town03': {
+            Factor.K_EGO: 144,
+            Factor.K_OBSTACLE: 216,
+            Factor.K_NPC_VEHICLE: [],
+        },
+
+
     }
 
     def __init__(
@@ -51,7 +70,7 @@ class FactorCaseConstructionArea(Factor):
         # 初始化阶段钩子
         self.hook_bringup.append(self.move_ego_vehicle_to_init_tf)
         self.hook_bringup.append(self._create_construction_area_actors)
-        self.hook_bringup.append(self.create_npc_vehicles)
+        # self.hook_bringup.append(self.create_npc_vehicles)
         self.hook_bringup.append(self.spawn_all_factor_actors)
         self.hook_bringup.append(self.apply_npc_vehicles_carla_autopilot)
         # self.hook_bringup.append(self._apply_ego_vehicle_carla_autopilot)

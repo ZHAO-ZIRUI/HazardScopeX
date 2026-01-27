@@ -14,6 +14,12 @@ class FactorCaseVehicleDropObstacle(Factor):
             Factor.K_OBSTACLE: 107,
             Factor.K_NPC_VEHICLE: [101, 55, 57, 119, 59]
         },
+        'Carla/Maps/Town03': {
+            Factor.K_EGO: 106,
+            Factor.K_ACT: 149,
+            Factor.K_OBSTACLE: 121,
+            Factor.K_NPC_VEHICLE: [248, 247, 120, 146, 105]
+        },
     }
 
     def __init__(
