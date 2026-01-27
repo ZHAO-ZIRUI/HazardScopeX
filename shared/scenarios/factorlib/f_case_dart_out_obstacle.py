@@ -47,6 +47,7 @@ class FactorCaseDartOutObstacle(Factor):
         self.hook_update.append(self.update_npc_vehicles_auto_lights)
         self.hook_update.append(self.trigger_obstacle_dart_out)
         self.hook_update.append(self.keepalive_after_triggered)
+        self.hook_update.append(self.post_trigger_obstacle_dart_out)
         return super().__post_init__()
 
     def create_obstical(self) -> None:
@@ -92,5 +93,16 @@ class FactorCaseDartOutObstacle(Factor):
         self._stage = self.FactorStage.TRIGGERED
         self.hook_update.remove(self.trigger_obstacle_dart_out)
 
-
-
+    def post_trigger_obstacle_dart_out(self) -> None:
+        if not self._is_obstacle_created:
+            return
+        obstacle: CarlaActor = self._factor_actors[self.K_OBSTACLE]
+        if not obstacle.is_alive:
+            return
+        if not self._stage != self.FactorStage.TRIGGERED:
+            return
+        if self._keepalive_begin_frames == 0:
+            return
+        if self._count_update_frames - self._keepalive_begin_frames <= 80:
+            return
+        obstacle.actor.set_enable_gravity(True)
