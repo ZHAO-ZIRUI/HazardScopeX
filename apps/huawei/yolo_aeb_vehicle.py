@@ -172,7 +172,7 @@ class YoloAEBVehicle(CarlaVehicle):
     def apply_aeb(self):
         self.logger.info(f"Apply AEB")
         self.actor.disable_constant_velocity()  # 解除速度请求
-        self.actor.apply_control(carla.VehicleControl(brake=1))
+        self.actor.apply_control(carla.VehicleControl(brake=1, hand_brake=True))
 
     def apply_stop(self):
         self.logger.info(f"Apply STOP")
