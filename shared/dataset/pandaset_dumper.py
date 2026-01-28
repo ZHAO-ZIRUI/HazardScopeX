@@ -295,7 +295,7 @@ class PandaSetDumper(DatasetDumper):
         if isinstance(data, PointCloud):
             
             suffix_full = "".join(file_path.suffixes).lower()
-            self.logger.debug(f"the suffix is : {suffix_full}")
+            # self.logger.debug(f"the suffix is : {suffix_full}")
             # PandaSet LiDAR：写成 DataFrame pickle（.pkl.gz）
             if suffix_full == ".pkl.gz":
                 # 1) 确保点坐标已经变换到 PandaSet world(local) 下
@@ -652,7 +652,7 @@ class PandaSetDumper(DatasetDumper):
             return
 
         fp = self._find_sensor_file_path_for_frame(semantic_lidar, frame_idx)
-        self.logger.debug(f"semantic fp={fp}, transformed={fp in self._lidar_world_transformed_files}")
+        # self.logger.debug(f"semantic fp={fp}, transformed={fp in self._lidar_world_transformed_files}")
         if fp is None:
             return
 
@@ -770,7 +770,9 @@ class PandaSetDumper(DatasetDumper):
 
             primary = getattr(self, "_primary_lidar_sensor", None)
             if primary is not None:
+                
                 primary_name = self._split_vehicle_sensor(primary.name)
+                self.logger.debug(f"the primary lidar sensor name is : {primary_name}")
                 T_e_l = self.sensor_tf.get(primary_name, None)
                 if T_e_l is not None:
                     T_w_l = T_w_e @ np.array(T_e_l, dtype=float)
@@ -922,7 +924,7 @@ class PandaSetDumper(DatasetDumper):
         # bbox 中心点（先在 CARLA world 求出，再做坐标系变换）
         bbox = actor.bounding_box
         bbox_center_world_carla = actor_transform.transform(bbox.location)
-        
+
         T_tmp = np.eye(4, dtype=float)
         T_tmp[:3, 3] = [bbox_center_world_carla.x, bbox_center_world_carla.y, bbox_center_world_carla.z]
         T_tmp_p = self._carla_to_pandaset_extrinsic(T_tmp)
