@@ -9,6 +9,7 @@ from .carla_actor_manager import CarlaActorManager
 from .carla_io_manager import CarlaIOManager
 from .carla_recorder import CarlaRecorder
 from .carla_context import CarlaContext
+from .carla_single_action import CarlaSingleAction
 
 __all__ = [
     "CarlaMaps",
@@ -22,4 +23,5 @@ __all__ = [
     "CarlaActorManager",
     "CarlaIOManager",
     "CarlaRecorder",
+    "CarlaSingleAction"
 ]
