@@ -17,7 +17,7 @@ class FactorCameraChromaticAberration(Factor):
         ego_vehicle: CarlaVehicle,
         *,
         path: str = "./images",
-        aberration_level = 1, # 1 2 3
+        level = 1, # 1 2 3
     ):
         super().__init__(context, ego_vehicle)
         self._path = path
@@ -30,12 +30,12 @@ class FactorCameraChromaticAberration(Factor):
             3: {"name": "III级", "data": 5}
         }
         
-        if aberration_level in level_map:
-            info = level_map[aberration_level]
+        if level in level_map:
+            info = level_map[level]
             self._aberration = info["data"]
             self._level_name = info["name"]
         else:
-            raise ValueError(f"无效的等级: {aberration_level}")
+            raise ValueError(f"无效的等级: {level}")
 
     def bringup(self) -> None:
         world = self._context.world

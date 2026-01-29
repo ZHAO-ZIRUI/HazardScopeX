@@ -354,7 +354,7 @@ class CarlaContext:
                     # 报告 TickBlocker 阻塞详情
                     blocker_status = 'Tick blocker details (blocked): '
                     for blocker in self._tick_blockers:
-                        if blocker.is_set():
+                        if blocker is not None and blocker.is_set():
                             blocker_status += f"{str(blocker)}, "
                     Logging.interval(1, self.logger.warning, blocker_status, 'tick_blocker_details_blocked')
                 

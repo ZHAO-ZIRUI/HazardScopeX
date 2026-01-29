@@ -71,7 +71,7 @@ class YoloAEBVehicle(CarlaVehicle):
         **attributes: Unpack[Dict[str, Any]],
     ):
         self._context = context
-        self._yolo_model = YOLO(context.project_root / 'apps' / 'huawei' / 'yolo26m.pt')
+        self._yolo_model = YOLO(context.project_root / 'apps' / 'huawei' / 'yolo26n.pt')
         self._brake_force: carla.Vector3D | None = None
         self._control_mode = self.ControlMode.NONE
         self._reached_speed_kmh = 0.0
@@ -137,6 +137,35 @@ class YoloAEBVehicle(CarlaVehicle):
         self._context.hook_on_tick.append(self._hookfunc_on_reached_speed)
         self._context.hook_on_tick.append(self._hookfunc_dump_accept_acceleration)
 
+    def clear(self):
+        # 禁用常速度模式，重置速度状态
+        if self.is_alive:
+            self.actor.disable_constant_velocity()
+        
+        self._detect_continuous_count = 0
+        self._control_mode = self.ControlMode.NONE
+        self._reached_speed_kmh = 0.0
+        self._target_speed_kmh = 0.0
+        self._is_reached_speed = False
+        with self._cache_speed.mutex:
+            self._cache_speed.queue.clear()
+        self.is_safe_stop = False
+        self.is_collision = False
+        self.last_accpet_acceleration = 0.0
+
+    def respawn_front_camera(self, camera_bp: carla.ActorBlueprint) -> CarlaSensor:
+        """动态式的重新构建前置摄像头"""
+        self._cam_front.destroy()
+        self._cam_front = self._context.actors.create_sensor(
+            bp=camera_bp,
+            name=self.name + '_' + self.CAM_FRONT_NAME,
+            tf=self.CAM_FRONT_TF,
+            parent=self,
+        )
+        self._cam_front.spawn()
+        self._cam_front.hook_sensor_data_ready.append(self._detect)
+        return self._cam_front
+
     @property
     def last_accept_speed(self) -> float:
         if self._cache_speed.empty():
@@ -163,7 +192,7 @@ class YoloAEBVehicle(CarlaVehicle):
         forward_vector = forward_vector.make_unit_vector()
         # 计算速度向量（km/h 转 m/s）
         speed_ms = speed_kmh / 3.6
-        forward_vector = forward_vector * speed_ms
+        forward_vector = forward_vector * speed_ms * -1
         self.actor.enable_constant_velocity(forward_vector)
         self.logger.info(f"Set speed to {speed_kmh} km/h")
         self._control_mode = self.ControlMode.EXTERNAL_AUTOPILOT

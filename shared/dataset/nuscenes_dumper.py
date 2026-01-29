@@ -871,7 +871,7 @@ class NuScenesDumper(DatasetDumper):
             actual_actor = self._context.world.get_actor(int(object_id))
             if actual_actor.type_id == 'vehicle.tesla.model3':
                 continue
-            if 'vehicle' in actual_actor.type_id or 'box' in actual_actor.type_id:
+            if 'vehicle' in actual_actor.type_id or 'static.prop.' in actual_actor.type_id:
                 object_mask = object_ids == object_id
                 object_points = points[object_mask]
                 object_semantic_tag = int(semantic_tags[object_mask][0]) 

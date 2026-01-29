@@ -2,9 +2,24 @@ import carla
 from typing_extensions import Self, Unpack
 from logging import Logger
 
+from shared.prefabs.yolo_aeb_vehicle import YoloAEBVehicle
 from shared.simulator import CarlaContext, CarlaTickBlocker
 from shared.scenarios import Factor, Evaluator
+from shared.simulator.carla_vehicle import CarlaVehicle
 from shared.utils import Logging, PostInitMeta
+
+def calc_distance(v_ego, v_act: CarlaVehicle) -> float:
+    d_ego_center_end = v_ego.actor.bounding_box.extent.x
+    d_act_center_end = v_act.actor.bounding_box.extent.x
+    d_ego_act_center = v_ego.tf_now_center.location.distance(v_act.tf_now_center.location)
+    return d_ego_act_center - (d_ego_center_end + d_act_center_end)
+
+def calc_remaining_stop_distance(v_ego) -> float:
+    a = v_ego.last_accpet_acceleration
+    v = v_ego.last_accept_speed
+    if a == 0.0:
+        return float('inf')
+    return v * v / (2 * a)
 
 class Injector(metaclass=PostInitMeta):
     """
@@ -38,6 +53,7 @@ class Injector(metaclass=PostInitMeta):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.teardown()
         return
 
     @property
@@ -81,6 +97,33 @@ class Injector(metaclass=PostInitMeta):
 
         self.logger.info(f'All {len(self._factors)} factors torn down')
         return
+    
+    def spin_until_collision(self, v_ego, v_act, current_metrics) -> None:
+        while True:
+            d_ego_act = calc_distance(v_ego, v_act)
+            d_remaining_stop = calc_remaining_stop_distance(v_ego)
+            if v_ego.control_mode == YoloAEBVehicle.ControlMode.AEB:
+                if d_ego_act > current_metrics['detect_distance']:
+                    current_metrics['detect_distance'] = d_ego_act
+                self.logger.info(f'AEB ACTIVE | Distance to ACT: {d_ego_act:.2f}m | Remaining Stop Distance: {d_remaining_stop:.2f}m | Speed: {v_ego.last_accept_speed:.2f}m/s')
+            if v_ego.is_safe_stop:
+                current_metrics['final_distance'] = d_ego_act
+                current_metrics['is_collision'] = False
+
+                self.logger.warning('EXPERIMENT END WITH SAFE STOP')
+                self.logger.warning(f'SAFETY_STOP_DISTANCE: {d_ego_act:.2f}m')
+                self._context.wait_ticks(5, no_log=True)
+                break
+            if v_ego.is_collision:
+                current_metrics['final_distance'] = -d_remaining_stop
+                current_metrics['is_collision'] = True
+
+                self.logger.warning('EXPERIMENT END WITH COLLISION')
+                self.logger.warning(f'REMAINING_STOP_DISTANCE: {d_remaining_stop:.2f}m')
+
+                self._context.wait_ticks(5, no_log=True)
+                break
+            self._context.wait_ticks(1, no_log=True)
 
     def spin_until_finished(self, *factors: Unpack[Factor]) -> None:
         """持续运行仿真直到指定因子完成

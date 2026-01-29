@@ -10,6 +10,9 @@ from .f_camera_chromatic_aberration import FactorCameraChromaticAberration
 from .f_camera_color_cast import FactorCameraColorCast
 from .f_camera_overexposure import FactorCameraOverexposure
 from .f_camera_underexposure import FactorCameraUnderexposure
+from .f_weather_rain import FactorWeatherRain
+from .f_weather_fog import FactorWeatherFog
+from .f_temp import FactorTemp
 
 __all__ = [
     "FactorCaseVehicleDropObstacle",
@@ -23,4 +26,7 @@ __all__ = [
     "FactorCameraColorCast",
     "FactorCameraOverexposure",
     "FactorCameraUnderexposure",
+    "FactorWeatherRain",
+    "FactorWeatherFog",
+    "FactorTemp",
 ]

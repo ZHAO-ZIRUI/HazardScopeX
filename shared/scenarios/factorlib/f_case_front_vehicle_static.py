@@ -55,10 +55,11 @@ class FactorCaseFrontVehicleStatic(Factor):
 
     def bringup(self) -> None:
         # 设置 ego 位置
-        self._ego_init_transform = carla.Transform(carla.Location(x=71.50, y=-64.30, z=1.00),
+        self._ego_init_transform = carla.Transform(carla.Location(x=71.50, y=-64.30, z=0.50),
                                 carla.Rotation(pitch=0, yaw=-180, roll=0))
         self._sa.set_ego(self._ego_init_transform)
-        self._sa.set_spectator(carla.Transform(carla.Location(x=self._ego_init_transform.location.x,y=self._ego_init_transform.location.y,z=self._ego_init_transform.location.z+1.5), self._ego_init_transform.rotation))
+        self._context.wait_ticks(1)
+        # self._sa.set_spectator(carla.Transform(carla.Location(x=self._ego_init_transform.location.x,y=self._ego_init_transform.location.y,z=self._ego_init_transform.location.z+1.5), self._ego_init_transform.rotation))
 
         # 静止车辆1（前方70m）
         static_npc = self._sa.manual_control_vehicle(

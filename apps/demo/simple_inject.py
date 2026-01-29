@@ -8,116 +8,94 @@
 # ==============================================================
 import cv2
 from typing_extensions import Self
+from shared.prefabs.yolo_aeb_vehicle import YoloAEBVehicle
 from shared.data.image import Image
+from shared.data.vehicle_direct_control import VehicleDirectControl
 from shared.simulator import *
 from shared.utils import Logging
-from shared.prefabs import PlayerVehicle
 from shared.scenarios import Injector, Factor
+from shared.scenarios.factorlib import *
+from experiment_logger import ExperimentLogger
 
+FACTOR_NAME_DICT = {
+    # 'Rain': FactorWeatherRain,
+    # 'Fog': FactorWeatherFog,
+    # 'Dust': FactorWeatherDust,
+    'OverExposure': FactorCameraOverexposure,
+    'UnderExposure': FactorCameraUnderexposure,
+    'ChromaticAberration': FactorCameraChromaticAberration,
+    'ColorCast': FactorCameraColorCast,
+    # 'Time': FactorTime,
+    # 'CarLight': FactorCarLight,
+}
 
-class FactorSensorCameraTag(Factor):
-    NAME = 'F_SensorCameraTag'
-
-    def __init__(self, context: CarlaContext, camera: CarlaSensor):
-        super().__init__(context)
-        assert isinstance(camera, CarlaSensor) and camera.is_camera
-        self._camera = camera        
-
-    def __post_init__(self) -> Self:
-        self.hook_bringup.append(lambda: self._camera.hook_sensor_data_recv.append(self.on_sensor_data_recv))
-        self.hook_teardown.append(lambda: self._camera.hook_sensor_data_recv.remove(self.on_sensor_data_recv))
-        return self
-
-    def on_sensor_data_recv(self, data: Image) -> Image:
-        # 设置文字参数
-        text = 'DEMO FACTOR SENSOR TAG'
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1.0
-        thickness = 2
-        
-        # 计算文字大小
-        (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
-        
-        # 计算文字位置（图像中心）
-        text_x = (data.width - text_width) // 2
-        text_y = (data.height + text_height) // 2
-        
-        # 设置背景矩形参数（红色背景，带边距）
-        padding = 10
-        rect_x1 = max(0, text_x - padding)
-        rect_y1 = max(0, text_y - text_height - padding)
-        rect_x2 = min(data.width, text_x + text_width + padding)
-        rect_y2 = min(data.height, text_y + baseline + padding)
-        
-        # 绘制红色背景矩形 (BGRA格式: B=0, G=0, R=255, A=255)
-        data._raw[rect_y1:rect_y2, rect_x1:rect_x2] = [0, 0, 255, 255]
-        
-        # 绘制白色文字 (BGRA格式: B=255, G=255, R=255, A=255)
-        cv2.putText(data._raw, text, (text_x, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
-        
-        self.stage = self.FactorStage.COMPLETED
-
-        return data
-
-class FactorDemoTrigger(Factor):
-    NAME = 'F_DemoTrigger'
-
-    def __init__(self, context: CarlaContext):
-        super().__init__(context)
-        self._wait_trigger_seconds = 3.0
-        self._triggered_seconds = 3.0
-
-        self._count_before_trigger = 0
-        self._count_after_trigger = 0
-
-    def __post_init__(self) -> Self:
-        self.hook_update.append(self.trigger)
-        self.hook_update.append(self.post_trigger)
-        return self
-
-    def trigger(self) -> None:
-        # 如果因子不在等待触发阶段, 则直接返回
-        if self.stage != self.FactorStage.WAIT_FOR_TRIGGER:
-            return
-        # 如果等待触发帧数达到阈值, 则触发因子
-        if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps:
-            self.stage = self.FactorStage.TRIGGERED
-            self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
-        self._count_before_trigger += 1
-        return
-
-    def post_trigger(self) -> None:
-        # 如果因子不在触发阶段, 则直接返回
-        if self.stage != self.FactorStage.TRIGGERED:
-            return
-        # 如果触发帧数达到阈值, 则完成因子
-        if self._count_after_trigger >= self._triggered_seconds * self._context.fps:
-            self.stage = self.FactorStage.COMPLETED
-            self.logger.warning(f'Factor {self.NAME} completed')  # 以警告级别输出
-        self._count_after_trigger += 1
-        return
-
+SPEED_RANGES = [30, 40, 50, 60, 70]
+# SPEED_RANGES = [30, 40]
 
 if __name__ == "__main__":
     logger = Logging.load('config.yaml').get_logger('Main')
-    logger.info('DEMO FOR SIMPLE INJECT')
+    logger.info('YOLO DEBUG WITH INJECTOR')
+
+    csv_logger = ExperimentLogger("yolo_aeb_experiment_data.csv")
+
+    # THIS ROAD SPAWN POINTS -> TOWN10HD_Opt
+    # 96-91-0-<CROSS>-93-53-56-107-58
+    SPAWN_POINT_EGO = 91
+    SPAWN_POINT_ACT = 53
 
     with CarlaContext() as context:    
-        vehicle = PlayerVehicle(context, context.spawn_points[0])
+        # context.client.load_world('Town10HD_Opt', reset_settings=False)
 
-        context.actors.spawn_all()
-        context.actors.wait_stable(vehicle)
+        # context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
+        # context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
 
-        context.io.create_ros2(topic='/harzed_scope/cam/game').bind_sensor_output(vehicle.cam_game)
-        context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
+        # v_act.apply_direct_control(VehicleDirectControl(brake=1.0, hand_brake=True))
+        shm = context.io.create_shm('cam_front')
 
-        vehicle.set_carla_autopilot(enable=True)
+        for speed in SPEED_RANGES:
+            for factor_name, factor_clazz in FACTOR_NAME_DICT.items():
+                for intensity in range(1, 4): # 因子强度
+                    # 清除上一轮的残留actor
+                    context.actors.destroy_all()
+                    context.wait_seconds(1)
 
-        f1 = FactorSensorCameraTag(context, vehicle.cam_game)
-        f2 = FactorDemoTrigger(context)
-        factors = [f1, f2]
-        
-        with Injector(context, *factors) as injector:       # 执行注入
-            injector.spin_until_finished(f2)
+                    v_ego = YoloAEBVehicle(context, context.spawn_points[SPAWN_POINT_EGO], name='EGO')
+                    
+                    context.actors.spawn_all()
 
+                    # 实验数据记录
+                    currect_active_factors = {
+                        factor_name: intensity,
+                    }
+
+                    current_metrics = {
+                        'detect_distance': 0,
+                        'final_distance': 5.2,
+                        'is_collision': False
+                    }
+
+                    logger.info(f'START EXPERIMENT ROUND {intensity}')
+
+                    v_ego.clear()
+                    f1 = FactorCaseFrontVehicleStatic(context, v_ego)
+                    f2 = factor_clazz(context, v_ego, level=intensity)
+                    factors = [f1, f2]
+                    
+                    with Injector(context, *factors) as injector:       # 执行注入
+                        # shm.bind_sensor(v_ego.cam_front)
+                        context.actors.wait_stable(v_ego)
+                        v_ego.apply_speed(speed)
+                        v_ego.actor.set_enable_gravity(True)
+                        context.wait_ticks(10, no_log=True)
+                        # 绑定传感器到共享内存
+                        injector.spin_until_collision(v_ego, f1._act, current_metrics)  # 持续运行直到碰撞发生
+                    
+                    # 记录数据到 csv
+                    csv_logger.log_result(
+                        scenario="Front vehicle keep stop",
+                        speed=speed,
+                        repeat=0,
+                        active_factor_dict=currect_active_factors,
+                        metrics=current_metrics
+                    )
     logger.info('Goodbye!')

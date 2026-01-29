@@ -131,7 +131,8 @@ class CarlaSensor(CarlaActor):
     def destroy(self) -> Self:
         """销毁 Sensor 实例"""
         # 移除 Tick Blocker
-        self._context.tick_blockers.remove(self._tick_blocker)
+        if self._tick_blocker in self._context.tick_blockers:
+            self._context.tick_blockers.remove(self._tick_blocker)
         
         # 清理钩子
         self._hook_sensor_data_recv.clear()
