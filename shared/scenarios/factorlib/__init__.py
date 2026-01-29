@@ -5,6 +5,9 @@ from .f_case_construction_area import FactorCaseConstructionArea
 from .f_case_2wheel_approaching import FactorCase2WheelApproaching
 from .f_case_dart_out_obstacle import FactorCaseDartOutObstacle
 from .f_case_front_vehicle_static import FactorCaseFrontVehicleStatic
+from .f_case_pedestrian_dart_out import FactorCasePedestrianDartOut
+from .f_case_front_vehicle_cutin import FactorCaseFrontVehicleCutIn
+from .f_case_highway_merge import FactorCaseHighwayMerge
 
 from .f_camera_chromatic_aberration import FactorCameraChromaticAberration
 from .f_camera_color_cast import FactorCameraColorCast
@@ -12,6 +15,7 @@ from .f_camera_overexposure import FactorCameraOverexposure
 from .f_camera_underexposure import FactorCameraUnderexposure
 from .f_weather_rain import FactorWeatherRain
 from .f_weather_fog import FactorWeatherFog
+from .f_weather_dust_storm import FactorWeatherDustStorm
 from .f_temp import FactorTemp
 
 __all__ = [
@@ -22,11 +26,15 @@ __all__ = [
     "FactorCase2WheelApproaching",
     "FactorCaseDartOutObstacle",
     "FactorCaseFrontVehicleStatic",
+    "FactorCasePedestrianDartOut",
+    "FactorCaseFrontVehicleCutIn",
+    "FactorCaseHighwayMerge",
     "FactorCameraChromaticAberration",
     "FactorCameraColorCast",
     "FactorCameraOverexposure",
     "FactorCameraUnderexposure",
     "FactorWeatherRain",
     "FactorWeatherFog",
+    "FactorWeatherDustStorm",
     "FactorTemp",
 ]

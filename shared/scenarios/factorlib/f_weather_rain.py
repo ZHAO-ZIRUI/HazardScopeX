@@ -1,3 +1,4 @@
+import carla
 from typing_extensions import Self
 
 from shared.scenarios import Factor
@@ -9,17 +10,16 @@ class FactorWeatherRain(Factor):
 
     # (precipitation, precipitation_deposits, wetness, cloudiness, wind_intensity, fog_density, fog_distance, fog_falloff, scattering_intensity)
     MAPPING_WPARAM_LEVEL = {
-        FactorLevel.NONE: (0.0, 0.0, 0.0, 80.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-        FactorLevel.LOW: (45.0, 30.0, 55.0, 80.0, 15.0, 4.0, 100.0, 0.8, 0.2),
-        FactorLevel.MEDIUM: (75.0, 60.0, 85.0, 100.0, 30.0, 10.0, 100.0, 1.5, 0.5),
-        FactorLevel.HIGH: (90.0, 100.0, 100.0, 100.0, 60.0, 16.0, 70.0, 2.2, 0.8),
+        1: (45.0, 30.0, 55.0, 80.0, 15.0, 4.0, 100.0, 0.8, 0.2),
+        2: (75.0, 60.0, 85.0, 100.0, 30.0, 10.0, 100.0, 1.5, 0.5),
+        3: (90.0, 100.0, 100.0, 100.0, 60.0, 16.0, 70.0, 2.2, 0.8),
     }
 
     def __init__(
         self,
         context: CarlaContext,
         ego_vehicle: CarlaVehicle,
-        level: FactorLevel,
+        level: int,
     ):
         super().__init__(
             context, 
@@ -47,7 +47,9 @@ class FactorWeatherRain(Factor):
             scattering_intensity,
         ) = params
 
-        weather = self._context.world.get_weather()
+        # weather = self._context.world.get_weather()
+        weather = carla.WeatherParameters()
+        weather.sun_altitude_angle = 45
         weather.precipitation = precipitation
         weather.precipitation_deposits = precipitation_deposits
         weather.wetness = wetness

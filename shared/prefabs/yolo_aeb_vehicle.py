@@ -183,6 +183,11 @@ class YoloAEBVehicle(CarlaVehicle):
         # 获取车头朝向向量（可能包含 z 分量）
         forward_vector = self.tf_now.get_forward_vector()
         # 将 z 分量设为 0，强制在水平面上
+        # forward_vector = carla.Vector3D(
+        #     x=forward_vector.y,
+        #     y=forward_vector.x,
+        #     z=0.0,
+        # )
         forward_vector = carla.Vector3D(
             x=forward_vector.x,
             y=forward_vector.y,
@@ -192,6 +197,7 @@ class YoloAEBVehicle(CarlaVehicle):
         forward_vector = forward_vector.make_unit_vector()
         # 计算速度向量（km/h 转 m/s）
         speed_ms = speed_kmh / 3.6
+        # forward_vector = forward_vector * speed_ms
         forward_vector = forward_vector * speed_ms * -1
         self.actor.enable_constant_velocity(forward_vector)
         self.logger.info(f"Set speed to {speed_kmh} km/h")

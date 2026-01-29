@@ -30,3 +30,7 @@ tmp/*
 coverage.xml
 
 *.csv
+
+*.png
+
+*.pt

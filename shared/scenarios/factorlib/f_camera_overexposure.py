@@ -40,9 +40,6 @@ class FactorCameraOverexposure(Factor):
     def bringup(self) -> None:
         world = self._context.world
         bp_lib = world.get_blueprint_library()
-        weather = carla.WeatherParameters()
-        weather.sun_altitude_angle = 45  # 白天
-        world.set_weather(weather)
         os.makedirs("./images", exist_ok=True)
         camera_bp = bp_lib.find("sensor.camera.rgb")
         camera_bp.set_attribute("exposure_mode", "manual")

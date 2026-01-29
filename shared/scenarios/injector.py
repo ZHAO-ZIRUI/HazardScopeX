@@ -5,10 +5,11 @@ from logging import Logger
 from shared.prefabs.yolo_aeb_vehicle import YoloAEBVehicle
 from shared.simulator import CarlaContext, CarlaTickBlocker
 from shared.scenarios import Factor, Evaluator
+from shared.simulator.carla_actor import CarlaActor
 from shared.simulator.carla_vehicle import CarlaVehicle
 from shared.utils import Logging, PostInitMeta
 
-def calc_distance(v_ego, v_act: CarlaVehicle) -> float:
+def calc_distance(v_ego, v_act: CarlaActor) -> float:
     d_ego_center_end = v_ego.actor.bounding_box.extent.x
     d_act_center_end = v_act.actor.bounding_box.extent.x
     d_ego_act_center = v_ego.tf_now_center.location.distance(v_act.tf_now_center.location)
@@ -98,7 +99,7 @@ class Injector(metaclass=PostInitMeta):
         self.logger.info(f'All {len(self._factors)} factors torn down')
         return
     
-    def spin_until_collision(self, v_ego, v_act, current_metrics) -> None:
+    def spin_until_collision(self, v_ego, v_act: CarlaActor, current_metrics) -> None:
         while True:
             d_ego_act = calc_distance(v_ego, v_act)
             d_remaining_stop = calc_remaining_stop_distance(v_ego)

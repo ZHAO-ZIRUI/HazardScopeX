@@ -29,8 +29,8 @@ FACTOR_NAME_DICT = {
     # 'CarLight': FactorCarLight,
 }
 
-SPEED_RANGES = [30, 40, 50, 60, 70]
-# SPEED_RANGES = [30, 40]
+# SPEED_RANGES = [30, 40, 50, 60, 70]
+SPEED_RANGES = [70]
 
 if __name__ == "__main__":
     logger = Logging.load('config.yaml').get_logger('Main')
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         # context.io.create_ros2(topic='/harzed_scope/lidar/main').bind_sensor_output(vehicle.lidar)
 
         # v_act.apply_direct_control(VehicleDirectControl(brake=1.0, hand_brake=True))
-        shm = context.io.create_shm('cam_front')
+        # shm = context.io.create_shm('cam_front')
 
         for speed in SPEED_RANGES:
             for factor_name, factor_clazz in FACTOR_NAME_DICT.items():

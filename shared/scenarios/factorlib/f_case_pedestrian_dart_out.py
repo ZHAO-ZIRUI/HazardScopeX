@@ -46,6 +46,10 @@ class FactorCasePedestrianDartOut(Factor):
     @property
     def ego(self) -> CarlaVehicle:
         return self._ego
+    
+    @property
+    def act(self) -> CarlaActor:
+        return self._ped
 
     def bringup(self) -> None:
         # 设置 ego 位置
@@ -112,6 +116,8 @@ class FactorCasePedestrianDartOut(Factor):
                 speed=0.15,
                 jump=False,
             )
+            ped.actor.set_simulate_physics(True)
+            ped.actor.set_enable_gravity(True)
             
             self.stage = self.FactorStage.TRIGGERED
             self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
