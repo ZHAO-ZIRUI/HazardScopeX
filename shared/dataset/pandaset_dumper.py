@@ -59,7 +59,7 @@ class PandaSetDumper(DatasetDumper):
     PANDASET_CATEGORIES = [
         (1, "Smoke"),
         (2, "Exhaust"),
-        (3, "pray or rain"),
+        (3, "Spray or rain"),
         (4, "Reflection"),
         (5, "Vegetation"),
         (6, "Ground"),
@@ -69,7 +69,7 @@ class PandaSetDumper(DatasetDumper):
         (10, "Other Road Marking"),
         (11, "Sidewalk"),
         (12, "Driveway"),
-        (13, "car"),
+        (13, "Car"),
         (14, "Pickup Truck"),
         (15, "Medium-sized Truck"),
         (16, "Semi-truck"),
@@ -682,10 +682,13 @@ class PandaSetDumper(DatasetDumper):
         unique_object_ids = unique_object_ids[unique_object_ids > 0]
 
         class_name = {int(i): str(n) for i, n in self.PANDASET_CATEGORIES}
+        self.logger.debug(f"PandaSet cuboids categories: {class_name}")
+
         rows: list[dict[str, Any]] = []
 
         for oid in unique_object_ids:
             actor = self._context.world.get_actor(int(oid))
+            self.logger.debug(f"Processing actor id={oid}, actor.type_id={actor.type_id }")
             if actor is None:
                 continue
             # 跳过 ego（按你原来的逻辑）
@@ -693,6 +696,7 @@ class PandaSetDumper(DatasetDumper):
                 continue
 
             mask = object_ids == oid
+
             if not np.any(mask):
                 continue
 
@@ -720,16 +724,16 @@ class PandaSetDumper(DatasetDumper):
                     "label": label,
                     "yaw": float(yaw),
                     "stationary": stationary,
-                    "camera_used": -1,
+                    "camera_used": int(-1),
                     "position.x": float(cx),
                     "position.y": float(cy),
                     "position.z": float(cz),
                     "dimensions.x": float(w),
                     "dimensions.y": float(l),
                     "dimensions.z": float(h),
-                    "attributes.object_motion": "stationary" if stationary else "moving",
+                    "attributes.object_motion": "stationary" if stationary else "Moving",
                     "cuboids.sibling_id": "",
-                    "cuboids.sensor_id": "lidar",
+                    "cuboids.sensor_id": int(-1),
                     "attributes.rider_status": "",
                     "attributes.pedestrian_behavior": "",
                     "attributes.pedestrian_age": "",
