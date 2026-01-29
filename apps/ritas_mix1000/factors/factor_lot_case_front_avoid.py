@@ -50,7 +50,7 @@ class FactorLotCaseFrontAvoid(Factor):
 
         self._sa.set_spectator(carla.Transform(carla.Location(x=tf_ego.location.x,y=tf_ego.location.y,z=tf_ego.location.z+1.5), tf_ego.rotation))
 
-        ped = self._sa.generate_pedestrain(
+        ped = self._sa.generate_pedestrian(
             transform=self._sa.transform_from_ego(front_offset=20),
             destination=self._sa.transform_from_ego(front_offset=20),
             speed=0.0,

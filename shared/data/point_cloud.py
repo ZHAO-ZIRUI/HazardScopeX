@@ -107,7 +107,7 @@ class PointCloud(SimulatorOutput):
             points_sum = sum(points_per_channel)
             cloud_raw = np.frombuffer(carla_input.raw_data, dtype=source_dtype, count=points_sum).copy()
             col_channel = np.repeat(np.arange(carla_input.channels), points_per_channel).astype(np.uint32)
-
+            
             # 创建结构化数组并填充数据
             cloud = np.empty(points_sum, dtype=format)
             cloud[cls.FIELD_X] = cloud_raw[cls.FIELD_X]
@@ -117,7 +117,6 @@ class PointCloud(SimulatorOutput):
             cloud[cls.FIELD_OBJECT_ID] = cloud_raw[cls.FIELD_OBJECT_ID]
             cloud[cls.FIELD_OBJECT_SEMANTIC_TAG] = cloud_raw[cls.FIELD_OBJECT_SEMANTIC_TAG]
             cloud[cls.FIELD_CHANNEL] = col_channel
-            # print("semantic cloud shape:",cloud.shape)
             return cls(
                 sim_frame=carla_input.frame,
                 sim_timestamp=carla_input.timestamp,

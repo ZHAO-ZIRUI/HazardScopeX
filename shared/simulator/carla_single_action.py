@@ -260,16 +260,18 @@ class CarlaSingleAction():
 
         return act
 
-    def generate_pedestrain(self,
-                            pedestrain: carla.Walker = None,
+    def generate_pedestrian(self,
+                            pedestrain: CarlaActor = None,
                             transform: carla.Transform = None,
                             bp: str = None,
                             destination: carla.Transform = None,
                             direction: carla.Vector3D = None,
                             speed: float = 0.0,
-                            jump: bool = False,) -> carla.Walker:
+                            jump: bool = False,) -> CarlaActor:
         if pedestrain is not None:
             act = pedestrain
+            if transform is None:
+                transform = pedestrain.tf_now
         else:
             if bp is not None:
                 pedestrain_blueprint = bp
@@ -293,7 +295,7 @@ class CarlaSingleAction():
             if direction is not None:
                 pedestrain_control.direction = direction
             else:
-                self._logger.error('The pedestrain\'s moving target is not specified.')
+                self._logger.error('The pedestrian direction has not been passed in.')
                 return 
 
         pedestrain_control.speed = speed
@@ -521,6 +523,59 @@ class CarlaSingleAction():
         transform = carla.Transform(location=result_location, rotation=rotation)
         return transform
     
+    def offsets_from_transforms(self,
+                           original_transform: carla.Transform,
+                           result_transform: carla.Transform) -> tuple:
+        """
+        从两个变换中还原出偏移量
+        
+        参数:
+            original_transform: 原始变换
+            result_transform: 结果变换
+            
+        返回:
+            tuple: (front_offset, left_offset, height_offset, yaw_offset)
+        """
+        if original_transform is None or result_transform is None:
+            self._logger.error('Transforms cannot be None.')
+            return (0.0, 0.0, 0.0, 0.0)
+        
+        # 1. 计算位置偏移向量（世界坐标系）
+        delta_x = result_transform.location.x - original_transform.location.x
+        delta_y = result_transform.location.y - original_transform.location.y
+        delta_z = result_transform.location.z - original_transform.location.z
+        
+        # 2. 获取原始变换的偏航角（弧度）
+        original_yaw_rad = math.radians(original_transform.rotation.yaw)
+        
+        # 3. 计算原始变换的前方向和左方向向量
+        # 前方向：车辆坐标系x轴
+        forward_dir = (math.cos(original_yaw_rad), math.sin(original_yaw_rad))
+        
+        # 左方向：车辆坐标系y轴负方向（逆时针旋转90度）
+        left_dir = (math.cos(original_yaw_rad - math.pi/2), math.sin(original_yaw_rad - math.pi/2))
+        
+        # 4. 将世界坐标系的偏移向量投影到车辆坐标系
+        # front_offset是偏移向量在前方向上的投影
+        front_offset = delta_x * forward_dir[0] + delta_y * forward_dir[1]
+        
+        # left_offset是偏移向量在左方向上的投影
+        left_offset = delta_x * left_dir[0] + delta_y * left_dir[1]
+        
+        # 5. 计算高度偏移
+        height_offset = delta_z
+        
+        # 6. 计算偏航角偏移
+        yaw_offset = result_transform.rotation.yaw - original_transform.rotation.yaw
+        
+        # 7. 规范化偏航角偏移到[-180, 180]范围
+        while yaw_offset > 180:
+            yaw_offset -= 360
+        while yaw_offset < -180:
+            yaw_offset += 360
+        
+        return front_offset, left_offset, height_offset, yaw_offset
+    
     def transform_from_waypoint(self,
                                 transform: carla.Transform = None,
                                 left_offset: float = 0.0,
@@ -591,7 +646,7 @@ class CarlaSingleAction():
         return final_transform
     
     def get_ego_forward_vector(self) -> carla.Vector3D:
-        tf_ego = self._ego.tf_now_baselink
+        tf_ego = self._ego.actor.get_transform()
         forward_vector = tf_ego.get_forward_vector()
         return forward_vector
     
@@ -698,6 +753,7 @@ class CarlaSingleAction():
         return actor
     
     def set_constant_velocity(self, actor, flag: bool, velocity: carla.Vector3D = carla.Vector3D(0,0,0)):
+        # BUG
         if flag:
             actor.actor.enable_constant_velocity(velocity * -1)
         else:
@@ -706,6 +762,7 @@ class CarlaSingleAction():
     
     def set_velocity_along_the_road(self, actor, speed: float = 0.0):
         self._tm.set_desired_speed(actor.actor, speed)
+        self._tm.set_route(self._ego.actor, ['Straight']) 
         self._tm.auto_lane_change(actor.actor, False)
         return
     

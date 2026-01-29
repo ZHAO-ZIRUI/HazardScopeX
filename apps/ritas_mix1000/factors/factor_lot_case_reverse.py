@@ -65,21 +65,13 @@ class FactorLotCaseReverse(Factor):
 
 
         tf_act = self._sa.transform_from_waypoint(transform=tf_ego,front_offset=25,left_offset=-0.5)
-        # print("tf_ego:",tf_ego," act tf:",tf_act)
         self._act = self._sa.manual_control_vehicle(
             transform=tf_act,
             bp='vehicle.tesla.model3',
         )
         self._vehicles.append(self._act)
-
-        # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
         v = self._sa.get_ego_forward_vector() * 5
-        # print("v:",v)
-        # v = carla.Vector3D(x=-2, y=-0.002779, z=0.000000)
-        # print("v:",v)
         time.sleep(1)
-        # self._sa.set_constant_velocity(self._act, flag=True, velocity=v)
-        # self._sa.set_constant_velocity(self._ego, flag=True, velocity=v)
 
         self._sa.set_velocity_along_the_road(self._act, 30)
         self._sa.set_velocity_along_the_road(self._ego, 30)
@@ -95,10 +87,6 @@ class FactorLotCaseReverse(Factor):
             return
         # 如果等待触发帧数达到阈值, 则触发因子
         if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps:
-            # self.ego.set_carla_autopilot(enable=True)
-            # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
-            # self._sa.set_constant_velocity(self._act, carla.Vector3D(self._sa.get_ego_forward_vector().x * -1, self._sa.get_ego_forward_vector().y * -1, self._sa.get_ego_forward_vector().z))
-            # print("self._sa.get_ego_forward_vector():",self._sa.get_ego_forward_vector())
             self._sa.set_constant_velocity(self._act, flag=False)
             self._sa.set_constant_velocity(self._ego, flag=False)
             self._act.set_carla_autopilot(enable=False)
@@ -111,8 +99,6 @@ class FactorLotCaseReverse(Factor):
 
             self.stage = self.FactorStage.TRIGGERED
             self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
-        # print("tf_ego:",self.ego.actor.get_transform())
-        # print("ego v:",self.ego.actor.get_velocity())
         self._count_before_trigger += 1
         return
 

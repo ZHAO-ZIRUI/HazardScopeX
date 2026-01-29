@@ -6,8 +6,19 @@ from shared.scenarios import Factor
 from shared.simulator import *
 
 
-class FactorCase2WheelApproaching(Factor):
-    NAME = 'F_LotCaseReverse'
+class FactorCaseFrontVehicleCutIn(Factor):
+    NAME = 'F_CaseFrontVehicleCutIn'
+
+    MAP_SPAWN_POINT_MAPPING = {
+        'Carla/Maps/SUSTech_COE_ParkingLot': {
+            'ego': 33,
+            'npc': [1, 12, 15, 18, 25, 45]
+        },
+        'Carla/Maps/Town10HD_Opt': {
+            'ego': 50, # 12      50 
+            'npc': [93, 53, 56, 107, 58, 11, 1, 9, 90]
+        },
+    }
 
     def __init__(self, 
                  context: CarlaContext, 
@@ -19,8 +30,8 @@ class FactorCase2WheelApproaching(Factor):
                  act_init_left_offset: float = 2.4, 
                  act_init_front_offset: float = -10.0, 
                  act_init_yaw_offset: float = 3.5,
-                 target_distance: float = 1.2,
-                 background_vehicle_speed = 0.2): 
+                 background_vehicle_speed = 0.2,
+                 target_distance: float = 15): 
         super().__init__(context)
         self._ego = vehicle
         self._act = None
@@ -38,8 +49,10 @@ class FactorCase2WheelApproaching(Factor):
         self._act_init_front_offset = act_init_front_offset
         self._act_init_yaw_offset = act_init_yaw_offset
         self._ego_init_transform = None
-        self._target_distance = target_distance
         self._background_vehicle_speed = background_vehicle_speed
+        self._target_distance = target_distance
+        self._step = 0
+        self._trigger_time = 0
 
     def __post_init__(self) -> None:
         self.hook_update.append(self.trigger)
@@ -54,17 +67,17 @@ class FactorCase2WheelApproaching(Factor):
         self._sa = CarlaSingleAction(self._context, self._ego, self.logger)
 
         # 设置 ego 位置
-        self._ego_init_transform = carla.Transform(carla.Location(x=50, y=-67.70, z=1.00),
+        self._ego_init_transform = carla.Transform(carla.Location(x=71.50, y=-64.30, z=1.00),
                                 carla.Rotation(pitch=0, yaw=-180, roll=0))
         self._sa.set_ego(self._ego_init_transform)
         self._vehicles.append(self._ego)
         self._sa.set_spectator(carla.Transform(carla.Location(x=self._ego_init_transform.location.x,y=self._ego_init_transform.location.y,z=self._ego_init_transform.location.z+1.5), self._ego_init_transform.rotation))
 
-        tf_act = carla.Transform(carla.Location(x=50 - self._act_init_front_offset, y=-64.60, z=0.50),
-                                    carla.Rotation(pitch=0, yaw=-180, roll=0))
+        tf_act = carla.Transform(carla.Location(x=2.90, y=-68.00, z=0.50),
+                               carla.Rotation(pitch=0, yaw=180, roll=0))
         self._act = self._sa.manual_control_vehicle(
-            transform=self._sa.transform_from_transform(transform=tf_act, yaw_offset=self._act_init_yaw_offset),
-            bp='vehicle.harley-davidson.low_rider',
+            transform=tf_act,
+            bp='vehicle.tesla.model3',
             throttle=0.0
         )
         self._vehicles.append(self._act)
@@ -96,8 +109,6 @@ class FactorCase2WheelApproaching(Factor):
         tm.auto_lane_change(self._ego.actor, False)
 
         self._sa.set_velocity(self._ego, velocity=self._sa.normalize_vector(self._sa.get_ego_forward_vector()) * self._ego_init_speed)
-        self._sa.set_velocity(self._act, velocity=self._sa.normalize_vector(self._sa.get_forward_vector(self._act)) * self._act_init_speed)
-
 
         return super().bringup()
     
@@ -106,15 +117,31 @@ class FactorCase2WheelApproaching(Factor):
         if self.stage != self.FactorStage.WAIT_FOR_TRIGGER:
             return
         # 如果等待触发帧数达到阈值, 则触发因子
-        front_offset, left_offset, height_offset, yaw_offset = self._sa.offsets_from_transforms(original_transform=self._ego_init_transform,result_transform=self._act.tf_now_baselink)
-        if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps or math.fabs(left_offset) < self._target_distance:
-            tm = self._context.traffic
-            tm.set_route(self._act.actor, ['Straight']) 
-            tm.auto_lane_change(self._act.actor, False)
-            self._act.set_carla_autopilot(enable=True)
-            self._sa.set_velocity_along_the_road(self._act, speed=self._act_init_speed)
-            self.stage = self.FactorStage.TRIGGERED
-            self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
+        if self._step == 0:
+            front_offset, _, _, _ = self._sa.offsets_from_transforms(original_transform=self._ego.tf_now,result_transform=self._act.tf_now)
+            if self._count_before_trigger >= self._wait_trigger_seconds * self._context.fps or math.fabs(front_offset) < self._target_distance:
+                self._sa.manual_control_vehicle(
+                    vehicle=self._act,
+                    throttle=0.25,
+                    steer=-0.2
+                )
+                self.logger.warning(f'Factor {self.NAME} triggered')  # 以警告级别输出
+                self._trigger_time = self._count_before_trigger
+                self._step = 1
+        elif self._step == 1:
+            if self._count_before_trigger >= self._trigger_time + 2.05 * self._context.fps:
+                self._sa.manual_control_vehicle(
+                        vehicle=self._act,
+                        throttle=0.2,
+                        steer=0.2
+                    )
+                self.logger.warning(f'Act return to the road.')  # 以警告级别输出
+                self._step = 2
+        elif self._step == 2:
+            if self._count_before_trigger >= self._trigger_time + 2.9 * self._context.fps:
+                self._act.set_carla_autopilot(True)
+                self.stage = self.FactorStage.TRIGGERED
+                self.logger.warning(f'Act go straight.')
         self._count_before_trigger += 1
         return
 

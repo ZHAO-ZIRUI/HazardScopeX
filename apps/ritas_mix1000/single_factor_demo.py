@@ -14,24 +14,29 @@ if __name__ == "__main__":
     configReader = ExternalConfigReader(dict()).load(Path("config.yaml"))
     config = ConfigManager().load(configReader)    # 加载配置到配置管理器
     logger = Logging.load(configReader).get_logger('Main') # 设置日志记录器
-
     with CarlaContext(configReader) as context:
-        # context.change_map('Town04')
-        context.change_map('Town10HD_Opt')
-
+        # context.change_map('Town10HD_Opt')
+        context.change_map('Town04')
         vehicle = PlayerVehicle(context, context.spawn_points[0])
+        # for i in range(4):
 
         context.actors.spawn_all()
         context.actors.wait_stable(vehicle)
+        # f1 = FactorCaseFrontVehicleStatic(context, vehicle)
+        # f1 = FactorCase2WheelApproaching(context, vehicle)
+        # f1 = FactorCasePedestrianDartOut(context, vehicle)
+        f1 = FactorCaseHighwayMerge(context, vehicle)
+        # f1 = FactorCaseFrontVehicleCutIn(context, vehicle)
 
-        f1 = FactorCase2WheelApproaching(context, vehicle)
-        # f2 = FactorWeatherDustStorm(context, vehicle.lidar)
+        # f2 = FactorWeatherDustStorm(context, vehicle, dust_level=3)
+        # f2 = FactorWeatherRain(context, vehicle, rain_level=3)
+        f2 = FactorWeatherFog(context, vehicle, fog_level=3)
 
-        # f2 = FactorCameraChromaticAberration(context, vehicle)
-        # f2 = FactorCameraColorCast(context, vehicle)
-        # f2 = FactorCameraOverexposure(context, vehicle)
-        # f2 = FactorCameraUnderexposure(context, vehicle)
-        f2 = FactorCameraMultiple(context, vehicle, exposure_level=3, cast_level=3, aberration_level=3)
+        # f3 = FactorCameraChromaticAberration(context, vehicle)
+        # f3 = FactorCameraColorCast(context, vehicle)
+        # f3 = FactorCameraOverexposure(context, vehicle)
+        # f3 = FactorCameraUnderexposure(context, vehicle)
+        # f3 = FactorCameraMultiple(context, vehicle, exposure_level=3, cast_level=3, aberration_level=3)
 
         factors = [f1, f2]
         

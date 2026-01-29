@@ -56,7 +56,7 @@ class FactorLotPedestrainCross(Factor):
         )
         self._vehicles.extend(vehicles)
 
-        act = sa.generate_pedestrain(
+        act = sa.generate_pedestrian(
             transform=sa.transform_from_ego(left_offset=4, front_offset=10),
             destination=sa.transform_from_ego(left_offset=-4, front_offset=10),
             speed=0.1,

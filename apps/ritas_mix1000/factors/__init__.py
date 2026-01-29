@@ -6,9 +6,9 @@ from .factor_weather_cloudiness import FactorWeatherCloudiness
 from .factor_road_flodding import FactorRoadFlodding
 from .factor_weather_dust_storm import FactorWeatherDustStorm
 from .factor_weather_medium_fog import FactorWeatherMediumFog
-from .factor_weather_heavy_fog import FactorWeatherHeavyFog
+from .factor_weather_fog import FactorWeatherFog
 from .factor_road_iceing import FactorRoadIceing
-from .factor_weather_soft_rain import FactorWeatherSoftRain
+from .factor_weather_rain import FactorWeatherRain
 from .factor_weather_sudden_rain import FactorWeatherSuddenRain
 from .factor_sensor_no_data import FactorSensorNoData
 from .factor_sensor_heavy_lost import FactorSensorHeavyLost
@@ -64,6 +64,9 @@ from .factor_case_obstacles_two_side_sequences import FactorCaseObstaclesTwoSide
 from .factor_case_obstacles_sequence_approaching import FactorCaseObstaclesSequenceApproaching
 from .factor_case_construction_area import FactorCaseConstructionArea
 from .factor_case_highway_merge import FactorCaseHighwayMerge
+from .factor_case_front_vehicle_cutin import FactorCaseFrontVehicleCutIn
+from .factor_case_front_vehicle_static import FactorCaseFrontVehicleStatic
+from .factor_case_pedestrian_dart_out import FactorCasePedestrianDartOut
 from .factor_traffic_cross_road import FactorTrafficCrossRoad
 from .factor_lot_mess_park import FactorLotMessPark
 from .factor_lot_traffic_two_wheels import FactorLotTrafficTwoWheels
@@ -105,9 +108,9 @@ __all__ = [
     "FactorRoadFlodding",
     "FactorWeatherDustStorm",
     "FactorWeatherMediumFog",
-    "FactorWeatherHeavyFog",
+    "FactorWeatherFog",
     "FactorRoadIceing",
-    "FactorWeatherSoftRain",
+    "FactorWeatherRain",
     "FactorWeatherSuddenRain",
     "FactorSensorHeavyLost",
     "FactorSensorNoData",
@@ -163,6 +166,8 @@ __all__ = [
     "FactorCaseObstaclesSequenceApproaching",
     "FactorCaseConstructionArea",
     "FactorCaseHighwayMerge",
+    "FactorCaseFrontVehicleCutIn",
+    "FactorCaseFrontVehicleStatic",
     "FactorTrafficCrossRoad",
     "FactorLotMessPark",
     "FactorLotTrafficTwoWheels",

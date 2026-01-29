@@ -73,7 +73,7 @@ class FactorLotCasePedestrainDartOut(Factor):
 
         self.ego.set_carla_autopilot(enable=True)
 
-        ped = self._sa.generate_pedestrain(
+        ped = self._sa.generate_pedestrian(
             transform=self._sa.transform_from_ego(front_offset=13, left_offset=-10),
             destination=self._sa.transform_from_ego(front_offset=13, left_offset=10),
             speed=0.1,
