@@ -7,13 +7,14 @@ from shared.simulator import CarlaContext, CarlaVehicle
 class FactorTemp(Factor):
     NAME = 'F_Temp'
 
-    'Carla/Maps/Town10HD_Opt': {
+    MAPPING_WORLD_LOCATION = {
+        'Carla/Maps/Town10HD_Opt': {
             Factor.K_EGO: 93,
             Factor.K_ACT: 53,
             Factor.K_OBSTACLE: 107,
             Factor.K_NPC_VEHICLE: [101, 55, 57, 119, 59]
         },
-
+    }
 
     def __init__(
         self,

@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     # THIS ROAD SPAWN POINTS
     # 96-107-0-<CROSS>-109-49-51-123-53
-    SPAWN_POINT_EGO = 107 
+    SPAWN_POINT_EGO = 93 
     SPAWN_POINT_ACT = 49
 
     with CarlaContext() as context:
@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
         # # # SHOPPING CART
         # f1 = FactorWeatherFog(context, v_ego, level=FactorLevel.HIGH)
-        f1 = FactorWeatherRain(context, v_ego, level=FactorLevel.NONE)
+        f1 = FactorWeatherRain(context, v_ego, level=FactorLevel.HIGH)
         f2 = FactorTemp(context, v_ego)
 
         with Injector(context, f1, f2) as injector:
@@ -39,15 +39,18 @@ if __name__ == "__main__":
             v_ego.set_carla_autopilot(enable=True)
             # injector.spin_until_finished(f)
 
-            # with PandaSetDumper(context, ego_vehicle=v_ego) as dumper:
-            #     dumper.bind_sensor_output(v_ego.cam_front, v_ego.cam_front.name)
-            #     dumper.bind_sensor_output(v_ego.cam_front_left, v_ego.cam_front_left.name)
-            #     dumper.bind_sensor_output(v_ego.cam_front_right, v_ego.cam_front_right.name)
-            #     dumper.bind_sensor_output(v_ego.cam_back, v_ego.cam_back.name)
-            #     dumper.bind_sensor_output(v_ego.left_camera, v_ego.left_camera.name)
-            #     dumper.bind_sensor_output(v_ego.right_camera, v_ego.right_camera.name)
+            context.wait_seconds(3)
+
+            with PandaSetDumper(context, ego_vehicle=v_ego) as dumper:
+                dumper.bind_sensor_output(v_ego.cam_front)
+                dumper.bind_sensor_output(v_ego.cam_front_left)
+                dumper.bind_sensor_output(v_ego.cam_front_right)
+                dumper.bind_sensor_output(v_ego.cam_back)
+                dumper.bind_sensor_output(v_ego.left_camera)
+                dumper.bind_sensor_output(v_ego.right_camera)
                 
-            #     dumper.bind_sensor_output(v_ego.lidar, v_ego.lidar.name)
-            context.spin()
+                dumper.bind_sensor_output(v_ego.lidar)
+                context.wait_ticks(120, no_log=True)
+            # context.spin()
 
     logger.info('GOODBYE!')
