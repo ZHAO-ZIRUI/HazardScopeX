@@ -135,33 +135,33 @@ class Factor(metaclass=PostInitMeta):
             return
 
         spawn_point_mapping = self.M_WORLD_LOCATION[self._context.map_name]
-        tf_ego = self._context.spawn_points[spawn_point_mapping[self.K_EGO]]
+        tf_ego = self._context.spawn_points[spawn_point_mapping[self.K_VEHICLE_EGO]]
         self._vehicle_ego.actor.set_transform(tf_ego)
         return self
 
     def create_npc_vehicles(self) -> None:
         spawn_point_mapping = self.M_WORLD_LOCATION[self._context.map_name]
         bps = CarlaBlueprints.vehicles('car')
-        for npc_sp_idx in spawn_point_mapping[self.K_NPC_VEHICLE]:
+        for npc_sp_idx in spawn_point_mapping[self.K_VEHICLE_NPC]:
             npc_tf = self._context.spawn_points[npc_sp_idx]
             npc = self._context.actors.create_vehicle(
                 bp=random.choice(bps),
                 tf=npc_tf,
-                name=f'{self.K_NPC_VEHICLE}_{npc_sp_idx}',
+                name=f'{self.K_VEHICLE_NPC}_{npc_sp_idx}',
             )
-            self._factor_actors[f'{self.K_NPC_VEHICLE}_{npc_sp_idx}'] = npc
+            self._factor_actors[f'{self.K_VEHICLE_NPC}_{npc_sp_idx}'] = npc
 
     def create_stop_vehicles(self) -> None:
         spawn_point_mapping = self.M_WORLD_LOCATION[self._context.map_name]
         bps = CarlaBlueprints.vehicles('car')
-        for stop_sp_idx in spawn_point_mapping[self.K_STOP_VEHICLE]:
+        for stop_sp_idx in spawn_point_mapping[self.K_VEHICLE_STOP]:
             stop_tf = self._context.spawn_points[stop_sp_idx]
             stop = self._context.actors.create_vehicle(
                 bp=random.choice(bps),
                 tf=stop_tf,
-                name=f'{self.K_STOP_VEHICLE}_{stop_sp_idx}',
+                name=f'{self.K_VEHICLE_STOP}_{stop_sp_idx}',
             )
-            self._factor_actors[f'{self.K_STOP_VEHICLE}_{stop_sp_idx}'] = stop
+            self._factor_actors[f'{self.K_VEHICLE_STOP}_{stop_sp_idx}'] = stop
 
     def apply_npc_vehicles_carla_autopilot(self) -> None:
         for actor in self._factor_actors.values():
