@@ -85,6 +85,10 @@ class Factor(metaclass=PostInitMeta):
         """因子当前阶段, 只读"""
         return self._stage
 
+    @property
+    def level(self) -> FactorLevel:
+        return self._level
+
     @stage.setter
     def stage(self, value: FactorStage):
         before = self._stage
