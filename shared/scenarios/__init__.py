@@ -1,6 +1,6 @@
 from .factor import Factor
-from .injector import Injector
 from .evaluator import Evaluator
+from .injector import Injector
 
 __all__ = [
     "Factor",
