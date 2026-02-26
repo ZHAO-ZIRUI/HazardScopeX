@@ -2,6 +2,7 @@ import carla
 from typing_extensions import Self
 
 from shared.scenarios import Factor
+from shared.define import FactorLevel
 from shared.simulator import CarlaContext, CarlaVehicle, CarlaBlueprints, CarlaActor
 
 class FactorCaseVehicleDropObstacle(Factor):
@@ -26,19 +27,20 @@ class FactorCaseVehicleDropObstacle(Factor):
         self,
         context: CarlaContext,
         ego_vehicle: CarlaVehicle,
+        level: FactorLevel = FactorLevel.HIGH,
         obstical_bp: carla.ActorBlueprint | CarlaBlueprints | str = CarlaBlueprints.STATIC_PROP_BOX01,
         obstical_create_offset_xy: float = 2.0,
         obstical_create_offset_z: float = 1.5,
         obstical_create_rotation: carla.Rotation = carla.Rotation(yaw=0.0, pitch=0.0, roll=0.0),
         *,
         ignore_factor_ego_control: bool = False,
-        keepalive_after_triggered_seconds: int = 5,
     ):
         super().__init__(
             context,
             ego_vehicle,
+            level=level,
             ignore_factor_ego_control=ignore_factor_ego_control,
-            keepalive_after_trigger=keepalive_after_triggered_seconds,
+            keepalive_after_trigger=5.0,
         )
         self._act: CarlaVehicle | None = None
         self._obstical_bp = obstical_bp
@@ -64,9 +66,9 @@ class FactorCaseVehicleDropObstacle(Factor):
         self._act = self._context.actors.create_vehicle(
             bp=CarlaBlueprints.VEHICLE_MERCEDES_SPRINTER,
             tf=self._context.spawn_points[self.M_WORLD_LOCATION[self._context.map_name][Factor.K_VEHICLE_ACT]],
-            name='ACT',
+            name=self.K_VEHICLE_ACT,
         )
-        self._factor_actors['ACT'] = self._act
+        self._factor_actors[self.K_VEHICLE_ACT] = self._act
 
     def apply_act_vehicle_carla_autopilot(self) -> None:
         self._act.set_carla_autopilot(enable=True)
@@ -107,11 +109,11 @@ class FactorCaseVehicleDropObstacle(Factor):
             obstacle = self._context.actors.create_actor(
                 bp=self._obstical_bp,
                 tf=obstacle_create_tf,
-                name='OBSTACLE',
+                name=self.K_OBSTACLE,
             )
             obstacle.spawn(no_tick=True)
             self._is_obstacle_created = True
-            self._factor_actors['OBSTACLE'] = obstacle
+            self._factor_actors[self.K_OBSTACLE] = obstacle
 
             self.hook_update.remove(self.create_obstacle_on_act_reach_obstacle_spawn_point)
             self.hook_update.append(self.after_create_obstacle)
@@ -120,7 +122,7 @@ class FactorCaseVehicleDropObstacle(Factor):
         if not self._is_obstacle_created:
             return
 
-        obstacle: CarlaActor = self._factor_actors['OBSTACLE']
+        obstacle: CarlaActor = self._factor_actors[self.K_OBSTACLE]
 
         if not obstacle.is_alive:
             return

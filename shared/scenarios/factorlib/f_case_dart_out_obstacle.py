@@ -2,6 +2,7 @@ import carla
 from typing_extensions import Self
 
 from shared.scenarios import Factor
+from shared.define import FactorLevel
 from shared.simulator import CarlaContext, CarlaVehicle, CarlaBlueprints, CarlaActor
 
 class FactorCaseDartOutObstacle(Factor):
@@ -23,18 +24,19 @@ class FactorCaseDartOutObstacle(Factor):
         self,
         context: CarlaContext,
         ego_vehicle: CarlaVehicle,
+        level: FactorLevel = FactorLevel.HIGH,
         obstical_bp: carla.ActorBlueprint | CarlaBlueprints | str = CarlaBlueprints.STATIC_PROP_SHOPPINGCART,
         *,
         dart_out_distance: float = 15.0,
         dart_out_speed_ms: float = 1,
         ignore_factor_ego_control: bool = False,
-        keepalive_after_triggered_seconds: int = 5,
     ):
         super().__init__(
             context,
             ego_vehicle,
+            level=level,
             ignore_factor_ego_control=ignore_factor_ego_control,
-            keepalive_after_trigger=keepalive_after_triggered_seconds,
+            keepalive_after_trigger=5.0,
         )
         self._act: CarlaVehicle | None = None
         self._obstical_bp = obstical_bp

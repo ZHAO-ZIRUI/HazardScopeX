@@ -4,6 +4,7 @@ import carla
 from typing_extensions import Self
 
 from shared.scenarios import Factor
+from shared.define import FactorLevel
 from shared.simulator import CarlaContext, CarlaVehicle, CarlaActor
 
 
@@ -39,8 +40,8 @@ class FactorCaseConstructionArea(Factor):
         self,
         context: CarlaContext,
         ego_vehicle: CarlaVehicle,
+        level: FactorLevel = FactorLevel.HIGH,
         wait_trigger_seconds: float = 0.5,
-        triggered_seconds: float = 5.0,
         start_location: carla.Location | None = None,
         distance: float = 50.0,
         interval: float = 4.0,
@@ -50,8 +51,9 @@ class FactorCaseConstructionArea(Factor):
         super().__init__(
             context,
             ego_vehicle,
+            level=level,
             ignore_factor_ego_control=ignore_factor_ego_control,
-            keepalive_after_trigger=triggered_seconds,
+            keepalive_after_trigger=5.0,
         )
         self._wait_trigger_seconds = wait_trigger_seconds
         self._start_location = start_location
