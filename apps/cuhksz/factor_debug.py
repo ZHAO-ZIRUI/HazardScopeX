@@ -9,6 +9,7 @@ from shared.prefabs import NuScenesVehicle
 from shared.scenarios.factorlib import *
 from shared.scenarios.injector import Injector
 from shared.define import FactorLevel
+from pre_combine import get_weather_light_pre_combine
 
 
 def wait_until_keypress(context: CarlaContext) -> None:
@@ -47,10 +48,10 @@ if __name__ == "__main__":
         context.actors.wait_stable()
 
 
-        for level in (FactorLevel.NONE, FactorLevel.LOW, FactorLevel.MEDIUM, FactorLevel.HIGH, FactorLevel.NONE):
-            f = FACTOR_CLASS(context, v_ego, level=level)
-            with Injector(context, f) as injector:
-                logger.warning(f'Factor {f.NAME} level {level.name} injected')
+        factos = get_weather_light_pre_combine(context, v_ego)
+        for factors in factos:
+            with Injector(context, *factors) as injector:
+                logger.warning(f'Factors {", ".join([f"{factor.NAME}({factor.level.value})" for factor in factors])} injected')
                 wait_until_keypress(context)
 
     logger.info('GOODBYE!')
