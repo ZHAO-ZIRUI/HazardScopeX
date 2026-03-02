@@ -30,7 +30,7 @@ class Injector(metaclass=PostInitMeta):
 
         # 打印日志
         self.logger.info(f'Initialized with {len(self._factors)} factors')
-        self.logger.debug(f'Factors: {", ".join([factor.NAME for factor in self._factors])}')
+        self.logger.debug(f'Factors: {", ".join([f"{factor.NAME}({factor.level.value})" for factor in self._factors])}')
         return self
 
     def __enter__(self) -> Self:
@@ -38,6 +38,7 @@ class Injector(metaclass=PostInitMeta):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.teardown()
         return
 
     @property
