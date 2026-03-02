@@ -13,14 +13,14 @@ class FactorCaseConstructionArea(Factor):
 
     M_WORLD_LOCATION = {
         'Carla/Maps/Town10HD_Opt': {
-            Factor.K_VEHICLE_EGO: 100,
-            Factor.K_OBSTACLE: 4,
-            Factor.K_VEHICLE_NPC: [11, 12, 13, 14, 5],
+            Factor.K_VEHICLE_EGO: 130,
+            Factor.K_OBSTACLE: 67,
+            Factor.K_VEHICLE_NPC: [137, 111, 103, 135, 139, 138, 126, 110, 89],
         },
         'Carla/Maps/Town04': {
             Factor.K_VEHICLE_EGO: 125,
-            Factor.K_OBSTACLE: 118,
-            Factor.K_VEHICLE_NPC: [124, 123, 117, 116, 115, 113, 112, 111, 109, 108, 107],
+            Factor.K_OBSTACLE: 292,
+            Factor.K_VEHICLE_NPC: [124, 116, 115, 113, 112, 111, 109, 108, 107],
         },
 
         # 'Carla/Maps/Town03': {
@@ -66,14 +66,20 @@ class FactorCaseConstructionArea(Factor):
         self._count_before_trigger = 0
         self._static_index = 0
 
+    def get_ego_vehicle_distance_to_obstacle(self) -> float:
+        ego_location = self._vehicle_ego.tf_now.location
+        obstacle_location = self._get_start_transform().location
+        return ego_location.distance(obstacle_location)
+
     def __post_init__(self) -> Self:
         # 初始化阶段钩子
         self.hook_bringup.append(self.move_ego_vehicle_to_init_tf)
         self.hook_bringup.append(self._create_construction_area_actors)
-        # self.hook_bringup.append(self.create_npc_vehicles)
+        self.hook_bringup.append(self.create_npc_vehicles)
         self.hook_bringup.append(self.spawn_all_factor_actors)
         self.hook_bringup.append(self.apply_npc_vehicles_carla_autopilot)
-        # self.hook_bringup.append(self._apply_ego_vehicle_carla_autopilot)
+        self.hook_bringup.append(self._apply_ego_vehicle_carla_autopilot)
+        self.hook_bringup.append(self.update_npc_vehicles_auto_lights)
 
         # 运行阶段钩子
         self.hook_update.append(self._update_trigger_by_time)
