@@ -128,6 +128,11 @@ class Factor(metaclass=PostInitMeta):
     def destroy_factor_actors(self) -> None:
         for actor in self._factor_actors.values():
             actor.destroy()
+        self._context.tick(force=True)
+        for actor in self._factor_actors.values():
+            actor_in_registry = self._context.actors.find_by_local_id(actor.id_local)
+            if actor_in_registry is not None:
+                self._context.actors.remove(actor_in_registry)
         self._factor_actors.clear()
 
     def move_ego_vehicle_to_init_tf(self) -> None:
