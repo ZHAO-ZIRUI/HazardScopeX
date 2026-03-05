@@ -30,7 +30,7 @@ class FactorCaseConstructionArea(Factor):
         # },
 
         'Carla/Maps/Town03': {
-            Factor.K_VEHICLE_EGO: 144,
+            Factor.K_VEHICLE_EGO: 141,
             Factor.K_OBSTACLE: 216,
             Factor.K_VEHICLE_NPC: [],
         },
